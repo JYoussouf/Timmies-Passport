@@ -1,0 +1,32 @@
+{
+  "name": "timmies-passport",
+  "version": "0.1.0",
+  "description": "Track every Tim Hortons in the world and collect the ones you've visited like passport stamps.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "fetch:locations": "node --experimental-strip-types scripts/fetch-locations.ts",
+    "db:migrate:local": "wrangler d1 migrations apply timmies-passport-db --local",
+    "db:migrate": "wrangler d1 migrations apply timmies-passport-db --remote",
+    "db:seed:local": "wrangler d1 execute timmies-passport-db --local --file=./scripts/seed.sql",
+    "db:seed": "wrangler d1 execute timmies-passport-db --remote --file=./scripts/seed.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260621.1",
+    "@sveltejs/adapter-cloudflare": "^4.7.4",
+    "@sveltejs/kit": "^2.8.0",
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "svelte": "^5.1.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "wrangler": "^3.84.0"
+  },
+  "dependencies": {
+    "maplibre-gl": "^4.7.1"
+  }
+}
