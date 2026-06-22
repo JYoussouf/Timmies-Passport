@@ -1,0 +1,20 @@
+name = "timmies-passport"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".svelte-kit/cloudflare"
+
+# Cloudflare D1 (SQLite) — the app works fully local-first without this,
+# but accounts, cloud sync, global counts & leaderboards use it.
+# Create with:  npx wrangler d1 create timmies-passport-db
+# then paste the returned database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "timmies-passport-db"
+# For local dev any value works; replace with the real id from
+# `wrangler d1 create timmies-passport-db` before deploying.
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[vars]
+# Optional. When set, location sheets show "View on Google Maps" deep links
+# and can fetch live ratings/photos on-demand (never bulk-stored).
+GOOGLE_MAPS_API_KEY = ""
