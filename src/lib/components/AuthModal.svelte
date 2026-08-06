@@ -31,13 +31,13 @@
 		<button class="scrim" aria-label="Close" onclick={() => ui.closeAuth()}></button>
 		<div class="modal" transition:scale={{ start: 0.96, duration: 200 }}>
 			<div class="cap pixel">
-				<CupIcon height={14} /> Insert Passport
+				<CupIcon height={14} /> My Timmies Passport
 			</div>
 			<div class="inner">
 				<h2 class="pixel">{mode === 'signup' ? 'Save your passport' : 'Welcome back'}</h2>
 				<p class="sub">
 					{mode === 'signup'
-						? `Keep your ${passport.count} stamp${passport.count === 1 ? '' : 's'} forever and sync across devices.`
+						? 'Sign up to sync your stamps across devices.'
 						: 'Sign in to sync your stamps across devices.'}
 				</p>
 

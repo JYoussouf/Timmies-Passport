@@ -1,0 +1,21 @@
+# Canonical URLs, declared at the edge.
+#
+# The app renders client-side (ssr = false), so anything in <svelte:head> only
+# exists once JavaScript has run - which is too late for a crawler that does
+# not execute it. The Link header carries the same statement in the response
+# itself, and Google treats it as equivalent to the tag.
+#
+# These are emitted on the pages.dev host too, which is the point: both
+# addresses serve, and both should name the domain as the one true home.
+
+/
+  Link: <https://mytimmiespassport.com/>; rel="canonical"
+
+/passport
+  Link: <https://mytimmiespassport.com/passport>; rel="canonical"
+
+/leaderboard
+  Link: <https://mytimmiespassport.com/leaderboard>; rel="canonical"
+
+/about
+  Link: <https://mytimmiespassport.com/about>; rel="canonical"
