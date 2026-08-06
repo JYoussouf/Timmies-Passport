@@ -88,7 +88,15 @@
 				'icon-image': 'pin-unstamped',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.4, 8, 0.62, 13, 0.95, 17, 1.35, 20, 1.6]
+				// Flat on the way in: a lone cup has to be findable on a
+				// province-wide view, and by street level the building around it
+				// has grown far faster, so the cup settles to storefront scale.
+				'icon-size': [
+					'interpolate',
+					['linear'],
+					['zoom'],
+					3, 0.85, 8, 0.95, 13, 1.1, 17, 1.35, 20, 1.5
+				]
 			}
 		});
 
@@ -103,7 +111,12 @@
 				'icon-image': 'pin-stamped',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.44, 8, 0.68, 13, 1, 17, 1.42, 20, 1.7]
+				'icon-size': [
+					'interpolate',
+					['linear'],
+					['zoom'],
+					3, 0.9, 8, 1, 13, 1.16, 17, 1.42, 20, 1.58
+				]
 			}
 		});
 
@@ -117,7 +130,12 @@
 				'icon-image': 'reticle',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.5, 13, 1.1, 17, 1.55, 20, 1.85]
+				'icon-size': [
+					'interpolate',
+					['linear'],
+					['zoom'],
+					3, 1, 13, 1.3, 17, 1.6, 20, 1.78
+				]
 			},
 			paint: { 'icon-opacity': 1 }
 		});
