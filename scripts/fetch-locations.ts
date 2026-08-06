@@ -29,6 +29,8 @@ const QUERY = `
 (
   nwr["brand:wikidata"="Q1057620"];
   nwr["brand"="Tim Hortons"];
+  nwr["disused:brand"="Tim Hortons"];
+  nwr["was:brand"="Tim Hortons"];
 );
 out center tags;
 `;
@@ -53,6 +55,12 @@ type Loc = {
 	region: string;
 	country: string;
 	country_code: string;
+	/**
+	 * Tombstoned rather than deleted. Someone may have stamped this store
+	 * before it closed, and a passport must never lose an entry because the
+	 * world changed.
+	 */
+	closed: boolean;
 };
 
 // --- Offline reverse-geocoding via Natural Earth boundaries ----------------
@@ -330,6 +338,18 @@ function normalize(el: OverpassElement): Loc | null {
 	if (LANE.test(t['name'] ?? '') || LANE.test(t['addr:street'] ?? '') || LANE.test(t['branch'] ?? ''))
 		return null;
 
+	/*
+	 * OSM records a closure by prefixing the tags that described the business -
+	 * `disused:amenity`, `was:brand`, `demolished:building` - rather than by
+	 * deleting the object. An explicit `disused=yes` or `opening_hours=closed`
+	 * says the same thing outright.
+	 */
+	const lifecycle = /^(disused|was|abandoned|demolished|razed|removed|closed):/;
+	const closed =
+		Object.keys(t).some((k) => lifecycle.test(k)) ||
+		t['disused'] === 'yes' ||
+		t['opening_hours'] === 'closed';
+
 	// Every store is called "Tim Hortons", so the address is the only thing that
 	// identifies one. Roughly half of OSM's nodes carry no addr:housenumber, so
 	// fall through progressively coarser tags rather than giving up: a branch
@@ -362,7 +382,8 @@ function normalize(el: OverpassElement): Loc | null {
 			'',
 		region: t['addr:state'] || t['addr:province'] || '',
 		country: t['addr:country'] || '',
-		country_code: (t['addr:country'] || '').toUpperCase()
+		country_code: (t['addr:country'] || '').toUpperCase(),
+		closed
 	};
 }
 
@@ -448,11 +469,11 @@ export function buildSeedSql(locs: Loc[]): string {
 				(l) =>
 					`('${l.id}','${escapeSql(l.osm_id)}','${escapeSql(l.name)}',${l.lat},${l.lng},` +
 					`'${escapeSql(l.address)}','${escapeSql(l.city)}','${escapeSql(l.region)}',` +
-					`'${escapeSql(l.country)}','${escapeSql(l.country_code)}')`
+					`'${escapeSql(l.country)}','${escapeSql(l.country_code)}',${l.closed ? 1 : 0})`
 			)
 			.join(',\n');
 		lines.push(
-			`INSERT INTO locations (id, osm_id, name, lat, lng, address, city, region, country, country_code) VALUES\n${rows};`
+			`INSERT INTO locations (id, osm_id, name, lat, lng, address, city, region, country, country_code, closed) VALUES\n${rows};`
 		);
 	}
 	return lines.join('\n') + '\n';
@@ -518,6 +539,60 @@ async function buildGazetteer() {
 	console.log(`✓ wrote static/cities.json (${cities.length} places)`);
 }
 
+/**
+ * Fold the freshly harvested set into whatever shipped last time.
+ *
+ * The rule that matters: nothing is ever removed. A stamp is stored against a
+ * location id in the visitor's own browser, so deleting a row would silently
+ * empty part of somebody's passport. A store that has vanished from OSM, or
+ * been retagged as disused, is kept and marked closed instead - it still
+ * renders, greyed out, and anyone who collected it keeps it.
+ *
+ * That makes the harvest safe to run on a schedule: it only ever adds stores,
+ * refreshes details, and flips the closed flag.
+ */
+async function mergeWithShipped(fresh: Loc[]): Promise<Loc[]> {
+	let shipped: Loc[] = [];
+	try {
+		const raw = JSON.parse(await readFile(resolve(ROOT, 'static/locations.json'), 'utf-8'));
+		shipped = (raw.features ?? []).map((f: any) => ({
+			...f.properties,
+			lat: f.geometry.coordinates[1],
+			lng: f.geometry.coordinates[0],
+			osm_id: f.properties.osm_id ?? '',
+			closed: !!f.properties.closed
+		}));
+	} catch {
+		return fresh; // first run
+	}
+
+	const byId = new Map(fresh.map((l) => [l.id, l]));
+	let reopened = 0;
+	let tombstoned = 0;
+
+	for (const old of shipped) {
+		const now = byId.get(old.id);
+		if (!now) {
+			// Gone from OSM entirely: keep it, mark it closed.
+			if (!old.closed) tombstoned++;
+			byId.set(old.id, { ...old, closed: true });
+			continue;
+		}
+		// Keep detail we already had if this harvest came back thinner.
+		now.address ||= old.address;
+		now.city ||= old.city;
+		if (old.closed && !now.closed) reopened++;
+	}
+
+	const merged = [...byId.values()];
+	const closed = merged.filter((l) => l.closed).length;
+	console.log(
+		`✓ merged with the shipped set: ${merged.length - shipped.length} added, ` +
+			`${tombstoned} newly closed, ${reopened} reopened, ${closed} closed in total`
+	);
+	return merged;
+}
+
 async function main() {
 	const elements = await runOverpass();
 	console.log(`← received ${elements.length} raw elements`);
@@ -558,10 +633,12 @@ async function main() {
 	 * street needs both addresses, and those are only known once the enrichment
 	 * above has run.
 	 */
-	const merged = dedupe(locs);
-	console.log(`✓ merged ${locs.length - merged.length} duplicate storefronts`);
+	const deduped = dedupe(locs);
+	console.log(`✓ merged ${locs.length - deduped.length} duplicate storefronts`);
+
+	const withHistory = await mergeWithShipped(deduped);
 	locs.length = 0;
-	locs.push(...merged);
+	locs.push(...withHistory.sort((a, b) => a.id.localeCompare(b.id)));
 
 	// GeoJSON for the map
 	const geojson = {
@@ -578,7 +655,9 @@ async function main() {
 				city: l.city,
 				region: l.region,
 				country: l.country,
-				country_code: l.country_code
+				country_code: l.country_code,
+				// Omitted when false, which keeps the payload small.
+				...(l.closed ? { closed: true } : {})
 			}
 		}))
 	};

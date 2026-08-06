@@ -36,6 +36,31 @@ Local dev uses `platformProxy`, so the D1 binding from `wrangler.toml` is
 available to the API routes. Without D1 the app still runs fully local-first  - 
 accounts/leaderboards just stay empty.
 
+## Keeping the map current
+
+```bash
+npm run fetch:locations   # re-harvest, merge, rebuild seed + gazetteer
+npm run db:seed           # push the result to the remote D1
+```
+
+Safe to run ad-hoc or on a schedule. **The harvest never removes a location.**
+Stamps live in each visitor's own browser keyed on the location id, so deleting
+a row would quietly empty part of somebody's passport. A store that has
+disappeared from OpenStreetMap, or been retagged `disused:`/`was:`, is kept and
+marked `closed` instead: it still renders, greyed out, labelled "Permanently
+closed", and anyone who collected it keeps it.
+
+Each run reports what changed:
+
+```
+✓ merged with the shipped set: 3 added, 1 newly closed, 0 reopened, 15 closed in total
+```
+
+A closure can also reverse itself - if OSM shows the store as active again the
+flag clears. Visitors can flag a store from its card ("Report"), which opens an
+issue with the id and coordinates filled in; OpenStreetMap lags reality, so a
+human is often the first signal that a location is gone or misplaced.
+
 ## Refresh the location data
 
 ```bash
