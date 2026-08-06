@@ -217,7 +217,17 @@
 				haptic(8);
 				const id = f.properties!.id as string;
 				ui.select(id);
-				focusStore(f.geometry as GeoJSON.Point);
+				/*
+				 * The dataset's coordinates, not the clicked feature's.
+				 *
+				 * MapLibre returns geometry decoded from the vector tile the
+				 * feature was rendered from, quantised to that tile's grid. Tap a
+				 * cup on a country-wide view and those coordinates are coarse
+				 * enough to land hundreds of metres out; tap the same cup again,
+				 * now rendered from a zoom-17 tile, and it is exact. That is why
+				 * a first tap missed the centre and a second one hit it.
+				 */
+				focusStore(locations.coordsOf(id) ?? (f.geometry as GeoJSON.Point).coordinates as [number, number]);
 			});
 			map.on('mouseenter', layer, () => (map!.getCanvas().style.cursor = 'pointer'));
 			map.on('mouseleave', layer, () => (map!.getCanvas().style.cursor = ''));
@@ -261,12 +271,16 @@
 	 * so the true centre is already clear of it, and anywhere else just reads as
 	 * off-centre.
 	 */
-	function focusStore(geom: GeoJSON.Point) {
-		map?.easeTo({
-			center: geom.coordinates as [number, number],
-			zoom: Math.max(map.getZoom(), STREET_ZOOM),
-			duration: 700
-		});
+	function focusStore(center: [number, number]) {
+		if (!map) return;
+		const zoom = Math.max(map.getZoom(), STREET_ZOOM);
+		/*
+		 * flyTo, not easeTo. Tapping a cup on a country-wide view is a fourteen
+		 * level jump, and easeTo interpolates zoom and centre independently, so
+		 * it drifts and lands off-target - the reason a first tap missed and a
+		 * second, now a short hop, worked. flyTo is built for exactly this.
+		 */
+		map.flyTo({ center, zoom, duration: 900, essential: true });
 	}
 
 	export function flyTo(center: [number, number], zoom = STREET_ZOOM) {
@@ -378,6 +392,10 @@
 		// are roughly 4x the wheel default and 2x the trackpad default.
 		map.scrollZoom.setWheelZoomRate(1 / 110);
 		map.scrollZoom.setZoomRate(1 / 50);
+
+		// Dev-only handle, for driving the map from a console or a test harness.
+		if (import.meta.env.DEV) (window as unknown as { __map?: unknown }).__map = map;
+
 
 		map.on('load', async () => {
 			await locations.load();
