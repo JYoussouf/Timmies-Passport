@@ -83,7 +83,7 @@
 				'icon-image': 'pin-unstamped',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.28, 8, 0.4, 13, 0.55]
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.4, 8, 0.62, 13, 0.95, 17, 1.35, 20, 1.6]
 			}
 		});
 
@@ -98,7 +98,7 @@
 				'icon-image': 'pin-stamped',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.32, 8, 0.45, 13, 0.6]
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.44, 8, 0.68, 13, 1, 17, 1.42, 20, 1.7]
 			}
 		});
 
@@ -112,7 +112,7 @@
 				'icon-image': 'reticle',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.4, 13, 0.75]
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.5, 13, 1.1, 17, 1.55, 20, 1.85]
 			},
 			paint: { 'icon-opacity': 1 }
 		});
@@ -176,24 +176,23 @@
 	}
 
 	/**
-	 * Zoom close enough to read the intersection a store sits on, and lift it
-	 * clear of the centred check-in card. Never zooms back out: tapping a store
-	 * you already flew to should not undo your zoom.
+	 * Zoom close enough to read the intersection a store sits on. The selected
+	 * cup lands dead centre, because the check-in card floats directly above it
+	 * rather than covering it. Never zooms back out: tapping a store you already
+	 * flew to should not undo your zoom.
 	 */
 	const STREET_ZOOM = 17;
-	const cardOffset = (): [number, number] => [0, -Math.round(window.innerHeight * 0.2)];
 
 	function focusStore(geom: GeoJSON.Point) {
 		map?.easeTo({
 			center: geom.coordinates as [number, number],
 			zoom: Math.max(map.getZoom(), STREET_ZOOM),
-			offset: cardOffset(),
 			duration: 700
 		});
 	}
 
 	export function flyTo(center: [number, number], zoom = STREET_ZOOM) {
-		map?.flyTo({ center, zoom, offset: cardOffset(), duration: 1400 });
+		map?.flyTo({ center, zoom, duration: 1400 });
 	}
 
 	/** Pull back to the opening world view. */
