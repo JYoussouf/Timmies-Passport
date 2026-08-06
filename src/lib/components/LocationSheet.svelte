@@ -186,7 +186,9 @@
 	.backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(8, 15, 26, 0.8);
+		/* Light enough to still read the street you are standing on: the card is
+		   foregrounded by its bevel and shadow, not by blacking out the map. */
+		background: rgba(8, 15, 26, 0.25);
 		z-index: 40;
 		animation: fade 0.2s steps(3, end);
 		border: none;
