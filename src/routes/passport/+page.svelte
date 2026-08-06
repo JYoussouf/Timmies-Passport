@@ -6,7 +6,6 @@
 	import CupIcon from '$lib/components/CupIcon.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { locations } from '$lib/stores/locations.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
 	import { locationLabel, locationPlace } from '$lib/location';
 
@@ -86,13 +85,6 @@
 
 			<button class="pbtn pbtn-gold share" onclick={share}>Share my passport</button>
 		</section>
-
-		{#if !auth.signedIn && passport.count > 0}
-			<button class="save" onclick={() => ui.openAuth('signup')}>
-				Sign up to keep these {plural(passport.count, 'stamp')} across devices
-				<span aria-hidden="true">›</span>
-			</button>
-		{/if}
 
 		<section>
 			<h2 class="section-title">Recent stamps</h2>
@@ -218,24 +210,6 @@
 	}
 	.share {
 		align-self: flex-start;
-	}
-
-	/* A prompt, not a panel. */
-	.save {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.8rem;
-		padding: 0.2rem 0;
-		text-align: left;
-		font-size: 0.95rem;
-		line-height: 1.4;
-		color: var(--gold);
-		border-bottom: 2px solid rgba(242, 177, 52, 0.35);
-	}
-	.save:hover {
-		color: #ffc450;
-		border-bottom-color: var(--gold);
 	}
 
 	.section-title {
