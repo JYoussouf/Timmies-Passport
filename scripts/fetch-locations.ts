@@ -345,6 +345,7 @@ function normalize(el: OverpassElement): Loc | null {
 	 * says the same thing outright.
 	 */
 	const lifecycle = /^(disused|was|abandoned|demolished|razed|removed|closed):/;
+
 	const closed =
 		Object.keys(t).some((k) => lifecycle.test(k)) ||
 		t['disused'] === 'yes' ||
@@ -395,11 +396,6 @@ function metresBetween(a: Loc, b: Loc): number {
 	return R * Math.hypot(dLat, dLng);
 }
 
-/** How complete a record is, used to decide which of a pair to keep. */
-function richness(l: Loc): number {
-	return (l.address ? 4 : 0) + (l.city ? 2 : 0) + (l.region ? 1 : 0);
-}
-
 /**
  * Collapse the same storefront mapped more than once.
  *
@@ -420,7 +416,7 @@ function sameAddress(a: Loc, b: Loc): boolean {
 	return !x || !y || x === y;
 }
 
-function dedupe(locs: Loc[]): Loc[] {
+function dedupe(locs: Loc[]): { kept: Loc[]; dropped: Set<string> } {
 	const MIXED_M = 60;
 	const SAME_TYPE_M = 60;
 	const byLat = [...locs].sort((a, b) => a.lat - b.lat);
@@ -436,8 +432,17 @@ function dedupe(locs: Loc[]): Loc[] {
 			if (metresBetween(a, b) > (sameType ? SAME_TYPE_M : MIXED_M)) continue;
 			if (sameType && !sameAddress(a, b)) continue;
 
-			// Keep the richer record, and let it inherit anything the other had.
-			const [keep, drop] = richness(a) >= richness(b) ? [a, b] : [b, a];
+			/*
+			 * The survivor is chosen by id, not by richness.
+			 *
+			 * Richness depends on enrichment, which grows between harvests as the
+			 * geocode cache fills, so it flipped which half of a pair survived.
+			 * The merge then read the previous winner as a store that had
+			 * vanished and tombstoned it - the closed count climbed on every run
+			 * and the duplicate cup came back greyed out. A stable key keeps the
+			 * same id forever, which is also what stamps are keyed on.
+			 */
+			const [keep, drop] = a.id < b.id ? [a, b] : [b, a];
 			if (!keep.address) keep.address = drop.address;
 			if (!keep.city) keep.city = drop.city;
 			if (!keep.region) keep.region = drop.region;
@@ -447,7 +452,7 @@ function dedupe(locs: Loc[]): Loc[] {
 		}
 	}
 
-	return locs.filter((l) => !dropped.has(l.id));
+	return { kept: locs.filter((l) => !dropped.has(l.id)), dropped };
 }
 
 function escapeSql(v: string): string {
@@ -551,7 +556,7 @@ async function buildGazetteer() {
  * That makes the harvest safe to run on a schedule: it only ever adds stores,
  * refreshes details, and flips the closed flag.
  */
-async function mergeWithShipped(fresh: Loc[]): Promise<Loc[]> {
+async function mergeWithShipped(fresh: Loc[], dropped: Set<string>): Promise<Loc[]> {
 	let shipped: Loc[] = [];
 	try {
 		const raw = JSON.parse(await readFile(resolve(ROOT, 'static/locations.json'), 'utf-8'));
@@ -571,6 +576,24 @@ async function mergeWithShipped(fresh: Loc[]): Promise<Loc[]> {
 	let tombstoned = 0;
 
 	for (const old of shipped) {
+		/*
+		 * Ids this harvest deliberately merged away are not missing stores, they
+		 * are the losing half of a duplicate pair. Resurrecting them as
+		 * tombstones would put the second cup back on the map and grow the
+		 * closed count on every single run.
+		 */
+		if (dropped.has(old.id)) continue;
+
+		/*
+		 * Stores that came from the brand locator have no OSM object behind
+		 * them, so their absence from an OSM harvest means nothing. Carry them
+		 * through untouched and let the locator decide their fate below.
+		 */
+		if (!old.osm_id) {
+			byId.set(old.id, old);
+			continue;
+		}
+
 		const now = byId.get(old.id);
 		if (!now) {
 			// Gone from OSM entirely: keep it, mark it closed.
@@ -593,6 +616,174 @@ async function mergeWithShipped(fresh: Loc[]): Promise<Loc[]> {
 	return merged;
 }
 
+/**
+ * Hand corrections, applied after everything else so they always win.
+ *
+ * OpenStreetMap lags reality: a store that has moved or quietly shut often
+ * carries no closure tag for months. This is the lever for those, and for
+ * undoing a heuristic that guessed wrong.
+ */
+async function applyOverrides(locs: Loc[]) {
+	let raw: { closed?: Record<string, string>; open?: Record<string, string> };
+	try {
+		raw = JSON.parse(await readFile(resolve(__dirname, 'overrides.json'), 'utf-8'));
+	} catch {
+		return;
+	}
+
+	const byId = new Map(locs.map((l) => [l.id, l]));
+	let closed = 0;
+	let opened = 0;
+	let stale: string[] = [];
+
+	for (const id of Object.keys(raw.closed ?? {})) {
+		const l = byId.get(id);
+		if (!l) stale.push(id);
+		else if (!l.closed) {
+			l.closed = true;
+			closed++;
+		}
+	}
+	for (const id of Object.keys(raw.open ?? {})) {
+		const l = byId.get(id);
+		if (!l) stale.push(id);
+		else if (l.closed) {
+			l.closed = false;
+			opened++;
+		}
+	}
+
+	console.log(`✓ overrides: ${closed} forced closed, ${opened} forced open`);
+	if (stale.length) {
+		console.warn(`! overrides reference ${stale.length} unknown id(s): ${stale.join(", ")}`);
+	}
+}
+
+// --- The brand's own store list -------------------------------------------
+/*
+ * OpenStreetMap says where stores are; Tim Hortons says which ones exist.
+ *
+ * All The Places scrapes the chain's own locator API and publishes it under
+ * CC0, refreshed weekly. That makes it the authoritative answer to "is this
+ * one still open", and it is free and storable - unlike Google Places, whose
+ * terms forbid persisting their content in a file like ours.
+ *
+ * It only covers the markets the locator serves, so its silence is only
+ * evidence in those countries. A store in Jiangsu is not closed merely because
+ * the North American locator has never heard of it.
+ */
+const ATP_LATEST = 'https://data.alltheplaces.xyz/runs/latest.json';
+const ATP_SPIDERS = ['tim_hortons', 'tim_hortons_gb'];
+const BRAND_COUNTRIES = new Set(['CA', 'US', 'GB']);
+/** OSM and the locator rarely agree to the metre; this is a storefront's worth. */
+const MATCH_M = 400;
+
+type BrandStore = { ref: string; lat: number; lng: number; address: string; city: string; country: string };
+
+async function fetchBrandStores(): Promise<BrandStore[]> {
+	const latest = (await (await fetch(ATP_LATEST)).json()) as { run_id: string };
+	const base = `https://alltheplaces-data.openaddresses.io/runs/${latest.run_id}/output`;
+	const out: BrandStore[] = [];
+
+	for (const spider of ATP_SPIDERS) {
+		const res = await fetch(`${base}/${spider}.geojson`);
+		if (!res.ok) throw new Error(`${spider}: HTTP ${res.status}`);
+		const fc = (await res.json()) as { features: any[] };
+		for (const f of fc.features) {
+			const [lng, lat] = f.geometry?.coordinates ?? [];
+			if (typeof lat !== 'number' || typeof lng !== 'number') continue;
+			const p = f.properties ?? {};
+			out.push({
+				ref: String(p.ref ?? ''),
+				lat,
+				lng,
+				address: p['addr:street_address'] ?? '',
+				city: p['addr:city'] ?? '',
+				country: (p['addr:country'] ?? '').toUpperCase()
+			});
+		}
+	}
+	console.log(`  ${out.length} stores in the brand locator (run ${latest.run_id})`);
+	return out;
+}
+
+/**
+ * Reconcile our map against that list: close what the brand no longer lists,
+ * reopen what it does, and add stores we never had.
+ *
+ * Matching is greedy nearest-first so two stores in one plaza cannot both claim
+ * the same locator entry.
+ */
+function reconcileWithBrand(locs: Loc[], brand: BrandStore[]): Loc[] {
+	const covered = locs.filter((l) => BRAND_COUNTRIES.has(l.country_code));
+	const pairs: { d: number; loc: Loc; store: BrandStore }[] = [];
+
+	// Bucket by latitude so this stays a few million comparisons, not twenty.
+	const buckets = new Map<number, BrandStore[]>();
+	const key = (lat: number) => Math.round(lat * 100);
+	for (const s of brand) {
+		const k = key(s.lat);
+		(buckets.get(k) ?? buckets.set(k, []).get(k)!).push(s);
+	}
+
+	for (const loc of covered) {
+		const k = key(loc.lat);
+		for (const dk of [k - 1, k, k + 1]) {
+			for (const store of buckets.get(dk) ?? []) {
+				const d = metresBetween(loc, { lat: store.lat, lng: store.lng } as Loc);
+				if (d <= MATCH_M) pairs.push({ d, loc, store });
+			}
+		}
+	}
+
+	pairs.sort((a, b) => a.d - b.d);
+	const takenLoc = new Set<string>();
+	const takenStore = new Set<BrandStore>();
+	for (const { loc, store } of pairs) {
+		if (takenLoc.has(loc.id) || takenStore.has(store)) continue;
+		takenLoc.add(loc.id);
+		takenStore.add(store);
+	}
+
+	let closed = 0;
+	let reopened = 0;
+	for (const loc of covered) {
+		const listed = takenLoc.has(loc.id);
+		if (!listed && !loc.closed) {
+			loc.closed = true;
+			closed++;
+		} else if (listed && loc.closed) {
+			loc.closed = false;
+			reopened++;
+		}
+	}
+
+	// Stores the brand lists that we have never had a record of.
+	const added: Loc[] = [];
+	for (const store of brand) {
+		if (takenStore.has(store) || !store.ref) continue;
+		added.push({
+			id: `th${store.ref}`,
+			osm_id: '',
+			name: 'Tim Hortons',
+			lat: +store.lat.toFixed(6),
+			lng: +store.lng.toFixed(6),
+			address: store.address,
+			city: store.city,
+			region: '',
+			country: '',
+			country_code: store.country,
+			closed: false
+		});
+	}
+	locs.push(...added);
+
+	console.log(
+		`✓ brand locator: ${closed} closed, ${reopened} reopened, ${added.length} new stores added`
+	);
+	return added;
+}
+
 async function main() {
 	const elements = await runOverpass();
 	console.log(`← received ${elements.length} raw elements`);
@@ -611,17 +802,23 @@ async function main() {
 	 * "ON", "Ont", "ON." and "On" all appear - whereas the boundary data gives
 	 * one canonical name, which is what lists and grouping need.
 	 */
-	try {
-		const geocode = await buildGeocoder();
+	let geocode: Awaited<ReturnType<typeof buildGeocoder>> | null = null;
+	const placeAll = (rows: Loc[]) => {
+		if (!geocode) return 0;
 		let filled = 0;
-		for (const l of locs) {
+		for (const l of rows) {
 			const g = geocode(l.lng, l.lat);
 			if (g.country) l.country = g.country;
 			if (g.country_code) l.country_code = g.country_code;
 			if (g.region) l.region = g.region;
 			if (l.country_code) filled++;
 		}
-		console.log(`✓ reverse-geocoded ${filled} locations to a country`);
+		return filled;
+	};
+
+	try {
+		geocode = await buildGeocoder();
+		console.log(`✓ reverse-geocoded ${placeAll(locs)} locations to a country`);
 	} catch (err) {
 		console.warn(`! reverse-geocoding skipped (${(err as Error).message}) - using OSM tags only`);
 	}
@@ -633,12 +830,25 @@ async function main() {
 	 * street needs both addresses, and those are only known once the enrichment
 	 * above has run.
 	 */
-	const deduped = dedupe(locs);
-	console.log(`✓ merged ${locs.length - deduped.length} duplicate storefronts`);
+	const { kept, dropped } = dedupe(locs);
+	console.log(`✓ merged ${dropped.size} duplicate storefronts`);
 
-	const withHistory = await mergeWithShipped(deduped);
+	const withHistory = await mergeWithShipped(kept, dropped);
 	locs.length = 0;
 	locs.push(...withHistory.sort((a, b) => a.id.localeCompare(b.id)));
+
+	try {
+		console.log('→ checking against the brand locator …');
+		const added = reconcileWithBrand(locs, await fetchBrandStores());
+		// Stores the locator contributed arrive with coordinates but no region,
+		// so they go through the same placement as the rest.
+		if (added.length) placeAll(added);
+	} catch (err) {
+		console.warn(`! brand check skipped (${(err as Error).message}) - closures left as OSM has them`);
+	}
+
+	// Last, so a hand correction survives deduping and the brand check.
+	await applyOverrides(locs);
 
 	// GeoJSON for the map
 	const geojson = {

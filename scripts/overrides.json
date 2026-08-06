@@ -1,0 +1,5 @@
+{
+  "_comment": "Hand corrections applied after every harvest, winning over both OpenStreetMap and the brand locator. Keep this empty when the data gets it right; each entry is a claim that both sources are wrong. Keys are location ids, values are the reason.",
+  "closed": {},
+  "open": {}
+}

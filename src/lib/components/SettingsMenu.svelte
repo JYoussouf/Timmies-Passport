@@ -145,11 +145,4 @@
 			inset 0 0 0 2px var(--mint-deep),
 			inset 0 0 0 5px var(--mint);
 	}
-	.hint {
-		margin: 0;
-		padding: 0 0.85rem 0.7rem;
-		font-size: 0.75rem;
-		line-height: 1.4;
-		color: var(--cream-dim);
-	}
 </style>

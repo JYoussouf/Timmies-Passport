@@ -43,6 +43,26 @@ npm run fetch:locations   # re-harvest, merge, rebuild seed + gazetteer
 npm run db:seed           # push the result to the remote D1
 ```
 
+Monthly is about right - the brand locator behind it refreshes weekly.
+
+Two sources, each doing what it is good at. **OpenStreetMap** says where stores
+are and gives every record its stable id. **Tim Hortons' own store locator**,
+via [All The Places](https://www.alltheplaces.xyz/) (CC0, rebuilt weekly), says
+which ones exist: anything the chain no longer lists is closed, anything it
+lists that we lack is added. OSM lags reality by months, which is why a store
+that had quietly moved still showed as open.
+
+Google Places was considered and rejected: it costs per request, and its terms
+forbid persisting their content in a file like `static/locations.json`. The
+brand's own list is free, storable, and more authoritative besides.
+
+The locator only covers Canada, the US and the UK, so its silence is only
+evidence there - a store in Jiangsu is not closed because a North American
+locator has never heard of it.
+
+`scripts/overrides.json` is the last word when both sources are wrong. Keep it
+empty when they are not.
+
 Safe to run ad-hoc or on a schedule. **The harvest never removes a location.**
 Stamps live in each visitor's own browser keyed on the location id, so deleting
 a row would quietly empty part of somebody's passport. A store that has
