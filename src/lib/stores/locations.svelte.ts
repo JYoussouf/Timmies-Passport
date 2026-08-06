@@ -59,33 +59,28 @@ class LocationStore {
 
 
 	/**
-	 * Cities and towns, derived from the locations themselves.
+	 * Searchable places, derived from the locations themselves so the two can
+	 * never drift apart.
 	 *
-	 * Built once on demand rather than stored: the dataset already carries the
-	 * city on every row, so a separate list would be a second source of truth
-	 * that could drift from it.
+	 * Indexed at two levels, because which one carries the name people know
+	 * varies by country: Toronto is a city, but Beijing is a region whose
+	 * cities are districts like Chaoyang, and Dubai's city field is in Arabic.
+	 * Indexing only cities made search look Canada-only.
+	 *
+	 * A region always contains its cities, so where both share a name the
+	 * region wins - it has the fuller count and the wider bounds.
 	 */
 	private placeCache: Place[] | null = null;
 
 	get places(): Place[] {
 		void this.collection;
-		if (this.placeCache && this.placeCache.length) return this.placeCache;
+		if (this.placeCache?.length) return this.placeCache;
+
 		const byKey = new Map<string, Place>();
-		for (const [id, p] of this.index) {
-			if (!p.city) continue;
-			const key = `${p.city}|${p.region}|${p.country}`;
-			const c = this.coords.get(id);
-			if (!c) continue;
+		const add = (key: string, name: string, context: string, c: [number, number]) => {
 			let place = byKey.get(key);
 			if (!place) {
-				place = {
-					key,
-					city: p.city,
-					region: p.region,
-					country: p.country,
-					count: 0,
-					bounds: [c[0], c[1], c[0], c[1]]
-				};
+				place = { key, name, context, count: 0, bounds: [c[0], c[1], c[0], c[1]] };
 				byKey.set(key, place);
 			}
 			place.count++;
@@ -94,8 +89,29 @@ class LocationStore {
 			if (c[1] < b[1]) b[1] = c[1];
 			if (c[0] > b[2]) b[2] = c[0];
 			if (c[1] > b[3]) b[3] = c[1];
+		};
+
+		for (const [id, p] of this.index) {
+			const c = this.coords.get(id);
+			if (!c) continue;
+			const country = p.country || '';
+			if (p.city) {
+				// A city inside a like-named region reads "Leicester, Leicester, UK".
+				const where = [p.region, country].filter((v) => v && v !== p.city).join(', ');
+				add(`c|${p.city}|${p.region}|${country}`, p.city, where, c);
+			}
+			if (p.region) add(`r|${p.region}|${country}`, p.region, country, c);
 		}
-		this.placeCache = [...byKey.values()].sort((a, b) => b.count - a.count);
+
+		// Collapse a city and its like-named region into the broader one.
+		const best = new Map<string, Place>();
+		for (const place of byKey.values()) {
+			const dedupe = `${place.name.toLowerCase()}|${place.context.split(', ').pop() ?? ''}`;
+			const seen = best.get(dedupe);
+			if (!seen || place.count > seen.count) best.set(dedupe, place);
+		}
+
+		this.placeCache = [...best.values()].sort((a, b) => b.count - a.count);
 		return this.placeCache;
 	}
 

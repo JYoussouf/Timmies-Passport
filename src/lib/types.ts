@@ -8,12 +8,13 @@ export interface LocationProps {
 	country_code: string;
 }
 
-/** A city or town, aggregated from the locations that sit in it. */
+/** A searchable place - a city or a region - aggregated from its locations. */
 export interface Place {
 	key: string;
-	city: string;
-	region: string;
-	country: string;
+	/** What the user would type: "Toronto", "Beijing", "Leicester". */
+	name: string;
+	/** Where it is, for disambiguating the many Londons and Windsors. */
+	context: string;
 	count: number;
 	/** [minLng, minLat, maxLng, maxLat] over every Timmies in the place. */
 	bounds: [number, number, number, number];

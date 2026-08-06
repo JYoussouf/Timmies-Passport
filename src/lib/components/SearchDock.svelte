@@ -28,17 +28,20 @@
 	const term = $derived(q.trim().toLowerCase());
 
 	/**
-	 * Cities rank above individual stores, and a name that starts with the term
+	 * Places rank above individual stores, and a name that starts with the term
 	 * ranks above one that merely contains it - typing "toronto" should offer
 	 * Toronto before a store on Toronto Street somewhere else.
+	 *
+	 * The context is searchable too, so "leicester uk" and "windsor nova
+	 * scotia" both land.
 	 */
 	const placeHits = $derived.by(() => {
 		if (term.length < 2) return [] as Place[];
-		const hits = locations.places.filter((p) => p.city.toLowerCase().includes(term));
-		return hits
+		return locations.places
+			.filter((p) => `${p.name} ${p.context}`.toLowerCase().includes(term))
 			.sort((a, b) => {
-				const sa = a.city.toLowerCase().startsWith(term) ? 0 : 1;
-				const sb = b.city.toLowerCase().startsWith(term) ? 0 : 1;
+				const sa = a.name.toLowerCase().startsWith(term) ? 0 : 1;
+				const sb = b.name.toLowerCase().startsWith(term) ? 0 : 1;
 				return sa - sb || b.count - a.count;
 			})
 			.slice(0, 2);
@@ -102,8 +105,8 @@
 							<circle cx="12" cy="10" r="2.4" fill="currentColor" />
 						</svg>
 						<span class="info">
-							<strong>{p.city}</strong>
-							<small>{[p.region, p.country].filter(Boolean).join(', ')}</small>
+							<strong>{p.name}</strong>
+							<small>{p.context}</small>
 						</span>
 						<span class="count pixel">{p.count}</span>
 					</button>
