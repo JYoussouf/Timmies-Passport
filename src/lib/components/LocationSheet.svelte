@@ -200,7 +200,7 @@
 		left: 50%;
 		transform: translateX(-50%);
 		z-index: 41;
-		width: min(420px, calc(100vw - 24px));
+		width: min(360px, calc(100vw - 28px));
 		max-height: calc(50dvh - 2rem);
 		overflow-y: auto;
 		transition: max-height 0.2s linear;
@@ -216,7 +216,7 @@
 		touch-action: none;
 	}
 	.inner {
-		padding: 0 1.1rem 1.2rem;
+		padding: 0 0.9rem 0.95rem;
 	}
 	/*
 	 * With street view open the card is taller than the space above the marker,
@@ -232,12 +232,12 @@
 	.grab {
 		display: flex;
 		justify-content: center;
-		padding: 0.65rem 0 0.5rem;
+		padding: 0.5rem 0 0.4rem;
 		cursor: grab;
 	}
 	.grabber {
-		width: 44px;
-		height: 6px;
+		width: 36px;
+		height: 5px;
 		background: var(--cabinet-hi);
 		box-shadow: inset 2px 2px 0 var(--cabinet-lo);
 	}
@@ -246,34 +246,34 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
-		gap: 0.75rem;
-		margin-bottom: 1rem;
+		gap: 0.6rem;
+		margin-bottom: 0.7rem;
 	}
 	.titles {
 		min-width: 0;
 	}
 	h2 {
-		font-size: 0.72rem;
-		line-height: 1.6;
+		font-size: 0.58rem;
+		line-height: 1.65;
 		color: var(--gold);
 	}
 	.addr {
-		margin: 0.5rem 0 0;
+		margin: 0.4rem 0 0;
 		color: var(--cream-dim);
-		font-size: 0.88rem;
+		font-size: 0.8rem;
 		line-height: 1.4;
 	}
 
 	/* Secondary actions: text links, not buttons competing with Stamp it. */
 	.links {
 		display: flex;
-		gap: 1rem;
-		margin: 0 0 0.85rem;
+		gap: 0.9rem;
+		margin: 0 0 0.7rem;
 	}
 	.link {
 		padding: 0.25rem 0;
 		font-family: var(--font-sans);
-		font-size: 0.85rem;
+		font-size: 0.78rem;
 		color: var(--gold);
 		text-decoration: underline;
 		text-underline-offset: 3px;
@@ -304,9 +304,9 @@
 	}
 	.checkin {
 		width: 100%;
-		font-size: 0.78rem;
-		padding: 1.15rem;
-		min-height: 58px;
+		font-size: 0.62rem;
+		padding: 0.85rem;
+		min-height: 46px;
 	}
 	/*
 	 * An idle pulse invites the press. It animates the glow rather than the
