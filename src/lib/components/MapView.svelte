@@ -12,6 +12,7 @@
 	import { locations } from '$lib/stores/locations.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
+	import { settings } from '$lib/stores/settings.svelte';
 	import { haptic } from '$lib/effects';
 
 	let { onmove }: { onmove?: (c: { lng: number; lat: number; zoom: number }) => void } = $props();
@@ -26,14 +27,21 @@
 	const CLUSTER_ZOOM_CAP = 16;
 
 	function buildData(): GeoJSON.FeatureCollection {
-		const feats = (locations.collection?.features ?? []).map((f) => ({
-			...f,
-			properties: {
-				...f.properties,
-				visited: passport.isVisited(f.properties.id) ? 1 : 0,
-				closed: f.properties.closed ? 1 : 0
-			}
-		}));
+		const feats = (locations.collection?.features ?? [])
+			.map((f) => ({
+				...f,
+				properties: {
+					...f.properties,
+					visited: passport.isVisited(f.properties.id) ? 1 : 0,
+					closed: f.properties.closed ? 1 : 0
+				}
+			}))
+			/*
+			 * Filtered out of the source rather than hidden at the layer, so the
+			 * cluster counts agree with what is drawn. A closure already in the
+			 * passport always stays: it is part of a collection.
+			 */
+			.filter((f) => settings.showClosed || !f.properties.closed || f.properties.visited);
 		return { type: 'FeatureCollection', features: feats as GeoJSON.Feature[] };
 	}
 
@@ -416,9 +424,10 @@
 		};
 	});
 
-	// Re-paint pins whenever the user's collection changes
+	// Re-paint pins when the collection changes, or closures are toggled
 	$effect(() => {
 		void passport.count;
+		void settings.showClosed;
 		if (ready) refreshData();
 	});
 

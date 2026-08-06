@@ -56,6 +56,10 @@ Each run reports what changed:
 ✓ merged with the shipped set: 3 added, 1 newly closed, 0 reopened, 15 closed in total
 ```
 
+Closed stores are hidden on the map by default and enabled from the settings
+button in the tab bar; one you have already stamped always shows, because it is
+part of a passport.
+
 A closure can also reverse itself - if OSM shows the store as active again the
 flag clears. Visitors can flag a store from its card ("Report"), which opens an
 issue with the id and coordinates filled in; OpenStreetMap lags reality, so a

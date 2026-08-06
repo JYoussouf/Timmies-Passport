@@ -5,11 +5,13 @@
 	import AuthModal from '$lib/components/AuthModal.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { settings } from '$lib/stores/settings.svelte';
 
 	let { children } = $props();
 
 	onMount(() => {
 		passport.hydrate();
+		settings.hydrate();
 		auth.init();
 
 		/*

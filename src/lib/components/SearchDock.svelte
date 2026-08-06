@@ -9,6 +9,7 @@
 	 */
 	import { locations } from '$lib/stores/locations.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
+	import { settings } from '$lib/stores/settings.svelte';
 	import { locationLabel, locationPlace } from '$lib/location';
 	import CupIcon from './CupIcon.svelte';
 	import { gazetteer } from '$lib/stores/gazetteer.svelte';
@@ -55,6 +56,9 @@
 		if (room <= 0) return [];
 		const out = [];
 		for (const p of locations.all()) {
+			// Match the map: a hidden closure should not be reachable from search
+			// either, or you land on a card with no cup under it.
+			if (p.closed && !settings.showClosed && !passport.isVisited(p.id)) continue;
 			const hay = `${p.name} ${p.address} ${p.city} ${p.region} ${p.country}`.toLowerCase();
 			if (hay.includes(term)) {
 				out.push(p);

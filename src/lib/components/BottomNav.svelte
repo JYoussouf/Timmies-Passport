@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import SupportMenu from './SupportMenu.svelte';
+	import SettingsMenu from './SettingsMenu.svelte';
 
 	/** `href: null` renders an inert tab: visible, labelled, but not a link. */
 	const tabs = [
@@ -21,7 +22,8 @@
 </script>
 
 <nav class="nav" aria-label="Primary">
-	<div class="support-slot"><SupportMenu /></div>
+	<div class="gutter left"><SupportMenu /></div>
+	<div class="gutter right"><SettingsMenu /></div>
 
 	{#each tabs as t (t.label)}
 		<svelte:element
@@ -56,6 +58,9 @@
 	.nav {
 		order: 4;
 		position: relative;
+		/* Above the search dock, so the gutter menus open over it rather than
+		   under it - they are anchored here and grow upward. */
+		z-index: 26;
 		display: flex;
 		justify-content: center;
 		/* Symmetric gutters: the left one holds support, the right keeps the
@@ -89,11 +94,16 @@
 		cursor: default;
 		color: var(--cream-faint);
 	}
-	.support-slot {
+	.gutter {
 		position: absolute;
-		left: 5px;
 		top: 50%;
 		transform: translateY(-50%);
+	}
+	.gutter.left {
+		left: 5px;
+	}
+	.gutter.right {
+		right: 5px;
 	}
 
 	.label {
