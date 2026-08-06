@@ -253,44 +253,24 @@
 	const STREET_ZOOM = 17;
 
 	/**
-	 * Padding that puts a selected store in the middle of the map you can
-	 * actually see: below the check-in card, above the bottom dock. The middle
-	 * of the window is neither - the dock covers the bottom and the card the
-	 * top, so a store centred there ends up tucked under one of them.
+	 * Selecting a store puts it dead centre.
 	 *
-	 * Both are measured rather than assumed; the card's height depends on what
-	 * it is showing.
+	 * An earlier version offset it to sit between the card and the bottom dock,
+	 * on the reasoning that the middle of the window is not the middle of the
+	 * visible map. That was over-thought: the card is docked under the top bar,
+	 * so the true centre is already clear of it, and anywhere else just reads as
+	 * off-centre.
 	 */
-	function visiblePadding() {
-		const dock = parseInt(
-			getComputedStyle(document.documentElement).getPropertyValue('--dock-h'),
-			10
-		);
-		const card = document.querySelector('.sheet')?.getBoundingClientRect();
-		return {
-			top: card ? Math.round(card.bottom) + 16 : 0,
-			bottom: (Number.isNaN(dock) ? 0 : dock) + 16,
-			left: 0,
-			right: 0
-		};
-	}
-
-	/** Called a frame late so the card is measurable before the map moves. */
 	function focusStore(geom: GeoJSON.Point) {
-		requestAnimationFrame(() =>
-			map?.easeTo({
-				center: geom.coordinates as [number, number],
-				zoom: Math.max(map.getZoom(), STREET_ZOOM),
-				padding: visiblePadding(),
-				duration: 700
-			})
-		);
+		map?.easeTo({
+			center: geom.coordinates as [number, number],
+			zoom: Math.max(map.getZoom(), STREET_ZOOM),
+			duration: 700
+		});
 	}
 
 	export function flyTo(center: [number, number], zoom = STREET_ZOOM) {
-		requestAnimationFrame(() =>
-			map?.flyTo({ center, zoom, padding: visiblePadding(), duration: 1400 })
-		);
+		map?.flyTo({ center, zoom, duration: 1400 });
 	}
 
 	/**
