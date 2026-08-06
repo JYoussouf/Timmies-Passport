@@ -24,25 +24,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	const response = await resolve(event);
-
 	/*
-	 * Canonical URL, on the response itself.
+	 * Canonical URL, written into the HTML as it is served.
 	 *
-	 * The app renders client-side, so the <link> in the layout only exists
+	 * The app renders client-side, so the <link> the layout adds only exists
 	 * once JavaScript has run - too late for a crawler that does not execute
-	 * it. static/_headers cannot do this either: Pages applies header rules to
-	 * static assets, and every page here is served by the worker.
+	 * it. Two other placements were tried and do not survive: static/_headers
+	 * only applies to static assets, and every page here comes from the
+	 * worker; and a Link header set here is replaced by the one Cloudflare
+	 * generates for Early Hints. The markup is the one thing nothing
+	 * downstream rewrites.
 	 *
 	 * Emitted on the pages.dev host too, which is the whole point - both
 	 * addresses serve, and both should name the domain as the one true home.
 	 */
-	if (response.headers.get('content-type')?.startsWith('text/html')) {
-		response.headers.append(
-			'link',
-			`<${SITE_URL}${event.url.pathname.replace(/\/$/, '')}>; rel="canonical"`
-		);
-	}
-
-	return response;
+	const canonical = `${SITE_URL}${event.url.pathname.replace(/\/$/, '')}`;
+	return resolve(event, {
+		transformPageChunk: ({ html }) =>
+			html.replace('%canonical%', `<link rel="canonical" href="${canonical}" />`)
+	});
 };

@@ -29,10 +29,12 @@
 		<!-- Fallback only; every route sets its own title from src/lib/brand.ts.
 		     This file cannot import, so it is the one other place a rename touches. -->
 		<title>Timmies Passport</title>
+		<!-- Filled in per-request by hooks.server.ts. -->
+		%canonical%
 
 		<!-- The share card. Absolute URLs, because a scraper resolves these
-		     against nothing. The canonical link is per-route, set in
-		     +layout.svelte, so it cannot live here. -->
+		     against nothing. The canonical link varies per route, so it is
+		     stamped into %canonical% above by hooks.server.ts. -->
 		<meta property="og:site_name" content="My Timmies Passport" />
 		<meta property="og:type" content="website" />
 		<meta property="og:title" content="My Timmies Passport" />

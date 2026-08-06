@@ -8,24 +8,8 @@
 	import { passport } from '$lib/stores/passport.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
-	import { SITE_URL } from '$lib/brand';
-	import { page } from '$app/stores';
 
 	let { children } = $props();
-
-	/*
-	 * The site answers on both the domain and the pages.dev address, and will
-	 * keep doing so - links to the latter are already out there. Declaring one
-	 * canonical home stops search engines treating them as two sites competing
-	 * with each other.
-	 *
-	 * This tag only exists once JavaScript has run, which is too late for a
-	 * crawler that does not execute it. static/_headers carries the same
-	 * statement as a Link header on the response itself and is what actually
-	 * does the work; this covers in-app navigation, where no new response is
-	 * fetched to carry a header.
-	 */
-	const canonical = $derived(`${SITE_URL}${$page.url.pathname}`.replace(/\/$/, '') || SITE_URL);
 
 	onMount(() => {
 		passport.hydrate();
@@ -54,10 +38,6 @@
 		};
 	});
 </script>
-
-<svelte:head>
-	<link rel="canonical" href={canonical} />
-</svelte:head>
 
 {@render children()}
 
