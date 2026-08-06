@@ -123,9 +123,30 @@ npx wrangler d1 create timmies-passport-db   # paste database_id into wrangler.t
 npx wrangler pages project create timmies-passport --production-branch=main
 ```
 
-The in-app Street View panel needs a Maps Embed API key, set at build time as
-`PUBLIC_GOOGLE_MAPS_KEY`. Without one the panel is simply not offered - the
-"Open in Maps" link works regardless, since linking out needs no key.
+### Street View
+
+The card's Street View panel uses Google's **Maps Embed API**, which is the
+supported way to embed it. Street View is one of the Embed API's free modes, so
+this is a key rather than a bill - but confirm on Google's pricing page and set
+a budget alert anyway, since only they get to change that.
+
+1. In the Google Cloud console, create a project and **enable the Maps Embed
+   API**.
+2. Create an API key, then **restrict it**: application restriction "Websites",
+   allowing only your own origins, and API restriction to the Maps Embed API.
+   The key travels in the iframe URL and is therefore public, so the referrer
+   restriction is what stops anyone else spending it.
+3. Set it where the app is built:
+
+```bash
+echo 'PUBLIC_GOOGLE_MAPS_KEY="your-key"' >> .env      # local
+npx wrangler pages secret put PUBLIC_GOOGLE_MAPS_KEY  # deployed
+```
+
+Without a key the panel is not offered at all, rather than falling back to
+Google's undocumented keyless embed endpoint, which works but sits outside
+their terms. "Open in Maps" is unaffected either way - linking out needs no
+key.
 
 ## Project map
 
