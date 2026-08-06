@@ -6,6 +6,8 @@ export interface LocationProps {
 	region: string;
 	country: string;
 	country_code: string;
+	/** Tombstoned: gone from OSM or retagged as disused. Never deleted. */
+	closed?: boolean;
 }
 
 /** A searchable place - a city or a region - aggregated from its locations. */

@@ -120,6 +120,19 @@ export function cupPalette(hue?: number): Record<string, string> {
 export const MINT_HUE = hexToHsl('#3fa88b')[0];
 
 /**
+ * The palette drained of colour, for a store that has closed. Lightness is
+ * kept so the drawing still reads as a cup rather than a smudge.
+ */
+export function cupPaletteClosed(): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const [ch, hex] of Object.entries(CUP_PALETTE)) {
+		const [, , l] = hexToHsl(hex);
+		out[ch] = hslToHex(0, 0, CUP_BODY.has(ch) ? l * 0.85 : l * 0.9);
+	}
+	return out;
+}
+
+/**
  * Horizontal runs of identical cells, so consumers emit one rect per run
  * instead of one per pixel.
  */

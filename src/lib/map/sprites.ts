@@ -1,6 +1,6 @@
 import type maplibregl from 'maplibre-gl';
 import { MAP_COLORS } from './style';
-import { CUP, CUP_W, CUP_H, cupPalette, MINT_HUE } from '$lib/art/cup';
+import { CUP, CUP_W, CUP_H, cupPalette, cupPaletteClosed, MINT_HUE } from '$lib/art/cup';
 
 /**
  * Marker art, drawn as literal pixel grids and upscaled with nearest-neighbour.
@@ -63,9 +63,8 @@ class Grid {
 	}
 }
 
-/** The shared cup art, optionally re-hued for the collected state. */
-function cup(hue?: number): Grid {
-	const palette = cupPalette(hue);
+/** The shared cup art, re-hued for the collected state or drained for a closure. */
+function cup(hue?: number, palette = cupPalette(hue)): Grid {
 	const rgba = new Map(Object.entries(palette).map(([ch, h]) => [ch, hex(h)]));
 	const g = new Grid(CUP_W, CUP_H);
 	CUP.forEach((row, y) => {
@@ -109,6 +108,7 @@ function buildAll(): Record<string, Grid> {
 	return {
 		'pin-unstamped': cup(),
 		'pin-stamped': cup(MINT_HUE),
+		'pin-closed': cup(undefined, cupPaletteClosed()),
 		reticle: reticle(CUP_W + 4, CUP_H + 4)
 	};
 }

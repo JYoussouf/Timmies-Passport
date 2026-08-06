@@ -28,7 +28,11 @@
 	function buildData(): GeoJSON.FeatureCollection {
 		const feats = (locations.collection?.features ?? []).map((f) => ({
 			...f,
-			properties: { ...f.properties, visited: passport.isVisited(f.properties.id) ? 1 : 0 }
+			properties: {
+				...f.properties,
+				visited: passport.isVisited(f.properties.id) ? 1 : 0,
+				closed: f.properties.closed ? 1 : 0
+			}
 		}));
 		return { type: 'FeatureCollection', features: feats as GeoJSON.Feature[] };
 	}
@@ -83,7 +87,12 @@
 			id: 'pins',
 			type: 'symbol',
 			source: SRC,
-			filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'visited'], 0]],
+			filter: [
+				'all',
+				['!', ['has', 'point_count']],
+				['==', ['get', 'visited'], 0],
+				['!=', ['get', 'closed'], 1]
+			],
 			layout: {
 				'icon-image': 'pin-unstamped',
 				'icon-allow-overlap': true,
@@ -118,6 +127,35 @@
 					3, 0.9, 8, 1, 13, 1.16, 17, 1.42, 20, 1.58
 				]
 			}
+		});
+
+		/*
+		 * Closed stores are drawn, not dropped: a passport may already hold one,
+		 * and it is useful to know the corner used to have a Timmies. Below the
+		 * stamped layer, so a collected closure still shows as collected.
+		 */
+		map.addLayer({
+			id: 'pins-closed',
+			type: 'symbol',
+			source: SRC,
+			filter: [
+				'all',
+				['!', ['has', 'point_count']],
+				['==', ['get', 'visited'], 0],
+				['==', ['get', 'closed'], 1]
+			],
+			layout: {
+				'icon-image': 'pin-closed',
+				'icon-allow-overlap': true,
+				'icon-ignore-placement': true,
+				'icon-size': [
+					'interpolate',
+					['linear'],
+					['zoom'],
+					3, 0.85, 8, 0.95, 13, 1.1, 17, 1.35, 20, 1.5
+				]
+			},
+			paint: { 'icon-opacity': 0.85 }
 		});
 
 		// Selection reticle.
@@ -164,7 +202,7 @@
 				});
 		});
 
-		for (const layer of ['pins', 'pins-visited']) {
+		for (const layer of ['pins', 'pins-visited', 'pins-closed']) {
 			map.on('click', layer, (e) => {
 				const f = e.features?.[0];
 				if (!f) return;

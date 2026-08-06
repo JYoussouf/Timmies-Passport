@@ -3,9 +3,13 @@
 	 * The cup icon, drawn from the same art the map markers use.
 	 * `collected` re-hues the body to mint and leaves the lid alone.
 	 */
-	import { cupRuns, cupPalette, CUP_W, CUP_H, MINT_HUE } from '$lib/art/cup';
+	import { cupRuns, cupPalette, cupPaletteClosed, CUP_W, CUP_H, MINT_HUE } from '$lib/art/cup';
 
-	let { height = 24, collected = false }: { height?: number; collected?: boolean } = $props();
+	let {
+		height = 24,
+		collected = false,
+		closed = false
+	}: { height?: number; collected?: boolean; closed?: boolean } = $props();
 
 	const runs = cupRuns();
 
@@ -21,7 +25,9 @@
 	const raw = $derived(height / CUP_H);
 	const cell = $derived(raw >= 1 ? Math.round(raw) : raw);
 	const crisp = $derived(raw >= 1);
-	const palette = $derived(cupPalette(collected ? MINT_HUE : undefined));
+	const palette = $derived(
+		closed ? cupPaletteClosed() : cupPalette(collected ? MINT_HUE : undefined)
+	);
 </script>
 
 <svg
