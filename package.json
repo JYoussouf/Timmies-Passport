@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "fetch:locations": "node --experimental-strip-types scripts/fetch-locations.ts",
+    "update:restaurants": "node --experimental-strip-types update-restaurants.ts",
     "db:migrate:local": "wrangler d1 migrations apply timmies-passport-db --local",
     "db:migrate": "wrangler d1 migrations apply timmies-passport-db --remote",
     "db:seed:local": "wrangler d1 execute timmies-passport-db --local --file=./scripts/seed.sql",

@@ -39,9 +39,12 @@ accounts/leaderboards just stay empty.
 ## Keeping the map current
 
 ```bash
-npm run fetch:locations   # re-harvest, merge, rebuild seed + gazetteer
-npm run db:seed           # push the result to the remote D1
+npm run update:restaurants   # rebuild locations + gazetteer from both sources
+npm run db:seed              # push the result to the remote D1
 ```
+
+The updater is [`update-restaurants.ts`](update-restaurants.ts), at the repo
+root because it is the one script you run by hand.
 
 Monthly is about right - the brand locator behind it refreshes weekly.
 
@@ -85,17 +88,6 @@ flag clears. Visitors can flag a store from its card ("Report"), which opens an
 issue with the id and coordinates filled in; OpenStreetMap lags reality, so a
 human is often the first signal that a location is gone or misplaced.
 
-## Refresh the location data
-
-```bash
-npm run fetch:locations   # re-query OpenStreetMap → static/locations.json + scripts/seed.sql
-npm run db:seed:local     # reload into D1
-```
-
-`scripts/fetch-locations.ts` pulls `brand=Tim Hortons` worldwide from the
-Overpass API and reverse-geocodes each point's country/region from Natural
-Earth boundaries (OSM rarely tags those). OSM data is ODbL-licensed.
-
 ## Deploy to Cloudflare
 
 Live at **https://timmies-passport.pages.dev** (Pages project `timmies-passport`,
@@ -133,7 +125,8 @@ Optionally add a Google key for live ratings/photos:
 
 | Path | What |
 | --- | --- |
-| `scripts/fetch-locations.ts` | Overpass harvester + reverse-geocoder |
+| `update-restaurants.ts` | the monthly updater: Overpass + brand locator + geocoding |
+| `scripts/overrides.json` | hand corrections, when both sources are wrong |
 | `src/lib/stores/*.svelte.ts` | local-first passport, locations index, auth, UI |
 | `src/lib/components/` | Cabinet, MapView, Compass, SearchDock, LocationSheet, … |
 | `src/lib/styles/arcade.css` | design tokens + primitives (`plate`, `pbtn`, `chip`, `veil`) |
