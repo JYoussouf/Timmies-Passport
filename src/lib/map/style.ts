@@ -24,7 +24,8 @@ export const MAP_COLORS = {
 	roadMinor: 'rgba(43, 26, 20, 0.16)',
 	building: 'rgba(43, 26, 20, 0.1)',
 	label: '#5b3a29',
-	labelHalo: 'rgba(232, 220, 200, 0.9)',
+	labelStrong: '#33201a',
+	labelHalo: 'rgba(240, 231, 216, 0.95)',
 	waterLabel: 'rgba(247, 239, 227, 0.5)',
 	red: '#d8232a',
 	mint: '#3fa88b',
@@ -131,7 +132,7 @@ export function trackerStyle(): StyleSpecification {
 				layout: { 'line-cap': 'round', 'line-join': 'round' },
 				paint: {
 					'line-color': MAP_COLORS.road,
-					'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.6, 14, 2.5, 18, 6]
+					'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.7, 14, 3, 18, 8]
 				}
 			},
 			{
@@ -143,7 +144,7 @@ export function trackerStyle(): StyleSpecification {
 				filter: ['match', ['get', 'class'], ['minor', 'service'], true, false],
 				paint: {
 					'line-color': MAP_COLORS.roadMinor,
-					'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 18, 3.5]
+					'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.6, 18, 4.5]
 				}
 			},
 
@@ -165,19 +166,52 @@ export function trackerStyle(): StyleSpecification {
 				type: 'symbol',
 				source: 'carto',
 				'source-layer': 'transportation_name',
-				minzoom: 13,
+				minzoom: 12,
 				layout: {
 					'text-field': ['coalesce', ['get', 'name_en'], ['get', 'name']],
-					'text-font': LABEL_FONT,
-					'text-size': 10,
+					'text-font': BOLD_FONT,
+					'text-size': ['interpolate', ['linear'], ['zoom'], 12, 11, 15, 13.5, 18, 16],
 					'symbol-placement': 'line',
+					'symbol-spacing': 220,
 					'text-max-angle': 30
 				},
 				paint: {
-					'text-color': MAP_COLORS.label,
-					'text-opacity': 0.65,
+					'text-color': MAP_COLORS.labelStrong,
+					'text-opacity': 0.95,
 					'text-halo-color': MAP_COLORS.labelHalo,
-					'text-halo-width': 1.6
+					'text-halo-width': 2.4
+				}
+			},
+
+			// Neighbourhood names bridge the gap between "which city" and "which
+			// street", which is exactly where orientation was getting lost.
+			{
+				id: 'label-suburb',
+				type: 'symbol',
+				source: 'carto',
+				'source-layer': 'place',
+				minzoom: 11,
+				maxzoom: 16,
+				filter: [
+					'match',
+					['get', 'class'],
+					['suburb', 'neighbourhood', 'quarter'],
+					true,
+					false
+				],
+				layout: {
+					'text-field': ['coalesce', ['get', 'name_en'], ['get', 'name']],
+					'text-font': LABEL_FONT,
+					'text-size': ['interpolate', ['linear'], ['zoom'], 11, 10, 15, 13],
+					'text-transform': 'uppercase',
+					'text-letter-spacing': 0.14,
+					'text-max-width': 8
+				},
+				paint: {
+					'text-color': MAP_COLORS.label,
+					'text-opacity': 0.7,
+					'text-halo-color': MAP_COLORS.labelHalo,
+					'text-halo-width': 2
 				}
 			},
 
@@ -283,15 +317,15 @@ export function trackerStyle(): StyleSpecification {
 				],
 				layout: {
 					'text-field': ['coalesce', ['get', 'name_en'], ['get', 'name']],
-					'text-font': LABEL_FONT,
-					'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10, 12, 13],
+					'text-font': BOLD_FONT,
+					'text-size': ['interpolate', ['linear'], ['zoom'], 6, 11, 12, 15],
 					'text-max-width': 9
 				},
 				paint: {
-					'text-color': MAP_COLORS.label,
-					'text-opacity': 0.66,
+					'text-color': MAP_COLORS.labelStrong,
+					'text-opacity': 0.88,
 					'text-halo-color': MAP_COLORS.labelHalo,
-					'text-halo-width': 1.4
+					'text-halo-width': 2
 				}
 			}
 		]
