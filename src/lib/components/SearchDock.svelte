@@ -130,7 +130,11 @@
 						onpointerdown={(e) => e.preventDefault()}
 						onclick={() => choose({ kind: 'store', id: r.id })}
 					>
-						<CupIcon height={26} collected={passport.isVisited(r.id)} />
+						<CupIcon
+							height={26}
+							collected={passport.isVisited(r.id)}
+							closed={!!r.closed}
+						/>
 						<span class="info">
 							<strong>{locationLabel(r)}</strong>
 							<small>{locationPlace(r) || r.name}</small>

@@ -21,6 +21,29 @@
 	 * https://www.google.com/maps/embed/v1/streetview.
 	 */
 	const coords = $derived(ui.selectedId ? locations.coordsOf(ui.selectedId) : undefined);
+	const closed = $derived(!!loc?.closed);
+
+	/**
+	 * A report goes to the issue tracker with the store already identified.
+	 * OSM is the source of truth and lags reality, so a human saying "this one
+	 * is gone" is often the first signal there is.
+	 */
+	const reportUrl = $derived.by(() => {
+		if (!loc || !coords) return '#';
+		const title = `Location issue: ${locationLabel(loc)}`;
+		const body = [
+			`**Store:** ${locationLabel(loc)}`,
+			`**Where:** ${locationPlace(loc) || '-'}`,
+			`**Coordinates:** ${coords[1]}, ${coords[0]}`,
+			`**Id:** ${ui.selectedId}`,
+			'',
+			'What is wrong? (permanently closed / wrong location / something else)',
+			''
+		].join('\n');
+		return `https://github.com/JYoussouf/Timmies-Passport/issues/new?title=${encodeURIComponent(
+			title
+		)}&body=${encodeURIComponent(body)}`;
+	});
 
 	const streetUrl = $derived(
 		coords
@@ -113,6 +136,9 @@
 				<div class="titles">
 					<h2 class="pixel">{locationLabel(loc)}</h2>
 					<p class="addr">{locationPlace(loc) || loc.name}</p>
+					{#if closed}
+						<p class="closed pixel">Permanently closed</p>
+					{/if}
 				</div>
 			</header>
 
@@ -122,6 +148,9 @@
 				</button>
 				<a class="link" href={mapsUrl} target="_blank" rel="noopener noreferrer">
 					Open in Maps &#8599;
+				</a>
+				<a class="link quiet" href={reportUrl} target="_blank" rel="noopener noreferrer">
+					Report
 				</a>
 			</div>
 
@@ -280,6 +309,21 @@
 	}
 	.link:hover {
 		color: #ffc450;
+	}
+	/* Rarely needed, so it should not compete with the other two. */
+	.link.quiet {
+		margin-left: auto;
+		color: var(--cream-dim);
+	}
+	.link.quiet:hover {
+		color: var(--cream);
+	}
+
+	.closed {
+		margin: 0.45rem 0 0;
+		font-size: 0.42rem;
+		line-height: 1.6;
+		color: #ff8f94;
 	}
 
 	/* Recessed like a screen set into the cartridge. */
