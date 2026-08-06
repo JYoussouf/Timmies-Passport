@@ -4,7 +4,7 @@
 	import TopBar from '$lib/components/TopBar.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import LocationSheet from '$lib/components/LocationSheet.svelte';
-	import SearchDock from '$lib/components/SearchDock.svelte';
+	import SearchDock, { type Pick } from '$lib/components/SearchDock.svelte';
 	import MapControls from '$lib/components/MapControls.svelte';
 	import Legend from '$lib/components/Legend.svelte';
 	import Radar from '$lib/components/Radar.svelte';
@@ -21,10 +21,14 @@
 		zoom: INITIAL_VIEW.zoom
 	});
 
-	function goTo(id: string) {
-		const c = locations.coordsOf(id);
+	function goTo(p: Pick) {
+		if (p.kind === 'place') {
+			mapView?.fitBounds(p.bounds);
+			return;
+		}
+		const c = locations.coordsOf(p.id);
 		if (c) mapView?.flyTo(c);
-		ui.select(id);
+		ui.select(p.id);
 	}
 
 	async function toggleLocate() {

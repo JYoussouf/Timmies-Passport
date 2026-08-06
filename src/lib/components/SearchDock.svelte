@@ -11,8 +11,13 @@
 	import { passport } from '$lib/stores/passport.svelte';
 	import { locationLabel, locationPlace } from '$lib/location';
 	import CupIcon from './CupIcon.svelte';
+	import type { Place } from '$lib/types';
 
-	let { onpick }: { onpick: (id: string) => void } = $props();
+	export type Pick =
+		| { kind: 'store'; id: string }
+		| { kind: 'place'; bounds: [number, number, number, number] };
+
+	let { onpick }: { onpick: (p: Pick) => void } = $props();
 
 	const LIMIT = 3;
 
@@ -21,23 +26,45 @@
 	let input = $state<HTMLInputElement>();
 
 	const term = $derived(q.trim().toLowerCase());
-	const results = $derived.by(() => {
+
+	/**
+	 * Cities rank above individual stores, and a name that starts with the term
+	 * ranks above one that merely contains it - typing "toronto" should offer
+	 * Toronto before a store on Toronto Street somewhere else.
+	 */
+	const placeHits = $derived.by(() => {
+		if (term.length < 2) return [] as Place[];
+		const hits = locations.places.filter((p) => p.city.toLowerCase().includes(term));
+		return hits
+			.sort((a, b) => {
+				const sa = a.city.toLowerCase().startsWith(term) ? 0 : 1;
+				const sb = b.city.toLowerCase().startsWith(term) ? 0 : 1;
+				return sa - sb || b.count - a.count;
+			})
+			.slice(0, 2);
+	});
+
+	const storeHits = $derived.by(() => {
 		if (term.length < 2) return [];
+		const room = LIMIT - placeHits.length;
+		if (room <= 0) return [];
 		const out = [];
 		for (const p of locations.all()) {
 			const hay = `${p.name} ${p.address} ${p.city} ${p.region} ${p.country}`.toLowerCase();
 			if (hay.includes(term)) {
 				out.push(p);
-				if (out.length >= LIMIT) break;
+				if (out.length >= room) break;
 			}
 		}
 		return out;
 	});
 
+	const hasResults = $derived(placeHits.length + storeHits.length > 0);
+
 	const open = $derived(focused && term.length >= 2);
 
-	function choose(id: string) {
-		onpick(id);
+	function choose(p: Pick) {
+		onpick(p);
 		q = '';
 		input?.blur();
 	}
@@ -46,8 +73,10 @@
 		if (e.key === 'Escape') {
 			q = '';
 			input?.blur();
-		} else if (e.key === 'Enter' && results.length) {
-			choose(results[0].id);
+		} else if (e.key === 'Enter') {
+			// Enter takes the top suggestion, which is the city when one matched.
+			if (placeHits.length) choose({ kind: 'place', bounds: placeHits[0].bounds });
+			else if (storeHits.length) choose({ kind: 'store', id: storeHits[0].id });
 		}
 	}
 </script>
@@ -55,11 +84,38 @@
 <div class="dock">
 	{#if open}
 		<ul class="suggestions">
-			{#each results as r (r.id)}
+			{#each placeHits as p (p.key)}
 				<li>
 					<!-- pointerdown is swallowed so the input never loses focus
 					     before the click lands. -->
-					<button onpointerdown={(e) => e.preventDefault()} onclick={() => choose(r.id)}>
+					<button
+						onpointerdown={(e) => e.preventDefault()}
+						onclick={() => choose({ kind: 'place', bounds: p.bounds })}
+					>
+						<svg class="place" viewBox="0 0 24 24" aria-hidden="true">
+							<path
+								d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							/>
+							<circle cx="12" cy="10" r="2.4" fill="currentColor" />
+						</svg>
+						<span class="info">
+							<strong>{p.city}</strong>
+							<small>{[p.region, p.country].filter(Boolean).join(', ')}</small>
+						</span>
+						<span class="count pixel">{p.count}</span>
+					</button>
+				</li>
+			{/each}
+
+			{#each storeHits as r (r.id)}
+				<li>
+					<button
+						onpointerdown={(e) => e.preventDefault()}
+						onclick={() => choose({ kind: 'store', id: r.id })}
+					>
 						<CupIcon height={26} collected={passport.isVisited(r.id)} />
 						<span class="info">
 							<strong>{locationLabel(r)}</strong>
@@ -67,9 +123,11 @@
 						</span>
 					</button>
 				</li>
-			{:else}
-				<li class="none">No Timmies match “{q}”.</li>
 			{/each}
+
+			{#if !hasResults}
+				<li class="none">Nothing matches “{q}”.</li>
+			{/if}
 		</ul>
 	{/if}
 
@@ -202,6 +260,17 @@
 	}
 	.suggestions li button:hover {
 		background: var(--cabinet-hi);
+	}
+	.place {
+		width: 26px;
+		height: 26px;
+		flex: none;
+		color: var(--gold);
+	}
+	.count {
+		flex: none;
+		font-size: 0.45rem;
+		color: var(--cream-dim);
 	}
 	.info {
 		display: flex;

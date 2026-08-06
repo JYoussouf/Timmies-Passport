@@ -195,6 +195,20 @@
 		map?.flyTo({ center, zoom, duration: 1400 });
 	}
 
+	/**
+	 * Frame a city: fit every Timmies in it, capped so a one-store town does not
+	 * slam all the way to rooftop zoom.
+	 */
+	export function fitBounds(b: [number, number, number, number]) {
+		map?.fitBounds(
+			[
+				[b[0], b[1]],
+				[b[2], b[3]]
+			],
+			{ padding: 70, maxZoom: 14, duration: 1100 }
+		);
+	}
+
 	/** Pull back to the opening world view. */
 	export function zoomIn() {
 		map?.easeTo({ zoom: (map?.getZoom() ?? 0) + 1.2, duration: 350 });

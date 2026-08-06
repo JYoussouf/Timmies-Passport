@@ -1,4 +1,4 @@
-import type { LocationCollection, LocationFeature, LocationProps } from '$lib/types';
+import type { LocationCollection, LocationFeature, LocationProps, Place } from '$lib/types';
 
 /**
  * Loads the worldwide Tim Hortons dataset once and indexes it by id.
@@ -63,6 +63,47 @@ class LocationStore {
 		const coordinates = this.coords.get(id);
 		if (!props || !coordinates) return undefined;
 		return { type: 'Feature', id, geometry: { type: 'Point', coordinates }, properties: props };
+	}
+
+	/**
+	 * Cities and towns, derived from the locations themselves.
+	 *
+	 * Built once on demand rather than stored: the dataset already carries the
+	 * city on every row, so a separate list would be a second source of truth
+	 * that could drift from it.
+	 */
+	private placeCache: Place[] | null = null;
+
+	get places(): Place[] {
+		void this.collection;
+		if (this.placeCache && this.placeCache.length) return this.placeCache;
+		const byKey = new Map<string, Place>();
+		for (const [id, p] of this.index) {
+			if (!p.city) continue;
+			const key = `${p.city}|${p.region}|${p.country}`;
+			const c = this.coords.get(id);
+			if (!c) continue;
+			let place = byKey.get(key);
+			if (!place) {
+				place = {
+					key,
+					city: p.city,
+					region: p.region,
+					country: p.country,
+					count: 0,
+					bounds: [c[0], c[1], c[0], c[1]]
+				};
+				byKey.set(key, place);
+			}
+			place.count++;
+			const b = place.bounds;
+			if (c[0] < b[0]) b[0] = c[0];
+			if (c[1] < b[1]) b[1] = c[1];
+			if (c[0] > b[2]) b[2] = c[0];
+			if (c[1] > b[3]) b[3] = c[1];
+		}
+		this.placeCache = [...byKey.values()].sort((a, b) => b.count - a.count);
+		return this.placeCache;
 	}
 
 	/**
