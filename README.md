@@ -44,13 +44,32 @@ Earth boundaries (OSM rarely tags those). OSM data is ODbL-licensed.
 
 ## Deploy to Cloudflare
 
+Live at **https://timmies-passport.pages.dev** (Pages project `timmies-passport`,
+D1 database `timmies-passport-db`).
+
+```bash
+npm run build
+npx wrangler pages deploy .svelte-kit/cloudflare --project-name=timmies-passport
+```
+
+The D1 binding comes from `wrangler.toml`, so deployments pick it up
+automatically. After re-harvesting locations, push them to the remote DB:
+
+```bash
+npm run db:migrate   # only when migrations/ changes
+npm run db:seed      # reload the locations table
+```
+
+Note that `static/locations.json` is what the map reads, and Pages serves it
+straight from the CDN. D1 is only needed for accounts, cloud sync and global
+check-in counts - the app is local-first and works without it.
+
+First-time setup in a fresh account:
+
 ```bash
 npx wrangler login
 npx wrangler d1 create timmies-passport-db   # paste database_id into wrangler.toml
-npm run db:migrate        # apply schema to the remote DB
-npm run db:seed           # seed remote locations
-npm run build
-npx wrangler pages deploy .svelte-kit/cloudflare
+npx wrangler pages project create timmies-passport --production-branch=main
 ```
 
 Optionally add a Google key for live ratings/photos:

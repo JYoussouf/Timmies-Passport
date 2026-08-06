@@ -10,9 +10,7 @@ pages_build_output_dir = ".svelte-kit/cloudflare"
 [[d1_databases]]
 binding = "DB"
 database_name = "timmies-passport-db"
-# For local dev any value works; replace with the real id from
-# `wrangler d1 create timmies-passport-db` before deploying.
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "fc079bea-6a90-47df-b833-f88955693786"
 
 [vars]
 # Optional. When set, location sheets show "View on Google Maps" deep links
