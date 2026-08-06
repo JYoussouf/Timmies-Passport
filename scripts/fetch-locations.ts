@@ -184,6 +184,13 @@ async function buildGeocoder() {
 // Nominatim's policy caps bulk use at 1 request/second, hence the delay. The
 // answers are cached on disk so re-running the harvester is nearly free and an
 // interrupted run resumes where it stopped.
+/**
+ * Drive-through lanes masquerade as both features and street names. As a
+ * feature they are geometry attached to a store, not a store; as a street name
+ * they are the nearest road to a store that genuinely exists.
+ */
+const LANE = /drive[\s-]?(through|thru)/i;
+
 const NOMINATIM = 'https://nominatim.openstreetmap.org/reverse';
 const GEO_CACHE = resolve(__dirname, '.geocache.json');
 const RATE_MS = 1100;
@@ -202,8 +209,10 @@ async function reverseGeocode(lat: number, lng: number): Promise<Fix> {
 	});
 	if (!res.ok) throw new Error(`HTTP ${res.status}`);
 	const a = ((await res.json()) as { address?: Record<string, string> }).address ?? {};
+	const road = a.road || a.pedestrian || a.footway || a.neighbourhood || '';
 	return {
-		road: a.road || a.pedestrian || a.footway || a.neighbourhood || '',
+		// A store's address is not the name of the lane that runs past it.
+		road: LANE.test(road) ? '' : road,
 		house: a.house_number || '',
 		city: a.city || a.town || a.village || a.suburb || a.municipality || a.county || ''
 	};
@@ -317,6 +326,10 @@ function normalize(el: OverpassElement): Loc | null {
 	if (lat == null || lng == null) return null;
 	const t = el.tags ?? {};
 
+	// A lane mapped as its own feature is not a storefront.
+	if (LANE.test(t['name'] ?? '') || LANE.test(t['addr:street'] ?? '') || LANE.test(t['branch'] ?? ''))
+		return null;
+
 	// Every store is called "Tim Hortons", so the address is the only thing that
 	// identifies one. Roughly half of OSM's nodes carry no addr:housenumber, so
 	// fall through progressively coarser tags rather than giving up: a branch
@@ -351,6 +364,69 @@ function normalize(el: OverpassElement): Loc | null {
 		country: t['addr:country'] || '',
 		country_code: (t['addr:country'] || '').toUpperCase()
 	};
+}
+
+/** Rough metres between two points - fine at the scale of one storefront. */
+function metresBetween(a: Loc, b: Loc): number {
+	const R = 6371000;
+	const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+	const dLng = (((b.lng - a.lng) * Math.PI) / 180) * Math.cos(((a.lat + b.lat) / 2 * Math.PI) / 180);
+	return R * Math.hypot(dLat, dLng);
+}
+
+/** How complete a record is, used to decide which of a pair to keep. */
+function richness(l: Loc): number {
+	return (l.address ? 4 : 0) + (l.city ? 2 : 0) + (l.region ? 1 : 0);
+}
+
+/**
+ * Collapse the same storefront mapped more than once.
+ *
+ * OSM frequently carries both a node for the business and a way for the
+ * building it sits in, both tagged with the brand, which renders as two cups
+ * stacked on the same spot. A node inside its own building can sit tens of
+ * metres from the building's centroid, so proximity alone is the test for a
+ * mixed-type pair.
+ *
+ * Two features of the same type need their addresses to agree as well, because
+ * distance alone cannot tell 600 University Avenue from 610 University Avenue
+ * across the street.
+ */
+function sameAddress(a: Loc, b: Loc): boolean {
+	const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '');
+	const x = norm(a.address);
+	const y = norm(b.address);
+	return !x || !y || x === y;
+}
+
+function dedupe(locs: Loc[]): Loc[] {
+	const MIXED_M = 60;
+	const SAME_TYPE_M = 60;
+	const byLat = [...locs].sort((a, b) => a.lat - b.lat);
+	const dropped = new Set<string>();
+
+	for (let i = 0; i < byLat.length; i++) {
+		if (dropped.has(byLat[i].id)) continue;
+		for (let j = i + 1; j < byLat.length && byLat[j].lat - byLat[i].lat < 0.0007; j++) {
+			if (dropped.has(byLat[j].id)) continue;
+			const a = byLat[i];
+			const b = byLat[j];
+			const sameType = a.osm_id.split('/')[0] === b.osm_id.split('/')[0];
+			if (metresBetween(a, b) > (sameType ? SAME_TYPE_M : MIXED_M)) continue;
+			if (sameType && !sameAddress(a, b)) continue;
+
+			// Keep the richer record, and let it inherit anything the other had.
+			const [keep, drop] = richness(a) >= richness(b) ? [a, b] : [b, a];
+			if (!keep.address) keep.address = drop.address;
+			if (!keep.city) keep.city = drop.city;
+			if (!keep.region) keep.region = drop.region;
+			if (!keep.country) keep.country = drop.country;
+			if (!keep.country_code) keep.country_code = drop.country_code;
+			dropped.add(drop.id);
+		}
+	}
+
+	return locs.filter((l) => !dropped.has(l.id));
 }
 
 function escapeSql(v: string): string {
@@ -416,6 +492,16 @@ async function main() {
 	}
 
 	await fillMissingAddresses(locs);
+
+	/*
+	 * Dedupe last, not first: telling 600 University Avenue from 610 across the
+	 * street needs both addresses, and those are only known once the enrichment
+	 * above has run.
+	 */
+	const merged = dedupe(locs);
+	console.log(`✓ merged ${locs.length - merged.length} duplicate storefronts`);
+	locs.length = 0;
+	locs.push(...merged);
 
 	// GeoJSON for the map
 	const geojson = {
