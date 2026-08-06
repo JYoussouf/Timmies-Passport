@@ -5,16 +5,16 @@
 </script>
 
 <header class="ph">
-	<a class="brand" href="/" aria-label="Back to map">
+	<a class="back" href="/" aria-label="Back to map">
 		<span class="logo" aria-hidden="true"></span>
 	</a>
-	<h1>{title}</h1>
+	<h1 class="pixel">{title}</h1>
 	{#if auth.signedIn}
-		<button class="avatar" onclick={() => auth.logout()} title="Sign out">
+		<button class="avatar pixel" onclick={() => auth.logout()} aria-label="Sign out">
 			{auth.user!.displayName.slice(0, 1).toUpperCase()}
 		</button>
 	{:else}
-		<button class="signin" onclick={() => ui.openAuth('login')}>Sign in</button>
+		<button class="signin pixel" onclick={() => ui.openAuth('login')}>Sign in</button>
 	{/if}
 </header>
 
@@ -26,51 +26,63 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		padding: calc(var(--safe-top) + 0.85rem) 1rem 0.85rem;
-		background: color-mix(in srgb, var(--bg) 88%, transparent);
-		backdrop-filter: blur(10px);
-		border-bottom: 1px solid var(--line);
+		padding: calc(var(--safe-top) + 0.7rem) 0.85rem 0.7rem;
+		background: var(--cabinet);
+		border-bottom: 3px solid var(--cabinet-lo);
+		box-shadow: inset 0 3px 0 var(--cabinet-hi);
 	}
-	.brand {
+	.back {
 		flex: none;
 		display: grid;
 		place-items: center;
-		width: 38px;
-		height: 38px;
-		border-radius: 50%;
-		background: var(--surface);
-		box-shadow: var(--shadow-sm);
+		width: 44px;
+		height: 44px;
+		background: var(--surface-2);
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+	}
+	.back:active {
+		transform: translate(2px, 2px);
 	}
 	.logo {
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		background: radial-gradient(circle at 50% 35%, var(--tim-red) 0 55%, var(--espresso) 56%);
+		width: 18px;
+		height: 18px;
+		background: var(--surface-2);
+		box-shadow: inset 0 0 0 5px var(--tim-red);
 	}
 	h1 {
 		flex: 1;
-		font-size: 1.25rem;
+		min-width: 0;
+		font-size: 0.7rem;
+		color: var(--gold);
 	}
 	.avatar,
 	.signin {
 		flex: none;
-		height: 38px;
-		border-radius: 999px;
+		min-height: 44px;
 		display: grid;
 		place-items: center;
+		background: var(--surface-2);
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+	}
+	.avatar:active,
+	.signin:active {
+		transform: translate(2px, 2px);
 	}
 	.avatar {
-		width: 38px;
-		background: var(--espresso);
-		color: var(--cream);
-		font-weight: 800;
+		width: 44px;
+		background: var(--tim-red);
+		color: #fff;
+		font-size: 0.6rem;
 	}
 	.signin {
-		padding: 0 1rem;
-		font-weight: 700;
-		font-size: 0.85rem;
-		color: var(--accent);
-		background: var(--surface);
-		box-shadow: var(--shadow-sm);
+		padding: 0 0.8rem;
+		font-size: 0.5rem;
+		color: var(--gold);
 	}
 </style>

@@ -24,7 +24,14 @@ export function fetchLocationStats(id: string) {
 }
 
 export interface LeaderboardData {
-	topLocations: { id: string; name: string; city: string; region: string; count: number }[];
+	topLocations: {
+		id: string;
+		name: string;
+		address: string;
+		city: string;
+		region: string;
+		count: number;
+	}[];
 	topCountries: { country_code: string; country: string; visited: number; total: number }[];
 	totalCheckIns: number;
 	totalCollectors: number;

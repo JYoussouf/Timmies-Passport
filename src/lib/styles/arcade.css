@@ -1,0 +1,234 @@
+/* ============================================================
+   Timmies Passport — arcade cabinet design system
+   Dark-only. Zero radius. Depth from stepped, unblurred shadows.
+   ============================================================ */
+
+@font-face {
+	font-family: 'Press Start 2P';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/fonts/press-start-2p-latin.woff2') format('woff2');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+	/* Cabinet ------------------------------------------------- */
+	--void: #150d0a;
+	--cabinet: #2b1a14;
+	--cabinet-hi: #4a2e23;
+	--cabinet-lo: #0f0806;
+
+	/* Screen -------------------------------------------------- */
+	--screen: #101d2e;
+	--screen-deep: #0b1524;
+	--screen-line: rgba(247, 239, 227, 0.12);
+	--land: #e8dcc8;
+
+	/* Brand --------------------------------------------------- */
+	--tim-red: #d8232a;
+	--tim-red-deep: #b21a20;
+	--gold: #f2b134;
+	--gold-deep: #c88d1c;
+	--mint: #3fa88b;
+	--mint-deep: #2c7c66;
+	--cream: #f7efe3;
+	--cream-dim: rgba(247, 239, 227, 0.55);
+	--cream-faint: rgba(247, 239, 227, 0.3);
+
+	/* Semantic ------------------------------------------------ */
+	--bg: var(--void);
+	--surface: var(--cabinet);
+	--surface-2: #3a231b;
+	--ink: var(--cream);
+	--ink-soft: var(--cream-dim);
+	--ink-faint: var(--cream-faint);
+	--accent: var(--tim-red);
+	--line: rgba(247, 239, 227, 0.14);
+
+	/* Type ---------------------------------------------------- */
+	--font-pixel: 'Press Start 2P', 'Courier New', monospace;
+	--font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+	/* Bevels -------------------------------------------------- */
+	--bevel-sm: 2px 2px 0 var(--cabinet-lo);
+	--bevel-md: 3px 3px 0 var(--cabinet-lo);
+	--bevel-lg: 5px 5px 0 var(--cabinet-lo);
+
+	/* Motion -------------------------------------------------- */
+	--ease-step: steps(4, end);
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+	/* Safe-area-aware insets ---------------------------------- */
+	--safe-top: env(safe-area-inset-top, 0px);
+	--safe-bottom: env(safe-area-inset-bottom, 0px);
+	--safe-left: env(safe-area-inset-left, 0px);
+	--safe-right: env(safe-area-inset-right, 0px);
+
+	/* Cabinet frame thickness — collapses on mobile ----------- */
+	--frame: 3px;
+
+	color-scheme: dark;
+}
+
+@media (min-width: 900px) {
+	:root {
+		--frame: 14px;
+	}
+}
+
+/* Primitives ---------------------------------------------------- */
+
+/* A raised cabinet surface: light top-left edge, dark bottom-right. */
+.plate {
+	background: var(--cabinet);
+	border-top: 2px solid var(--cabinet-hi);
+	border-left: 2px solid var(--cabinet-hi);
+	border-right: 2px solid var(--cabinet-lo);
+	border-bottom: 2px solid var(--cabinet-lo);
+	box-shadow: var(--bevel-md);
+}
+
+/* An inset surface: the inverse bevel, for screens and wells. */
+.inset {
+	background: var(--screen-deep);
+	border-top: 2px solid var(--cabinet-lo);
+	border-left: 2px solid var(--cabinet-lo);
+	border-right: 2px solid var(--cabinet-hi);
+	border-bottom: 2px solid var(--cabinet-hi);
+}
+
+/*
+ * Chunky pressable button. Presses into its own shadow, no layout shift.
+ *
+ * Every variant is expressed as custom properties rather than as competing
+ * declarations. A `.pbtn:hover` rule would out-specify a `.pbtn-gold` one and
+ * silently repaint every variant on hover; routing through variables means the
+ * variant always wins no matter what state selectors get added later.
+ */
+.pbtn {
+	--btn-bg: var(--surface-2);
+	--btn-bg-hover: var(--cabinet-hi);
+	--btn-fg: var(--cream);
+	--btn-hi: var(--cabinet-hi);
+	--btn-lo: var(--cabinet-lo);
+
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6em;
+	min-height: 44px;
+	padding: 0.85rem 1.1rem;
+	font-family: var(--font-pixel);
+	font-size: 0.62rem;
+	line-height: 1.6;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	text-decoration: none;
+	color: var(--btn-fg);
+	background: var(--btn-bg);
+	border-top: 2px solid var(--btn-hi);
+	border-left: 2px solid var(--btn-hi);
+	border-right: 2px solid var(--btn-lo);
+	border-bottom: 2px solid var(--btn-lo);
+	box-shadow: var(--bevel-md);
+	transition: background 0.12s linear;
+}
+.pbtn:hover {
+	background: var(--btn-bg-hover);
+}
+.pbtn:active,
+.pbtn[aria-pressed='true'] {
+	transform: translate(3px, 3px);
+	box-shadow: none;
+}
+.pbtn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: var(--bevel-md);
+}
+
+.pbtn-primary {
+	--btn-bg: var(--tim-red);
+	--btn-bg-hover: #e8353c;
+	--btn-fg: #fff;
+	--btn-hi: #f0555b;
+	--btn-lo: #7d1216;
+}
+
+.pbtn-gold {
+	--btn-bg: var(--gold);
+	--btn-bg-hover: #ffc450;
+	--btn-fg: var(--cabinet-lo);
+	--btn-hi: #ffd479;
+	--btn-lo: var(--gold-deep);
+}
+
+.pbtn-mint {
+	--btn-bg: var(--mint);
+	--btn-bg-hover: #4fbd9c;
+	--btn-fg: #04150f;
+	--btn-hi: #6fd3b5;
+	--btn-lo: var(--mint-deep);
+}
+
+/* Small square-cornered status chip. */
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	flex: none;
+	padding: 0.45rem 0.6rem;
+	font-family: var(--font-pixel);
+	font-size: 0.5rem;
+	line-height: 1.5;
+	text-transform: uppercase;
+	color: var(--cream-dim);
+	background: var(--screen-deep);
+	border: 2px solid var(--cabinet-lo);
+	box-shadow: inset 0 0 0 1px rgba(247, 239, 227, 0.06);
+	white-space: nowrap;
+}
+.chip strong {
+	color: var(--cream);
+	font-weight: 400;
+}
+
+/* Pixel headings. Never use for body copy. */
+.pixel {
+	font-family: var(--font-pixel);
+	font-weight: 400;
+	letter-spacing: 0.02em;
+	line-height: 1.7;
+	text-transform: uppercase;
+}
+
+/* Scanline + vignette veil. Sits above the map, below the chrome. */
+.veil {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background-image: repeating-linear-gradient(
+		to bottom,
+		rgba(0, 0, 0, 0.28) 0px,
+		rgba(0, 0, 0, 0.28) 1px,
+		transparent 1px,
+		transparent 3px
+	);
+	opacity: 0.4;
+	mix-blend-mode: multiply;
+}
+.veil::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+@media (prefers-reduced-motion: reduce), (prefers-contrast: more) {
+	.veil {
+		display: none;
+	}
+}

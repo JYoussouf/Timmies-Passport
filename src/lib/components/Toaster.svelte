@@ -5,15 +5,15 @@
 
 <div class="toaster" aria-live="polite">
 	{#each ui.toasts as t (t.id)}
-		<div class="toast" transition:fly={{ y: 24, duration: 320 }}>
+		<div class="toast" transition:fly={{ y: 20, duration: 240 }}>
 			<span class="emoji" aria-hidden="true">{t.emoji}</span>
 			<div class="body">
-				<strong>{t.title}</strong>
+				<strong class="pixel">{t.title}</strong>
 				{#if t.body}<span>{t.body}</span>{/if}
 			</div>
 			{#if t.action}
 				<button
-					class="act"
+					class="act pixel"
 					onclick={() => {
 						t.action!.run();
 						ui.dismiss(t.id);
@@ -30,7 +30,7 @@
 		position: fixed;
 		left: 50%;
 		transform: translateX(-50%);
-		top: calc(var(--safe-top) + 12px);
+		top: calc(var(--safe-top) + 66px);
 		z-index: 60;
 		display: flex;
 		flex-direction: column;
@@ -43,47 +43,59 @@
 		display: flex;
 		align-items: center;
 		gap: 0.7rem;
-		background: var(--espresso);
+		background: var(--screen-deep);
 		color: var(--cream);
-		padding: 0.7rem 0.8rem 0.7rem 0.9rem;
-		border-radius: var(--r-md);
-		box-shadow: var(--shadow-lg);
+		padding: 0.65rem 0.5rem 0.65rem 0.75rem;
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+		box-shadow: var(--bevel-md);
 	}
 	.emoji {
-		font-size: 1.35rem;
+		font-size: 1.3rem;
+		flex: none;
 	}
 	.body {
 		display: flex;
 		flex-direction: column;
-		line-height: 1.25;
+		gap: 3px;
 		flex: 1;
 		min-width: 0;
 	}
 	.body strong {
-		font-size: 0.92rem;
+		font-size: 0.5rem;
+		color: var(--gold);
 	}
 	.body span {
-		font-size: 0.82rem;
-		opacity: 0.82;
+		font-size: 0.8rem;
+		line-height: 1.35;
+		color: var(--cream-dim);
 	}
 	.act {
 		flex: none;
-		font-weight: 700;
-		font-size: 0.85rem;
-		color: #fff;
-		background: var(--accent);
-		padding: 0.45rem 0.8rem;
-		border-radius: 999px;
+		align-self: stretch;
+		font-size: 0.45rem;
+		color: var(--cabinet-lo);
+		background: var(--gold);
+		padding: 0 0.6rem;
+		border-top: 2px solid #ffd479;
+		border-left: 2px solid #ffd479;
+		border-right: 2px solid var(--gold-deep);
+		border-bottom: 2px solid var(--gold-deep);
+	}
+	.act:active {
+		transform: translate(2px, 2px);
 	}
 	.x {
 		flex: none;
-		font-size: 1.3rem;
+		width: 32px;
+		height: 32px;
+		font-size: 1.2rem;
 		line-height: 1;
-		color: var(--cream);
-		opacity: 0.6;
-		padding: 0 0.2rem;
+		color: var(--cream-dim);
 	}
 	.x:hover {
-		opacity: 1;
+		color: var(--cream);
 	}
 </style>

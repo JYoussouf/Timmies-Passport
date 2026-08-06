@@ -26,56 +26,54 @@
 </script>
 
 {#if ui.authOpen}
-	<div class="overlay" transition:fade={{ duration: 200 }}>
+	<div class="overlay" transition:fade={{ duration: 160 }}>
 		<button class="scrim" aria-label="Close" onclick={() => ui.closeAuth()}></button>
-		<div class="modal card" transition:scale={{ start: 0.94, duration: 280 }}>
-			<div class="brand"><span class="dot"></span> Timmies Passport</div>
-			<h2>{mode === 'signup' ? 'Save your passport' : 'Welcome back'}</h2>
-			<p class="sub">
-				{mode === 'signup'
-					? `Keep your ${passport.count} stamp${passport.count === 1 ? '' : 's'} forever and sync across devices.`
-					: 'Sign in to load your collected Timmies.'}
-			</p>
+		<div class="modal" transition:scale={{ start: 0.96, duration: 200 }}>
+			<div class="cap pixel">
+				<span class="dot" aria-hidden="true"></span> Insert Passport
+			</div>
+			<div class="inner">
+				<h2 class="pixel">{mode === 'signup' ? 'Save your passport' : 'Welcome back'}</h2>
+				<p class="sub">
+					{mode === 'signup'
+						? `Keep your ${passport.count} stamp${passport.count === 1 ? '' : 's'} forever and sync across devices.`
+						: 'Sign in to load your collected Timmies.'}
+				</p>
 
-			<form onsubmit={submit}>
-				{#if mode === 'signup'}
+				<form onsubmit={submit}>
+					{#if mode === 'signup'}
+						<input
+							type="text"
+							placeholder="Display name"
+							bind:value={displayName}
+							autocomplete="nickname"
+						/>
+					{/if}
+					<input type="email" placeholder="Email" bind:value={email} required autocomplete="email" />
 					<input
-						type="text"
-						placeholder="Display name"
-						bind:value={displayName}
-						autocomplete="nickname"
+						type="password"
+						placeholder="Password"
+						bind:value={password}
+						required
+						minlength="6"
+						autocomplete={mode === 'signup' ? 'new-password' : 'current-password'}
 					/>
-				{/if}
-				<input
-					type="email"
-					placeholder="Email"
-					bind:value={email}
-					required
-					autocomplete="email"
-				/>
-				<input
-					type="password"
-					placeholder="Password"
-					bind:value={password}
-					required
-					minlength="6"
-					autocomplete={mode === 'signup' ? 'new-password' : 'current-password'}
-				/>
-				{#if error}<p class="err">{error}</p>{/if}
-				<button class="btn btn-primary submit" type="submit" disabled={busy}>
-					{busy ? 'One sec…' : mode === 'signup' ? 'Create passport' : 'Sign in'}
-				</button>
-			</form>
+					{#if error}<p class="err">{error}</p>{/if}
+					<button class="pbtn pbtn-primary submit" type="submit" disabled={busy}>
+						{busy ? 'One sec…' : mode === 'signup' ? 'Create passport' : 'Sign in'}
+					</button>
+				</form>
 
-			<p class="switch">
-				{#if mode === 'signup'}
-					Already have one?
-					<button onclick={() => (ui.authMode = 'login')}>Sign in</button>
-				{:else}
-					New here?
-					<button onclick={() => (ui.authMode = 'signup')}>Create a passport</button>
-				{/if}
-			</p>
+				<p class="switch">
+					{#if mode === 'signup'}
+						Already have one?
+						<button class="pixel" onclick={() => (ui.authMode = 'login')}>Sign in</button>
+					{:else}
+						New here?
+						<button class="pixel" onclick={() => (ui.authMode = 'signup')}>Create a passport</button>
+					{/if}
+				</p>
+			</div>
 		</div>
 	</div>
 {/if}
@@ -92,73 +90,98 @@
 	.scrim {
 		position: absolute;
 		inset: 0;
-		background: rgba(43, 26, 20, 0.45);
-		backdrop-filter: blur(3px);
+		background: rgba(11, 21, 36, 0.75);
 		border: none;
 	}
 	.modal {
 		position: relative;
 		width: min(400px, 100%);
-		padding: 1.6rem;
-		background: var(--surface);
+		max-height: calc(100dvh - 2rem);
+		overflow-y: auto;
+		background: var(--cabinet);
+		border-top: 3px solid var(--cabinet-hi);
+		border-left: 3px solid var(--cabinet-hi);
+		border-right: 3px solid var(--cabinet-lo);
+		border-bottom: 3px solid var(--cabinet-lo);
+		box-shadow: var(--bevel-lg);
 	}
-	.brand {
+	.cap {
 		display: flex;
 		align-items: center;
-		gap: 0.45rem;
-		font-weight: 700;
-		font-size: 0.82rem;
-		color: var(--coffee);
-		letter-spacing: 0.02em;
+		gap: 0.5rem;
+		padding: 0.65rem 0.9rem;
+		font-size: 0.45rem;
+		color: var(--gold);
+		background: var(--screen-deep);
+		border-bottom: 2px solid var(--cabinet-lo);
 	}
 	.dot {
-		width: 12px;
-		height: 12px;
-		border-radius: 50%;
-		background: var(--accent);
-		box-shadow: 0 0 0 3px rgba(216, 35, 42, 0.18);
+		width: 9px;
+		height: 9px;
+		background: var(--tim-red);
+	}
+	.inner {
+		padding: 1.3rem 1.2rem 1.4rem;
 	}
 	h2 {
-		margin: 0.7rem 0 0.3rem;
-		font-size: 1.5rem;
+		font-size: 0.72rem;
+		color: var(--cream);
 	}
 	.sub {
-		margin: 0 0 1.1rem;
-		color: var(--ink-soft);
-		font-size: 0.92rem;
+		margin: 0.7rem 0 1.2rem;
+		color: var(--cream-dim);
+		font-size: 0.9rem;
+		line-height: 1.45;
 	}
 	input {
 		width: 100%;
-		padding: 0.85rem 0.9rem;
+		min-height: 46px;
+		padding: 0.75rem 0.8rem;
 		margin-bottom: 0.6rem;
-		border: 1.5px solid var(--line);
-		border-radius: var(--r-sm);
-		font: inherit;
-		background: var(--bg);
-		color: var(--ink);
+		font-family: var(--font-sans);
+		font-size: 1rem;
+		background: var(--screen-deep);
+		color: var(--cream);
+		border-top: 2px solid var(--cabinet-lo);
+		border-left: 2px solid var(--cabinet-lo);
+		border-right: 2px solid var(--cabinet-hi);
+		border-bottom: 2px solid var(--cabinet-hi);
+	}
+	input::placeholder {
+		color: var(--cream-faint);
 	}
 	input:focus {
-		outline: none;
-		border-color: var(--caramel);
+		outline: 3px solid var(--gold);
+		outline-offset: 0;
 	}
 	.submit {
 		width: 100%;
-		margin-top: 0.4rem;
+		margin-top: 0.5rem;
 	}
 	.err {
-		color: var(--tim-red-deep);
+		color: #ff8f94;
 		font-size: 0.85rem;
 		margin: 0 0 0.6rem;
 	}
 	.switch {
 		text-align: center;
-		margin: 1rem 0 0;
-		font-size: 0.88rem;
-		color: var(--ink-soft);
+		margin: 1.1rem 0 0;
+		font-size: 0.85rem;
+		color: var(--cream-dim);
 	}
 	.switch button {
-		font-weight: 700;
-		color: var(--accent);
-		text-decoration: underline;
+		display: inline-block;
+		margin-top: 0.5rem;
+		padding: 0.5rem 0.6rem;
+		font-size: 0.45rem;
+		color: var(--gold);
+		background: var(--surface-2);
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+	}
+	.switch button:active {
+		transform: translate(2px, 2px);
 	}
 </style>

@@ -6,163 +6,176 @@
 
 	let { onsearch }: { onsearch: () => void } = $props();
 
+	/** Collection progress, quantised into 10 segments for the pixel meter. */
 	const pct = $derived(
 		locations.total ? Math.min(100, (passport.count / locations.total) * 100) : 0
 	);
+	const lit = $derived(Math.min(10, Math.ceil((pct / 100) * 10)));
+	const segments = Array.from({ length: 10 }, (_, i) => i);
 </script>
 
 <header class="bar">
 	<a class="brand" href="/" aria-label="Timmies Passport home">
 		<span class="logo" aria-hidden="true"></span>
-		<span class="name">Timmies&nbsp;Passport</span>
+		<span class="name pixel">Timmies</span>
 	</a>
 
 	<div class="right">
-		<div class="progress" title="{passport.count} of {locations.total} locations collected">
-			<svg viewBox="0 0 36 36" class="ring" aria-hidden="true">
-				<circle class="track" cx="18" cy="18" r="15.5" />
-				<circle
-					class="fill"
-					cx="18"
-					cy="18"
-					r="15.5"
-					style="stroke-dashoffset: {97.4 - (97.4 * pct) / 100}"
-				/>
-			</svg>
-			<span class="count">{passport.count}</span>
+		<div
+			class="meter"
+			title="{passport.count} of {locations.total} locations collected"
+			role="img"
+			aria-label="{passport.count} of {locations.total} locations collected"
+		>
+			<span class="segs" aria-hidden="true">
+				{#each segments as i (i)}
+					<i class:on={i < lit}></i>
+				{/each}
+			</span>
+			<span class="count pixel">{passport.count}</span>
 		</div>
 
 		<button class="icon" aria-label="Search locations" onclick={onsearch}>
-			<svg viewBox="0 0 24 24" width="20" height="20"
+			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"
 				><path
 					d="M21 21l-4.3-4.3M11 19a8 8 0 110-16 8 8 0 010 16z"
 					fill="none"
 					stroke="currentColor"
-					stroke-width="2.2"
-					stroke-linecap="round"
+					stroke-width="2.6"
+					stroke-linecap="square"
 				/></svg
 			>
 		</button>
 
 		{#if auth.signedIn}
-			<button class="avatar" aria-label="Account" onclick={() => auth.logout()}>
+			<button class="avatar pixel" aria-label="Sign out" onclick={() => auth.logout()}>
 				{auth.user!.displayName.slice(0, 1).toUpperCase()}
 			</button>
 		{:else}
-			<button class="signin" onclick={() => ui.openAuth('login')}>Sign in</button>
+			<button class="signin pixel" onclick={() => ui.openAuth('login')}>Sign in</button>
 		{/if}
 	</div>
 </header>
 
 <style>
 	.bar {
-		position: fixed;
+		position: absolute;
 		top: calc(var(--safe-top) + 10px);
 		left: 10px;
 		right: 10px;
 		z-index: 30;
 		display: flex;
-		align-items: center;
+		align-items: stretch;
 		justify-content: space-between;
-		gap: 0.6rem;
+		gap: 0.5rem;
 		pointer-events: none;
 	}
 	.brand,
 	.right {
 		pointer-events: auto;
-	}
-	.brand {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		background: var(--surface);
-		padding: 0.45rem 0.85rem 0.45rem 0.55rem;
-		border-radius: 999px;
-		box-shadow: var(--shadow-md);
-		text-decoration: none;
-		color: var(--ink);
+		background: var(--cabinet);
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+		box-shadow: var(--bevel-md);
 	}
+	.brand {
+		gap: 0.5rem;
+		padding: 0 0.7rem 0 0.5rem;
+		min-height: 44px;
+		text-decoration: none;
+		color: var(--cream);
+	}
+	/* A donut: red ring, hole punched out. Hard steps, like the map sprites. */
 	.logo {
-		width: 22px;
-		height: 22px;
-		border-radius: 50%;
-		background: radial-gradient(circle at 50% 35%, var(--tim-red) 0 55%, var(--espresso) 56%);
+		width: 18px;
+		height: 18px;
+		flex: none;
+		background: var(--cabinet);
+		box-shadow: inset 0 0 0 5px var(--tim-red);
 	}
 	.name {
-		font-family: var(--font-display);
-		font-weight: 800;
-		font-size: 0.92rem;
-		letter-spacing: -0.01em;
+		font-size: 0.6rem;
+		color: var(--gold);
 	}
-	@media (max-width: 380px) {
+	@media (max-width: 400px) {
 		.name {
 			display: none;
 		}
+		.brand {
+			padding: 0 0.5rem;
+		}
 	}
+
 	.right {
+		gap: 0.3rem;
+		padding: 0.25rem;
+	}
+	.meter {
 		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		background: var(--surface);
-		padding: 0.35rem;
-		border-radius: 999px;
-		box-shadow: var(--shadow-md);
+		flex-direction: column;
+		gap: 3px;
+		justify-content: center;
+		padding: 0 0.5rem 0 0.4rem;
 	}
-	.progress {
-		position: relative;
-		width: 38px;
-		height: 38px;
-		display: grid;
-		place-items: center;
+	.segs {
+		display: flex;
+		gap: 2px;
 	}
-	.ring {
-		position: absolute;
-		inset: 0;
-		transform: rotate(-90deg);
+	.segs i {
+		width: 4px;
+		height: 8px;
+		background: rgba(247, 239, 227, 0.16);
 	}
-	.ring .track {
-		fill: none;
-		stroke: var(--cream-deep);
-		stroke-width: 3;
-	}
-	.ring .fill {
-		fill: none;
-		stroke: var(--accent);
-		stroke-width: 3;
-		stroke-linecap: round;
-		stroke-dasharray: 97.4;
-		transition: stroke-dashoffset 0.6s var(--ease-out);
+	.segs i.on {
+		background: var(--gold);
 	}
 	.count {
-		font-weight: 800;
-		font-size: 0.8rem;
-		color: var(--ink);
+		font-size: 0.55rem;
+		color: var(--cream);
+		line-height: 1;
 	}
+
 	.icon,
 	.avatar,
 	.signin {
 		display: grid;
 		place-items: center;
-		height: 38px;
-		border-radius: 999px;
+		min-height: 40px;
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+		background: var(--surface-2);
+		transition: background 0.12s linear;
+	}
+	.icon:active,
+	.avatar:active,
+	.signin:active {
+		transform: translate(2px, 2px);
 	}
 	.icon {
-		width: 38px;
-		color: var(--coffee);
+		width: 40px;
+		color: var(--cream);
 	}
 	.icon:hover {
-		background: var(--surface-2);
+		background: var(--cabinet-hi);
 	}
 	.avatar {
-		width: 38px;
-		background: var(--espresso);
-		color: var(--cream);
-		font-weight: 800;
+		width: 40px;
+		background: var(--tim-red);
+		color: #fff;
+		font-size: 0.6rem;
 	}
 	.signin {
-		padding: 0 0.9rem;
-		font-weight: 700;
-		font-size: 0.85rem;
-		color: var(--accent);
+		padding: 0 0.7rem;
+		font-size: 0.5rem;
+		color: var(--gold);
+	}
+	.signin:hover {
+		background: var(--cabinet-hi);
 	}
 </style>

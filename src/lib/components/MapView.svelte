@@ -2,17 +2,21 @@
 	import { onMount } from 'svelte';
 	import maplibregl from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
-	import { BASEMAP_STYLE, INITIAL_VIEW } from '$lib/map/style';
+	import { trackerStyle, INITIAL_VIEW, MAP_COLORS } from '$lib/map/style';
+	import { registerSprites } from '$lib/map/sprites';
 	import { locations } from '$lib/stores/locations.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
 	import { haptic } from '$lib/effects';
+
+	let { onmove }: { onmove?: (c: { lng: number; lat: number; zoom: number }) => void } = $props();
 
 	let container: HTMLDivElement;
 	let map: maplibregl.Map | undefined;
 	let ready = $state(false);
 
 	const SRC = 'timmies';
+	const COUNT_FONT = ['Montserrat Bold', 'Open Sans Bold'];
 
 	function buildData(): GeoJSON.FeatureCollection {
 		const feats = (locations.collection?.features ?? []).map((f) => ({
@@ -29,6 +33,8 @@
 
 	function addLayers() {
 		if (!map) return;
+		registerSprites(map);
+
 		map.addSource(SRC, {
 			type: 'geojson',
 			data: buildData(),
@@ -37,82 +43,90 @@
 			clusterMaxZoom: 12
 		});
 
-		// Cluster bubbles — espresso, sized by count
+		// Clusters — beveled cabinet plates, stepped by how many they hold.
 		map.addLayer({
 			id: 'clusters',
-			type: 'circle',
-			source: SRC,
-			filter: ['has', 'point_count'],
-			paint: {
-				'circle-color': '#3d2820',
-				'circle-radius': ['step', ['get', 'point_count'], 18, 25, 24, 100, 30, 750, 38],
-				'circle-stroke-width': 3,
-				'circle-stroke-color': 'rgba(247,239,227,0.85)'
-			}
-		});
-		map.addLayer({
-			id: 'cluster-count',
 			type: 'symbol',
 			source: SRC,
 			filter: ['has', 'point_count'],
 			layout: {
+				'icon-image': [
+					'step',
+					['get', 'point_count'],
+					'cluster-sm',
+					25,
+					'cluster-md',
+					150,
+					'cluster-lg'
+				],
+				'icon-allow-overlap': true,
+				'icon-ignore-placement': true,
 				'text-field': ['get', 'point_count_abbreviated'],
-				'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-				'text-size': 13
+				'text-font': COUNT_FONT,
+				'text-size': ['step', ['get', 'point_count'], 10, 25, 11, 150, 12],
+				'text-allow-overlap': true,
+				'text-ignore-placement': true
 			},
-			paint: { 'text-color': '#f7efe3' }
+			paint: { 'text-color': MAP_COLORS.gold }
 		});
 
-		// Unvisited single points — hollow coffee dots
+		// Unstamped — hollow red donut rings.
 		map.addLayer({
 			id: 'pins',
-			type: 'circle',
+			type: 'symbol',
 			source: SRC,
 			filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'visited'], 0]],
-			paint: {
-				'circle-color': '#fffaf2',
-				'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 4, 12, 7],
-				'circle-stroke-width': 2.5,
-				'circle-stroke-color': '#b07a4f'
+			layout: {
+				'icon-image': 'pin-unstamped',
+				'icon-allow-overlap': true,
+				'icon-ignore-placement': true,
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.42, 8, 0.7, 13, 1]
 			}
 		});
 
-		// Visited single points — filled Tim's red with a warm glow
+		// Stamped — mint donuts with sprinkles and a soft glow. Drawn above the
+		// unstamped ones so a collected store always wins an overlap.
 		map.addLayer({
 			id: 'pins-visited',
-			type: 'circle',
+			type: 'symbol',
 			source: SRC,
 			filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'visited'], 1]],
-			paint: {
-				'circle-color': '#d8232a',
-				'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 6, 12, 10],
-				'circle-stroke-width': 3,
-				'circle-stroke-color': '#fffaf2'
+			layout: {
+				'icon-image': 'pin-stamped',
+				'icon-allow-overlap': true,
+				'icon-ignore-placement': true,
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.5, 8, 0.8, 13, 1.1]
 			}
 		});
 
-		// Selected ring
+		// Selection reticle.
 		map.addLayer({
 			id: 'selected-ring',
-			type: 'circle',
+			type: 'symbol',
 			source: SRC,
 			filter: ['==', ['get', 'id'], '__none__'],
-			paint: {
-				'circle-color': 'rgba(216,35,42,0.12)',
-				'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 14, 12, 22],
-				'circle-stroke-width': 2,
-				'circle-stroke-color': '#d8232a'
-			}
+			layout: {
+				'icon-image': 'reticle',
+				'icon-allow-overlap': true,
+				'icon-ignore-placement': true,
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.7, 13, 1.2]
+			},
+			paint: { 'icon-opacity': 1 }
 		});
 
-		// Interactions
+		startReticleBlink();
+
+		// Interactions ------------------------------------------------------
 		map.on('click', 'clusters', (e) => {
 			const f = map!.queryRenderedFeatures(e.point, { layers: ['clusters'] })[0];
 			const clusterId = f.properties!.cluster_id;
 			(map!.getSource(SRC) as maplibregl.GeoJSONSource)
 				.getClusterExpansionZoom(clusterId)
 				.then((zoom) => {
-					map!.easeTo({ center: (f.geometry as GeoJSON.Point).coordinates as [number, number], zoom });
+					map!.easeTo({
+						center: (f.geometry as GeoJSON.Point).coordinates as [number, number],
+						zoom
+					});
 				});
 		});
 
@@ -138,6 +152,22 @@
 		ready = true;
 	}
 
+	/** Four-frame blink on the selection reticle. Static under reduced motion. */
+	let blinkTimer: ReturnType<typeof setInterval> | undefined;
+	function startReticleBlink() {
+		const reduced =
+			typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (reduced) return;
+		const frames = [1, 0.75, 0.35, 0.75];
+		let i = 0;
+		blinkTimer = setInterval(() => {
+			i = (i + 1) % frames.length;
+			if (map?.getLayer('selected-ring')) {
+				map.setPaintProperty('selected-ring', 'icon-opacity', frames[i]);
+			}
+		}, 220);
+	}
+
 	export function flyTo(center: [number, number], zoom = 14) {
 		map?.flyTo({ center, zoom, offset: [0, -120], duration: 1400 });
 	}
@@ -145,7 +175,7 @@
 	onMount(() => {
 		map = new maplibregl.Map({
 			container,
-			style: BASEMAP_STYLE,
+			style: trackerStyle(),
 			center: INITIAL_VIEW.center,
 			zoom: INITIAL_VIEW.zoom,
 			attributionControl: { compact: true },
@@ -166,12 +196,27 @@
 			addLayers();
 		});
 
-		return () => map?.remove();
+		// Feed the radar. Coalesced to one report per frame so a fast pan does
+		// not thrash reactivity.
+		let queued = false;
+		map.on('move', () => {
+			if (queued || !onmove) return;
+			queued = true;
+			requestAnimationFrame(() => {
+				queued = false;
+				const c = map!.getCenter();
+				onmove!({ lng: c.lng, lat: c.lat, zoom: map!.getZoom() });
+			});
+		});
+
+		return () => {
+			clearInterval(blinkTimer);
+			map?.remove();
+		};
 	});
 
 	// Re-paint pins whenever the user's collection changes
 	$effect(() => {
-		// touch reactive deps
 		void passport.count;
 		if (ready) refreshData();
 	});
@@ -186,11 +231,12 @@
 </script>
 
 <div class="map" bind:this={container} aria-label="Map of Tim Hortons locations"></div>
+<div class="veil" aria-hidden="true"></div>
 
 {#if locations.loading || !ready}
-	<div class="loading" role="status">
-		<span class="spinner" aria-hidden="true"></span>
-		Brewing the map…
+	<div class="loading pixel" role="status">
+		<span class="blocks" aria-hidden="true"><i></i><i></i><i></i></span>
+		Brewing the map
 	</div>
 {/if}
 
@@ -198,45 +244,112 @@
 	.map {
 		position: absolute;
 		inset: 0;
-		background: #f3ece0;
+		background: var(--land);
 	}
 	.loading {
 		position: absolute;
-		top: calc(50% - 1rem);
+		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
+		z-index: 5;
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
-		font-weight: 600;
-		color: var(--ink-soft);
-		background: var(--surface);
-		padding: 0.7rem 1.1rem;
-		border-radius: 999px;
-		box-shadow: var(--shadow-md);
+		gap: 0.7rem;
+		font-size: 0.6rem;
+		color: var(--cream);
+		background: var(--cabinet);
+		padding: 0.9rem 1.1rem;
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+		box-shadow: var(--bevel-md);
 		pointer-events: none;
 	}
-	.spinner {
-		width: 16px;
-		height: 16px;
-		border: 2.5px solid var(--cream-deep);
-		border-top-color: var(--accent);
-		border-radius: 50%;
-		animation: spin 0.8s linear infinite;
+	.blocks {
+		display: flex;
+		gap: 3px;
 	}
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
+	.blocks i {
+		width: 6px;
+		height: 6px;
+		background: var(--gold);
+		animation: pop 0.9s steps(2, end) infinite;
+	}
+	.blocks i:nth-child(2) {
+		animation-delay: 0.3s;
+	}
+	.blocks i:nth-child(3) {
+		animation-delay: 0.6s;
+	}
+	@keyframes pop {
+		0%,
+		49% {
+			opacity: 0.25;
+		}
+		50%,
+		100% {
+			opacity: 1;
 		}
 	}
-	/* Tame MapLibre's default controls into the brand */
+
+	/* MapLibre's own controls, rebuilt as cabinet switches. */
 	:global(.maplibregl-ctrl-group) {
-		border-radius: 14px !important;
-		box-shadow: var(--shadow-md) !important;
+		border-radius: 0 !important;
+		background: var(--cabinet) !important;
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+		box-shadow: var(--bevel-md) !important;
 		overflow: hidden;
 	}
+	:global(.maplibregl-ctrl-group button) {
+		width: 36px !important;
+		height: 36px !important;
+		background: transparent !important;
+	}
+	:global(.maplibregl-ctrl-group button + button) {
+		border-top: 2px solid var(--cabinet-lo) !important;
+	}
+	:global(.maplibregl-ctrl-group button:hover) {
+		background: var(--cabinet-hi) !important;
+	}
+	/* MapLibre ships dark glyphs; invert them onto the dark cabinet. */
+	:global(.maplibregl-ctrl-group button .maplibregl-ctrl-icon) {
+		filter: invert(1) sepia(0.3) saturate(0.4) brightness(1.15);
+	}
 	:global(.maplibregl-ctrl-bottom-right) {
-		margin-bottom: calc(var(--safe-bottom) + 92px);
+		margin-bottom: calc(var(--safe-bottom) + 128px);
 		margin-right: 12px;
+	}
+	/* Desktop keeps the radar plate in that corner, so the controls move up. */
+	@media (min-width: 900px) {
+		:global(.maplibregl-ctrl-bottom-right) {
+			margin-bottom: 214px;
+			margin-right: 14px;
+		}
+	}
+	@media (min-width: 900px) and (max-height: 620px) {
+		:global(.maplibregl-ctrl-bottom-right) {
+			margin-bottom: 56px;
+		}
+	}
+	:global(.maplibregl-ctrl-attrib),
+	:global(.maplibregl-ctrl-attrib.maplibregl-compact) {
+		background: rgba(21, 13, 10, 0.88) !important;
+		color: var(--cream-dim) !important;
+		border-radius: 0 !important;
+		font-size: 10px !important;
+		min-height: 0 !important;
+	}
+	:global(.maplibregl-ctrl-attrib a) {
+		color: var(--cream-dim) !important;
+	}
+	:global(.maplibregl-ctrl-attrib-button) {
+		filter: invert(1);
+	}
+	:global(.maplibregl-ctrl-bottom-left) {
+		display: none;
 	}
 </style>

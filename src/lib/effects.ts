@@ -13,10 +13,14 @@ export function haptic(pattern: number | number[] = 18) {
 const prefersReducedMotion = () =>
 	typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const CONFETTI_COLORS = ['#d8232a', '#e8893b', '#b07a4f', '#f7efe3', '#2f7d6b'];
+const CONFETTI_COLORS = ['#d8232a', '#f2b134', '#3fa88b', '#f7efe3', '#4a2e23'];
+
+/** Particles snap to this grid so the burst reads as pixels, not glitter. */
+const CELL = 4;
+const snap = (n: number) => Math.round(n / CELL) * CELL;
 
 /**
- * Bursts confetti from a point (viewport coords). Pure canvas, no deps.
+ * Bursts pixel confetti from a point (viewport coords). Pure canvas, no deps.
  * Respects prefers-reduced-motion (renders nothing).
  */
 export function confettiBurst(x: number, y: number, count = 80) {
@@ -32,17 +36,7 @@ export function confettiBurst(x: number, y: number, count = 80) {
 	const ctx = canvas.getContext('2d')!;
 	ctx.scale(dpr, dpr);
 
-	type P = {
-		x: number;
-		y: number;
-		vx: number;
-		vy: number;
-		rot: number;
-		vr: number;
-		size: number;
-		color: string;
-		shape: number;
-	};
+	type P = { x: number; y: number; vx: number; vy: number; size: number; color: string };
 	const parts: P[] = Array.from({ length: count }, () => {
 		const angle = Math.random() * Math.PI * 2;
 		const speed = 4 + Math.random() * 9;
@@ -51,11 +45,9 @@ export function confettiBurst(x: number, y: number, count = 80) {
 			y,
 			vx: Math.cos(angle) * speed,
 			vy: Math.sin(angle) * speed - 6,
-			rot: Math.random() * Math.PI,
-			vr: (Math.random() - 0.5) * 0.4,
-			size: 5 + Math.random() * 7,
-			color: CONFETTI_COLORS[(Math.random() * CONFETTI_COLORS.length) | 0],
-			shape: (Math.random() * 2) | 0
+			// Two sizes only, both multiples of the grid cell.
+			size: Math.random() < 0.5 ? CELL : CELL * 2,
+			color: CONFETTI_COLORS[(Math.random() * CONFETTI_COLORS.length) | 0]
 		};
 	});
 
@@ -66,25 +58,19 @@ export function confettiBurst(x: number, y: number, count = 80) {
 
 	function tick() {
 		ctx.clearRect(0, 0, innerWidth, innerHeight);
+		// Alpha steps in quarters rather than fading smoothly, to match the
+		// stepped animation language everywhere else.
+		const life = Math.max(0, 1 - frame / maxFrames);
+		ctx.globalAlpha = Math.ceil(life * 4) / 4;
 		for (const p of parts) {
 			p.vx *= drag;
 			p.vy = p.vy * drag + gravity;
 			p.x += p.vx;
 			p.y += p.vy;
-			p.rot += p.vr;
-			ctx.save();
-			ctx.translate(p.x, p.y);
-			ctx.rotate(p.rot);
-			ctx.globalAlpha = Math.max(0, 1 - frame / maxFrames);
 			ctx.fillStyle = p.color;
-			if (p.shape === 0) ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
-			else {
-				ctx.beginPath();
-				ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
-				ctx.fill();
-			}
-			ctx.restore();
+			ctx.fillRect(snap(p.x), snap(p.y), p.size, p.size);
 		}
+		ctx.globalAlpha = 1;
 		frame++;
 		if (frame < maxFrames) requestAnimationFrame(tick);
 		else canvas.remove();

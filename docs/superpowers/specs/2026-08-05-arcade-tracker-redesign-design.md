@@ -1,7 +1,7 @@
 # Arcade Tracker Redesign
 
 Date: 2026-08-05
-Status: Approved
+Status: Implemented. See "Deviations from this spec" at the end for what changed during build.
 
 ## Goal
 
@@ -227,3 +227,57 @@ This is acceptable and is preferable to a third-party CDN request.
 Replacing the hosted basemap style with a local specification means we now own the map's layer definitions.
 If CARTO changes its tile schema the map could degrade.
 The tiles use the stable OpenMapTiles schema, so this risk is low, and the failure mode is visual rather than functional.
+
+## Deviations from this spec
+
+Recorded during implementation, with the reason for each.
+
+**Country borders are dark, not `--cream-dim`.**
+The spec's palette makes the landmass cream, so a cream border is invisible on it.
+Borders are dotted `rgba(43, 26, 20, 0.38)` instead.
+The spec was internally inconsistent on this line.
+
+**Marker sprites are built as raw RGBA buffers, not rasterised SVG.**
+Hand-building the pixel grid and upscaling it with nearest-neighbour is what keeps the edges hard.
+Rasterising an SVG reintroduces antialiasing, which is exactly the look the design is avoiding.
+It is also synchronous, so no image-decode step is needed before `addImage`.
+
+**Unstamped markers are a solid red ring, not a hollow ring with a coloured rim.**
+The specified rim-band-rim construction produced concentric red/white/red noise inside a 10px donut.
+Colour alone now separates the two states.
+
+**The legend rail is desktop-only, and shows Stamped and Countries rather than a streak.**
+There is no streak in the data model, and inventing one was out of scope for a presentational change.
+On mobile the chips are not rendered at all: the top bar meter already shows the collected count and the HUD shows what is left, so the chips were a third copy of the same two numbers fighting for a 390px row.
+
+**Water labels are split into ocean and lake layers.**
+A single layer labelled large bays twice at different ranks, which rendered as a visibly doubled label.
+
+**Buildings and street-name labels were added above zoom 13.**
+The spec suppressed almost everything below zoom 8 but did not say what appears above it.
+In practice the street-level view was an empty cream field, which is useless when the whole point is finding a specific store.
+
+## Fixes made along the way
+
+Defects found while verifying, all outside the original scope but fixed rather than left:
+
+- `.pbtn:hover` (specificity 0,2,0) silently overrode every button variant's background (0,1,0), so hovering the gold or mint buttons repainted them brown and dropped the text to unreadable contrast.
+  Variants are now expressed as custom properties, which state selectors cannot outrank.
+- `locations.index` and `locations.coords` are plain Maps, so reading them created no reactive dependency.
+  Anything rendered before the dataset finished loading kept its fallback forever — this is why "Countries" reported 0 with stamps collected, and why the passport inventory showed generic names.
+  Every accessor now touches the reactive `collection` first.
+- Lists showed the store name, which is always "Tim Hortons".
+  Search results, the passport inventory and timeline, the marquee, the stamp toast, and the leaderboard now lead with the street address.
+  This required adding `address` to the leaderboard query, the one API change in this work.
+- The country-completion bar drew a pale full-width track, which read as a *completed* bar.
+  The track is now a dark well and the fill has a minimum width so a nonzero count is never invisible.
+- Several genuine content strings used `--cream-faint` (alpha 0.3), which fails WCAG AA on the cabinet background.
+  They now use `--cream-dim` (alpha 0.55, ratio ≈ 5.1); `--cream-faint` is reserved for placeholders and decorative marks.
+
+## Verification performed
+
+`npm run check` clean (199 files, 0 errors, 0 warnings) and `npm run build` succeeds.
+
+Driven in headless Chrome over CDP with real device emulation and real input events at 390x844 (iPhone, DPR 3), 820x1180 (iPad), and 1440x900 (desktop).
+On each: the map renders, markers are crisp, no horizontal overflow, and the tab bar clears the home indicator.
+A check-in was performed end to end via search → sheet → stamp, confirming the stamp animation, the pixel confetti, the toast, the top-bar meter increment, and the marker changing from red to mint.

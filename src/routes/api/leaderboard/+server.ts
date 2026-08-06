@@ -14,7 +14,9 @@ export const GET: RequestHandler = async (event) => {
 
 	const [topLoc, topCty, totals, collectors] = await db.batch([
 		db.prepare(
-			`SELECT id, name, city, region, check_in_count AS count
+			// Every store is named "Tim Hortons", so the address is what makes a
+			// leaderboard row identifiable.
+			`SELECT id, name, address, city, region, check_in_count AS count
 			 FROM locations WHERE check_in_count > 0
 			 ORDER BY check_in_count DESC LIMIT 12`
 		),

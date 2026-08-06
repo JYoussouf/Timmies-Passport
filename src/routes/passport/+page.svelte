@@ -17,6 +17,20 @@
 	const pct = $derived(
 		locations.total ? ((passport.count / locations.total) * 100).toFixed(2) : '0'
 	);
+	/** 20-segment pixel meter across the top of the inventory. */
+	const SEGMENTS = 20;
+	const segs = Array.from({ length: SEGMENTS }, (_, i) => i);
+	const lit = $derived(Math.ceil((Number(pct) / 100) * SEGMENTS));
+
+	/** The inventory grid: collected stores first, then empty slots. */
+	const SLOTS = 24;
+	const slots = $derived.by(() => {
+		const filled = passport.timeline.slice(0, SLOTS).map((t) => t.id);
+		return [
+			...filled,
+			...Array.from({ length: Math.max(0, SLOTS - filled.length) }, () => null)
+		];
+	});
 
 	function share() {
 		const c = passport.countriesVisited.size;
@@ -30,8 +44,13 @@
 		}
 	}
 
+	/**
+	 * Every store is literally called "Tim Hortons", so a list keyed on the
+	 * name is a wall of identical rows. Lead with the street address.
+	 */
 	function nameFor(id: string) {
-		return locations.get(id)?.name ?? 'Tim Hortons';
+		const p = locations.get(id);
+		return p?.address || p?.name || 'Tim Hortons';
 	}
 	function placeFor(id: string) {
 		const p = locations.get(id);
@@ -52,48 +71,64 @@
 	<PageHeader title="Your Passport" />
 
 	<div class="body">
-		<section class="hero card">
-			<div class="big">
-				<span class="num">{passport.count}</span>
-				<span class="of">/ {locations.total.toLocaleString()} collected</span>
+		<section class="hero">
+			<div class="readout">
+				<span class="num pixel">{passport.count}</span>
+				<span class="of pixel">of {locations.total.toLocaleString()}</span>
 			</div>
-			<div class="bar"><span style="width: {pct}%"></span></div>
-			<p class="worldwide">You've stamped <strong>{pct}%</strong> of the world's Timmies.</p>
+			<div class="meter" aria-hidden="true">
+				{#each segs as i (i)}
+					<i class:on={i < lit}></i>
+				{/each}
+			</div>
+			<p class="worldwide">You have stamped <strong>{pct}%</strong> of the world's Timmies.</p>
 
 			<div class="metrics">
-				<div><span class="m">{passport.countriesVisited.size}</span><small>countries</small></div>
-				<div><span class="m">{passport.regionsVisited.size}</span><small>regions</small></div>
-				<div><span class="m">{earned}</span><small>badges</small></div>
+				<div>
+					<span class="m pixel">{passport.countriesVisited.size}</span><small>Countries</small>
+				</div>
+				<div><span class="m pixel">{passport.regionsVisited.size}</span><small>Regions</small></div>
+				<div><span class="m pixel">{earned}</span><small>Badges</small></div>
 			</div>
 
-			<button class="btn btn-primary share" onclick={share}>Share my passport</button>
+			<button class="pbtn pbtn-gold share" onclick={share}>Share my passport</button>
 		</section>
 
 		{#if !auth.signedIn && passport.count > 0}
 			<button class="save-cta" onclick={() => ui.openAuth('signup')}>
-				<span>📖</span>
+				<span class="ico" aria-hidden="true">📖</span>
 				<div>
-					<strong>Save your passport</strong>
+					<strong class="pixel">Save your passport</strong>
 					<small>Sign up to keep these {passport.count} stamps across devices.</small>
 				</div>
-				<span class="arrow">→</span>
+				<span class="arrow pixel" aria-hidden="true">&gt;</span>
 			</button>
 		{/if}
+
+		<h2 class="section-title">Inventory</h2>
+		<div class="inventory">
+			{#each slots as id, i (id ?? `empty-${i}`)}
+				<div class="slot" class:filled={id !== null} title={id ? nameFor(id) : 'Empty slot'}>
+					<span class="donut" aria-hidden="true"></span>
+					<span class="slot-name">{id ? nameFor(id) : '—'}</span>
+				</div>
+			{/each}
+		</div>
 
 		<h2 class="section-title">Badges</h2>
 		<BadgeGrid />
 
 		<h2 class="section-title">Recent stamps</h2>
 		{#if passport.count === 0}
-			<div class="empty card">
-				<p>No stamps yet. Open the map and check in to your first Timmies! ☕</p>
-				<a class="btn btn-ghost" href="/">Go to map</a>
+			<div class="empty">
+				<p>No stamps yet. Open the map and check in to your first Timmies.</p>
+				<a class="pbtn pbtn-primary" href="/">Go to map</a>
 			</div>
 		{:else}
 			<ul class="timeline">
 				{#each passport.timeline.slice(0, 30) as item (item.id)}
 					<li>
-						<span class="dot"></span>
+						<span class="dot" aria-hidden="true"></span>
 						<div class="info">
 							<strong>{nameFor(item.id)}</strong>
 							<small>{placeFor(item.id)}</small>
@@ -111,58 +146,63 @@
 <style>
 	.page {
 		min-height: 100dvh;
-		background: var(--bg);
+		background: var(--void);
 	}
 	.body {
 		max-width: 620px;
 		margin: 0 auto;
-		padding: 1rem 1rem calc(var(--safe-bottom) + 90px);
+		padding: 1rem 0.85rem calc(var(--safe-bottom) + 90px);
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1.1rem;
 	}
+
 	.hero {
-		padding: 1.4rem;
-		background: linear-gradient(165deg, var(--espresso), var(--coffee));
-		color: var(--cream);
-		border: none;
+		padding: 1.2rem 1.1rem 1.3rem;
+		background: var(--screen-deep);
+		border-top: 3px solid var(--cabinet-hi);
+		border-left: 3px solid var(--cabinet-hi);
+		border-right: 3px solid var(--cabinet-lo);
+		border-bottom: 3px solid var(--cabinet-lo);
+		box-shadow: var(--bevel-md);
 	}
-	.big {
+	.readout {
 		display: flex;
 		align-items: baseline;
-		gap: 0.5rem;
+		gap: 0.6rem;
+		flex-wrap: wrap;
 	}
 	.num {
-		font-family: var(--font-display);
-		font-weight: 800;
-		font-size: 3.2rem;
+		font-size: 2rem;
 		line-height: 1;
+		color: var(--gold);
+		text-shadow: 3px 3px 0 var(--cabinet-lo);
 	}
 	.of {
-		opacity: 0.7;
-		font-weight: 600;
+		font-size: 0.5rem;
+		color: var(--cream-dim);
 	}
-	.bar {
-		margin: 1rem 0 0.5rem;
-		height: 8px;
-		border-radius: 999px;
-		background: rgba(247, 239, 227, 0.18);
-		overflow: hidden;
+	.meter {
+		display: flex;
+		gap: 2px;
+		margin: 1.1rem 0 0.8rem;
 	}
-	.bar span {
-		display: block;
-		height: 100%;
-		background: var(--accent);
-		border-radius: 999px;
-		transition: width 0.6s var(--ease-out);
+	.meter i {
+		flex: 1;
+		height: 12px;
+		background: rgba(247, 239, 227, 0.12);
+	}
+	.meter i.on {
+		background: var(--tim-red);
+		box-shadow: inset 0 2px 0 #f0555b;
 	}
 	.worldwide {
-		margin: 0.3rem 0 0;
-		font-size: 0.88rem;
-		opacity: 0.85;
+		margin: 0;
+		font-size: 0.85rem;
+		color: var(--cream-dim);
 	}
 	.worldwide strong {
-		color: #fff;
+		color: var(--cream);
 	}
 	.metrics {
 		display: flex;
@@ -172,90 +212,166 @@
 	.metrics div {
 		flex: 1;
 		text-align: center;
-		background: rgba(247, 239, 227, 0.1);
-		border-radius: var(--r-md);
-		padding: 0.7rem 0.4rem;
+		background: var(--cabinet);
+		border: 2px solid var(--cabinet-lo);
+		padding: 0.7rem 0.3rem;
 	}
 	.metrics .m {
 		display: block;
-		font-family: var(--font-display);
-		font-weight: 800;
-		font-size: 1.5rem;
+		font-size: 0.85rem;
+		color: var(--cream);
+		margin-bottom: 0.45rem;
 	}
 	.metrics small {
-		font-size: 0.72rem;
-		opacity: 0.8;
+		font-size: 0.68rem;
+		color: var(--cream-dim);
 	}
 	.share {
 		width: 100%;
 	}
+
 	.save-cta {
 		display: flex;
 		align-items: center;
 		gap: 0.8rem;
 		text-align: left;
-		padding: 0.9rem 1rem;
-		border-radius: var(--r-md);
-		background: #fff6e9;
-		border: 1px solid rgba(176, 122, 79, 0.4);
+		padding: 0.85rem 0.9rem;
+		min-height: 56px;
+		background: var(--cabinet);
+		border-top: 2px solid var(--gold);
+		border-left: 2px solid var(--gold);
+		border-right: 2px solid var(--gold-deep);
+		border-bottom: 2px solid var(--gold-deep);
+		box-shadow: var(--bevel-sm);
 	}
-	.save-cta > span:first-child {
-		font-size: 1.6rem;
+	.save-cta:active {
+		transform: translate(2px, 2px);
+		box-shadow: none;
+	}
+	.save-cta .ico {
+		font-size: 1.5rem;
 	}
 	.save-cta div {
 		flex: 1;
+		min-width: 0;
 	}
 	.save-cta strong {
 		display: block;
-		font-size: 0.95rem;
+		font-size: 0.5rem;
+		color: var(--gold);
+		margin-bottom: 0.4rem;
 	}
 	.save-cta small {
-		color: var(--ink-soft);
-		font-size: 0.82rem;
+		color: var(--cream-dim);
+		font-size: 0.8rem;
+		line-height: 1.35;
 	}
 	.save-cta .arrow {
-		color: var(--accent);
-		font-weight: 800;
-		font-size: 1.2rem;
+		color: var(--gold);
+		font-size: 0.7rem;
 	}
+
 	.section-title {
-		font-size: 1.05rem;
-		margin: 0.5rem 0 -0.2rem;
-		color: var(--ink);
+		font-size: 0.58rem;
+		color: var(--gold);
+		margin: 0.4rem 0 -0.2rem;
 	}
-	.empty {
-		padding: 1.4rem;
-		text-align: center;
-		color: var(--ink-soft);
+
+	/* Inventory ------------------------------------------------------- */
+	.inventory {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+		gap: 0.5rem;
+	}
+	.slot {
 		display: flex;
 		flex-direction: column;
-		gap: 0.9rem;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.6rem 0.3rem;
+		background: var(--screen-deep);
+		border-top: 2px solid var(--cabinet-lo);
+		border-left: 2px solid var(--cabinet-lo);
+		border-right: 2px solid var(--cabinet-hi);
+		border-bottom: 2px solid var(--cabinet-hi);
+	}
+	/* A donut drawn with hard rings, matching the map sprites. */
+	.donut {
+		width: 26px;
+		height: 26px;
+		background: transparent;
+		box-shadow:
+			inset 0 0 0 4px rgba(247, 239, 227, 0.1),
+			inset 0 0 0 9px transparent;
+	}
+	.slot.filled {
+		background: var(--cabinet);
+	}
+	.slot.filled .donut {
+		box-shadow:
+			inset 0 0 0 3px var(--mint-deep),
+			inset 0 0 0 4px var(--mint),
+			inset 0 0 0 9px var(--mint),
+			inset 0 0 0 10px var(--mint-deep);
+	}
+	.slot-name {
+		font-size: 0.6rem;
+		line-height: 1.2;
+		text-align: center;
+		color: var(--cream-faint);
+		width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.slot.filled .slot-name {
+		color: var(--cream-dim);
+	}
+
+	.empty {
+		padding: 1.6rem 1.2rem;
+		text-align: center;
+		color: var(--cream-dim);
+		background: var(--cabinet);
+		border: 2px solid var(--cabinet-lo);
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 		align-items: center;
 	}
 	.empty p {
 		margin: 0;
+		font-size: 0.9rem;
+		line-height: 1.45;
 	}
+
 	.timeline {
 		list-style: none;
 		margin: 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
+		background: var(--cabinet);
+		border: 2px solid var(--cabinet-lo);
 	}
 	.timeline li {
 		display: flex;
 		align-items: center;
-		gap: 0.8rem;
-		padding: 0.7rem 0.2rem;
-		border-bottom: 1px solid var(--line);
+		gap: 0.75rem;
+		padding: 0.7rem 0.75rem;
+		border-bottom: 2px solid var(--cabinet-lo);
+	}
+	.timeline li:last-child {
+		border-bottom: none;
 	}
 	.timeline .dot {
 		flex: none;
-		width: 11px;
-		height: 11px;
-		border-radius: 50%;
-		background: var(--accent);
-		box-shadow: 0 0 0 4px rgba(216, 35, 42, 0.14);
+		width: 12px;
+		height: 12px;
+		background: transparent;
+		box-shadow:
+			inset 0 0 0 4px var(--mint),
+			inset 0 0 0 5px transparent;
 	}
 	.timeline .info {
 		flex: 1;
@@ -263,16 +379,20 @@
 	}
 	.timeline strong {
 		display: block;
-		font-size: 0.92rem;
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: var(--cream);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 	.timeline small {
-		color: var(--ink-soft);
-		font-size: 0.8rem;
+		color: var(--cream-dim);
+		font-size: 0.78rem;
 	}
 	.timeline time {
 		flex: none;
-		font-size: 0.78rem;
-		color: var(--ink-faint);
-		font-weight: 600;
+		font-size: 0.72rem;
+		color: var(--cream-dim);
 	}
 </style>

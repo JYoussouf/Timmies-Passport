@@ -40,9 +40,12 @@
 				const r = btnEl.getBoundingClientRect();
 				confettiBurst(r.left + r.width / 2, r.top + r.height / 2);
 			}
-			ui.toast({ emoji: '🎟️', title: 'Stamped!', body: loc?.name ?? 'Location collected.' });
+			ui.toast({
+				emoji: '🎟️',
+				title: 'Stamped!',
+				body: loc?.address || loc?.name || 'Location collected.'
+			});
 			ui.maybeNudge(passport.count, passport.cloud);
-			// celebrate milestones
 			const n = passport.count;
 			if ([10, 50, 100].includes(n))
 				ui.toast({ emoji: '🏅', title: `${n} stamps!`, body: 'A new badge is yours.' });
@@ -61,7 +64,7 @@
 
 	const mapsUrl = $derived.by(() => {
 		if (!ui.selectedId) return '#';
-		const c = locations.coords.get(ui.selectedId);
+		const c = locations.coordsOf(ui.selectedId);
 		if (!c) return '#';
 		return `https://www.google.com/maps/search/?api=1&query=${c[1]},${c[0]}`;
 	});
@@ -77,7 +80,9 @@
 	}
 	function onPointerMove(e: PointerEvent) {
 		if (!dragging) return;
-		dragY = Math.max(0, e.clientY - startY);
+		// Rubber-band: pulling up past the stop barely moves.
+		const dy = e.clientY - startY;
+		dragY = dy >= 0 ? dy : dy / 6;
 	}
 	function onPointerUp() {
 		dragging = false;
@@ -107,63 +112,60 @@
 			<span class="grabber"></span>
 		</div>
 
-		<header class="head">
-			<div>
-				<h2>{loc.name}</h2>
-				<p class="addr">
-					{[loc.address, loc.city, loc.region].filter(Boolean).join(', ') ||
-						loc.country ||
-						'Tim Hortons'}
-				</p>
+		<div class="inner">
+			<header class="head">
+				<div class="titles">
+					<h2 class="pixel">{loc.name}</h2>
+					<p class="addr">
+						{[loc.address, loc.city, loc.region].filter(Boolean).join(', ') ||
+							loc.country ||
+							'Tim Hortons'}
+					</p>
+				</div>
+				{#if loc.country_code}
+					<span class="cc pixel" title={loc.country}>{loc.country_code}</span>
+				{/if}
+			</header>
+
+			<div class="checkin-wrap">
+				<button
+					bind:this={btnEl}
+					class="pbtn {visited ? 'pbtn-mint' : 'pbtn-gold'} checkin"
+					onclick={onCheckIn}
+				>
+					{visited ? '✓ Collected' : 'Stamp it'}
+				</button>
+				{#if stamping}
+					<span class="stamp pixel" aria-hidden="true">VISITED</span>
+				{/if}
 			</div>
-			{#if loc.country_code}
-				<span class="flag" title={loc.country}>{loc.country_code}</span>
-			{/if}
-		</header>
 
-		<div class="checkin-wrap">
-			<button
-				bind:this={btnEl}
-				class="checkin {visited ? 'done' : ''}"
-				onclick={onCheckIn}
-			>
-				{#if visited}
-					<span class="ink">✓</span> Collected
-				{:else}
-					Check in here
-				{/if}
-			</button>
-			{#if stamping}
-				<span class="stamp" aria-hidden="true">VISITED</span>
+			<div class="stats">
+				<span class="others">
+					{#if othersCount === null}
+						<em>Counting check-ins…</em>
+					{:else}
+						<strong>{othersCount.toLocaleString()}</strong> passport holder{othersCount === 1
+							? ''
+							: 's'} checked in
+					{/if}
+				</span>
+				<a class="maps pixel" href={mapsUrl} target="_blank" rel="noopener noreferrer">Maps &#8599;</a>
+			</div>
+
+			{#if visited}
+				<label class="note">
+					<span class="pixel">Your private note</span>
+					<textarea
+						bind:value={note}
+						rows="2"
+						placeholder="Best date square ever, met an old friend…"
+						onblur={saveNote}
+					></textarea>
+					<small class:saved={noteSaved}>{noteSaved ? 'Saved ✓' : 'Only you can see this'}</small>
+				</label>
 			{/if}
 		</div>
-
-		<div class="stats">
-			<span class="others">
-				🧑‍🤝‍🧑
-				{#if othersCount === null}
-					<em>counting…</em>
-				{:else}
-					<strong>{othersCount.toLocaleString()}</strong> passport holder{othersCount === 1
-						? ''
-						: 's'} checked in
-				{/if}
-			</span>
-			<a class="maps" href={mapsUrl} target="_blank" rel="noopener noreferrer">View on Maps ↗</a>
-		</div>
-
-		{#if visited}
-			<label class="note">
-				<span>Your private note</span>
-				<textarea
-					bind:value={note}
-					rows="2"
-					placeholder="Best date square ever, met an old friend…"
-					onblur={saveNote}
-				></textarea>
-				<small class:saved={noteSaved}>{noteSaved ? 'Saved ✓' : 'Only you can see this'}</small>
-			</label>
-		{/if}
 	</section>
 {/if}
 
@@ -171,49 +173,57 @@
 	.backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(43, 26, 20, 0.32);
-		backdrop-filter: blur(2px);
+		background: rgba(8, 15, 26, 0.8);
 		z-index: 40;
-		animation: fade 0.25s ease;
+		animation: fade 0.2s steps(3, end);
 		border: none;
 	}
+	/* The cartridge: a plate that slides into the bottom of the cabinet. */
 	.sheet {
 		position: fixed;
 		left: 0;
 		right: 0;
 		bottom: 0;
 		z-index: 41;
-		background: var(--surface);
-		border-radius: var(--r-xl) var(--r-xl) 0 0;
-		box-shadow: var(--shadow-lg);
-		padding: 0 1.25rem calc(1.25rem + var(--safe-bottom));
 		max-width: 560px;
 		margin: 0 auto;
-		animation: rise 0.42s var(--ease-out);
+		background: var(--cabinet);
+		border-top: 3px solid var(--cabinet-hi);
+		border-left: 3px solid var(--cabinet-hi);
+		border-right: 3px solid var(--cabinet-lo);
+		padding-bottom: var(--safe-bottom);
+		animation: rise 0.28s steps(6, end);
+		/* The sheet owns vertical drags; the map keeps its own gestures. */
 		touch-action: none;
 	}
-	@media (min-width: 720px) {
+	.inner {
+		padding: 0 1.1rem 1.2rem;
+	}
+	@media (min-width: 900px) {
 		.sheet {
-			bottom: 18px;
-			border-radius: var(--r-xl);
-			right: 18px;
+			bottom: 46px;
+			right: 14px;
 			left: auto;
 			margin: 0;
-			width: 400px;
+			width: 380px;
+			border-bottom: 3px solid var(--cabinet-lo);
+			box-shadow: var(--bevel-lg);
 		}
 	}
+
 	.grab {
 		display: flex;
 		justify-content: center;
-		padding: 0.7rem 0 0.4rem;
+		padding: 0.65rem 0 0.5rem;
 		cursor: grab;
 	}
 	.grabber {
-		width: 42px;
-		height: 5px;
-		border-radius: 999px;
-		background: var(--cream-deep);
+		width: 44px;
+		height: 6px;
+		background: var(--cabinet-hi);
+		box-shadow: inset 2px 2px 0 var(--cabinet-lo);
 	}
+
 	.head {
 		display: flex;
 		justify-content: space-between;
@@ -221,120 +231,114 @@
 		gap: 0.75rem;
 		margin-bottom: 1rem;
 	}
+	.titles {
+		min-width: 0;
+	}
 	h2 {
-		font-size: 1.35rem;
-		line-height: 1.15;
+		font-size: 0.72rem;
+		line-height: 1.6;
+		color: var(--gold);
 	}
 	.addr {
-		margin: 0.3rem 0 0;
-		color: var(--ink-soft);
-		font-size: 0.92rem;
+		margin: 0.5rem 0 0;
+		color: var(--cream-dim);
+		font-size: 0.88rem;
+		line-height: 1.4;
 	}
-	.flag {
+	.cc {
 		flex: none;
-		font-size: 0.72rem;
-		font-weight: 700;
-		letter-spacing: 0.04em;
-		color: var(--coffee);
-		background: var(--surface-2);
-		padding: 0.3rem 0.5rem;
-		border-radius: 8px;
+		font-size: 0.5rem;
+		color: var(--cream);
+		background: var(--screen-deep);
+		border: 2px solid var(--cabinet-lo);
+		padding: 0.4rem 0.45rem;
 	}
+
 	.checkin-wrap {
 		position: relative;
 	}
 	.checkin {
 		width: 100%;
-		font-size: 1.05rem;
-		font-weight: 700;
-		padding: 1rem;
-		border-radius: var(--r-md);
-		background: var(--accent);
-		color: #fff;
-		box-shadow: 0 8px 22px rgba(216, 35, 42, 0.34);
-		transition: transform 0.16s var(--ease-spring), background 0.2s;
+		font-size: 0.72rem;
+		padding: 1.05rem;
+		min-height: 52px;
 	}
-	.checkin:active {
-		transform: scale(0.97);
-	}
-	.checkin.done {
-		background: var(--mint);
-		box-shadow: 0 8px 22px rgba(47, 125, 107, 0.3);
-	}
-	.checkin .ink {
-		font-weight: 900;
-	}
+
+	/* Six-frame pixel thunk. */
 	.stamp {
 		position: absolute;
 		inset: 0;
 		display: grid;
 		place-items: center;
-		font-family: var(--font-display);
-		font-weight: 800;
-		letter-spacing: 0.18em;
-		font-size: 1.7rem;
+		font-size: 1.05rem;
 		color: var(--tim-red);
 		border: 4px solid var(--tim-red);
-		border-radius: 12px;
-		transform: rotate(-12deg) scale(2.4);
+		background: rgba(21, 13, 10, 0.35);
+		transform: rotate(-8deg) scale(2.4);
 		opacity: 0;
 		pointer-events: none;
-		animation: slam 0.9s var(--ease-spring) forwards;
-		mix-blend-mode: multiply;
+		animation: slam 0.9s steps(6, end) forwards;
 	}
+
 	.stats {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.75rem;
-		margin: 1rem 0 0.25rem;
-		font-size: 0.9rem;
-		color: var(--ink-soft);
+		margin: 1rem 0 0;
+		font-size: 0.85rem;
+		color: var(--cream-dim);
 	}
 	.others strong {
-		color: var(--ink);
+		color: var(--cream);
 	}
 	.maps {
 		flex: none;
-		font-weight: 600;
-		color: var(--coffee);
+		font-size: 0.5rem;
+		color: var(--gold);
 		text-decoration: none;
+		padding: 0.55rem 0;
 	}
+	.maps:hover {
+		text-decoration: underline;
+	}
+
 	.note {
 		display: block;
-		margin-top: 1rem;
+		margin-top: 1.1rem;
 	}
 	.note > span {
-		font-size: 0.8rem;
-		font-weight: 600;
-		color: var(--ink-soft);
+		font-size: 0.45rem;
+		color: var(--cream-dim);
 	}
 	textarea {
 		width: 100%;
-		margin-top: 0.4rem;
-		border: 1.5px solid var(--line);
-		border-radius: var(--r-sm);
+		margin-top: 0.5rem;
 		padding: 0.7rem;
-		font: inherit;
+		font-family: var(--font-sans);
 		font-size: 0.95rem;
 		resize: none;
-		background: var(--bg);
-		color: var(--ink);
+		background: var(--screen-deep);
+		color: var(--cream);
+		border-top: 2px solid var(--cabinet-lo);
+		border-left: 2px solid var(--cabinet-lo);
+		border-right: 2px solid var(--cabinet-hi);
+		border-bottom: 2px solid var(--cabinet-hi);
 	}
 	textarea:focus {
-		outline: none;
-		border-color: var(--caramel);
+		outline: 3px solid var(--gold);
+		outline-offset: 0;
 	}
 	.note small {
 		display: block;
-		margin-top: 0.3rem;
-		color: var(--ink-faint);
+		margin-top: 0.4rem;
+		color: var(--cream-dim);
 		font-size: 0.75rem;
 	}
 	.note small.saved {
 		color: var(--mint);
-		font-weight: 600;
 	}
+
 	@keyframes rise {
 		from {
 			transform: translateY(100%);
@@ -348,18 +352,19 @@
 	@keyframes slam {
 		0% {
 			opacity: 0;
-			transform: rotate(-12deg) scale(2.6);
+			transform: rotate(-8deg) scale(2.6);
 		}
-		45% {
-			opacity: 0.95;
-			transform: rotate(-12deg) scale(0.92);
+		40% {
+			opacity: 1;
+			transform: rotate(-8deg) scale(0.9);
 		}
 		60% {
-			transform: rotate(-12deg) scale(1.05);
+			opacity: 1;
+			transform: rotate(-8deg) scale(1.06);
 		}
 		100% {
 			opacity: 0;
-			transform: rotate(-12deg) scale(1);
+			transform: rotate(-8deg) scale(1);
 		}
 	}
 </style>

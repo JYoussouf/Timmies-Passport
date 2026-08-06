@@ -62,13 +62,35 @@ Optionally add a Google key for live ratings/photos:
 | --- | --- |
 | `scripts/fetch-locations.ts` | Overpass harvester + reverse-geocoder |
 | `src/lib/stores/*.svelte.ts` | local-first passport, locations index, auth, UI |
-| `src/lib/components/` | MapView, LocationSheet (stamp animation), TopBar, BadgeGrid, … |
+| `src/lib/components/` | Cabinet, MapView, LocationSheet (stamp animation), Hud, Marquee, … |
+| `src/lib/styles/arcade.css` | design tokens + primitives (`plate`, `pbtn`, `chip`, `veil`) |
+| `src/lib/map/style.ts` | hand-rolled tracker basemap style |
+| `src/lib/map/sprites.ts` | pixel-art marker sprites, built as raw RGBA |
 | `src/routes/api/**` | locations, visits, auth, leaderboard endpoints |
 | `migrations/0001_init.sql` | D1 schema |
 
 ## Design notes
 
+The UI is a retro arcade cabinet: dark-only, zero border-radius, depth from
+stepped unblurred shadows rather than blur.
+`Press Start 2P` (self-hosted, no CDN) is used for chrome only — HUD, headings,
+nav, buttons — while Inter carries every piece of body copy, because pixel type
+is unreadable at paragraph length.
+
+- The cabinet frame **dissolves rather than shrinks** below 900px.
+  Chrome that costs vertical space is dropped on mobile, not miniaturised: the
+  border collapses to a hairline, the title plate and stats rail disappear, and
+  the tab bar goes full-width above `env(safe-area-inset-bottom)`.
+- The basemap is our own `StyleSpecification` over CARTO's free vector tiles, so
+  the map reads as a flat tracker screen: cream landmass, deep navy water,
+  dotted borders, and no street detail until you are close enough to walk there.
+- Markers are literal pixel grids upscaled with nearest-neighbour
+  (`map.addImage` at `pixelRatio: 2`), which keeps them chunky at any DPI
+  instead of resolving into smooth antialiased circles.
 - **Global counts** only increment for *authenticated* check-ins, keeping "N
   others here" meaningful and abuse-resistant. Anonymous check-ins stay local
   until you sign up and sync.
-- Animations respect `prefers-reduced-motion`.
+- Every store is named "Tim Hortons", so lists lead with the **street address**;
+  the name alone produces a wall of identical rows.
+- Animations respect `prefers-reduced-motion`, which also disables the scanline
+  veil and freezes the marquee and the selection reticle.
