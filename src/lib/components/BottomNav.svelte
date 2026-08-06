@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import SupportMenu from './SupportMenu.svelte';
 
 	/** `href: null` renders an inert tab: visible, labelled, but not a link. */
 	const tabs = [
@@ -20,6 +21,8 @@
 </script>
 
 <nav class="nav" aria-label="Primary">
+	<div class="support-slot"><SupportMenu /></div>
+
 	{#each tabs as t (t.label)}
 		<svelte:element
 			this={t.href ? 'a' : 'span'}
@@ -39,7 +42,7 @@
 					stroke-linejoin="miter"
 				/>
 			</svg>
-			<span class="pixel">{t.label}</span>
+			<span class="label pixel">{t.label}</span>
 			{#if t.note}<span class="note pixel">{t.note}</span>{/if}
 		</svelte:element>
 	{/each}
@@ -51,8 +54,13 @@
 	 * nothing above has to guess this bar's height.
 	 */
 	.nav {
+		order: 3;
+		position: relative;
 		display: flex;
 		justify-content: center;
+		/* Symmetric gutters: the left one holds support, the right keeps the
+		   tabs centred against it. */
+		padding: 0 52px;
 		background: var(--cabinet);
 		border-top: 3px solid var(--cabinet-hi);
 		box-shadow: 0 -3px 0 var(--cabinet-lo);
@@ -81,7 +89,14 @@
 		cursor: default;
 		color: var(--cream-faint);
 	}
-	a span {
+	.support-slot {
+		position: absolute;
+		left: 5px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	.label {
 		font-size: 0.45rem;
 		line-height: 1;
 		text-align: center;
@@ -90,7 +105,7 @@
 		font-size: 0.34rem;
 		color: var(--cream-faint);
 	}
-	a.active .note {
+	.active .note {
 		color: rgba(255, 255, 255, 0.75);
 	}
 	a:hover {
