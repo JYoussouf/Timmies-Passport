@@ -6,6 +6,9 @@
 	 */
 	import { settings } from '$lib/stores/settings.svelte';
 
+	/** Eight teeth, evenly spaced around the rim. */
+	const TEETH = [0, 45, 90, 135, 180, 225, 270, 315];
+
 	let open = $state(false);
 	let root = $state<HTMLDivElement>();
 
@@ -50,14 +53,22 @@
 		title="Map settings"
 		onclick={() => (open = !open)}
 	>
+		<!--
+			A cog, not a sun: the teeth are stubby and sit flush on a thick rim.
+			Thin rays radiating from a small circle read as sunshine.
+		-->
 		<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-			<circle cx="12" cy="12" r="3.4" fill="none" stroke="currentColor" stroke-width="2" />
-			<path
-				d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="square"
-			/>
+			<g stroke="currentColor" stroke-width="3.2" fill="none" stroke-linecap="butt">
+				<circle cx="12" cy="12" r="6.4" />
+				{#each TEETH as a (a)}
+					<line
+						x1={12 + 8 * Math.cos((a * Math.PI) / 180)}
+						y1={12 + 8 * Math.sin((a * Math.PI) / 180)}
+						x2={12 + 10.4 * Math.cos((a * Math.PI) / 180)}
+						y2={12 + 10.4 * Math.sin((a * Math.PI) / 180)}
+					/>
+				{/each}
+			</g>
 		</svg>
 	</button>
 </div>
