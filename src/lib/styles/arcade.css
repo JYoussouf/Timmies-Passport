@@ -30,8 +30,9 @@
 	--tim-red-deep: #b21a20;
 	--gold: #f2b134;
 	--gold-deep: #c88d1c;
-	--mint: #3fa88b;
-	--mint-deep: #2c7c66;
+	/* Collected. Bright enough to read as lit up against cream land. */
+	--green: #3ed957;
+	--green-deep: #1f9c37;
 	--cream: #f7efe3;
 	--cream-dim: rgba(247, 239, 227, 0.55);
 	--cream-faint: rgba(247, 239, 227, 0.3);
@@ -136,12 +137,12 @@
 	--btn-lo: var(--gold-deep);
 }
 
-.pbtn-mint {
-	--btn-bg: var(--mint);
-	--btn-bg-hover: #4fbd9c;
+.pbtn-green {
+	--btn-bg: var(--green);
+	--btn-bg-hover: #5ee673;
 	--btn-fg: #04150f;
-	--btn-hi: #6fd3b5;
-	--btn-lo: var(--mint-deep);
+	--btn-hi: #7cf08d;
+	--btn-lo: var(--green-deep);
 }
 
 /* Small square-cornered status chip. */

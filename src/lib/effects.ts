@@ -13,7 +13,7 @@ export function haptic(pattern: number | number[] = 18) {
 const prefersReducedMotion = () =>
 	typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const CONFETTI_COLORS = ['#d8232a', '#f2b134', '#3fa88b', '#f7efe3', '#4a2e23'];
+const CONFETTI_COLORS = ['#d8232a', '#f2b134', '#3ed957', '#f7efe3', '#4a2e23'];
 
 /** Particles snap to this grid so the burst reads as pixels, not glitter. */
 const CELL = 4;

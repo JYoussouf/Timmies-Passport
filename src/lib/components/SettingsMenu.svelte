@@ -140,9 +140,9 @@
 		box-shadow: inset 0 0 0 2px var(--cabinet-lo);
 	}
 	.box.on {
-		background: var(--mint);
+		background: var(--green);
 		box-shadow:
-			inset 0 0 0 2px var(--mint-deep),
-			inset 0 0 0 5px var(--mint);
+			inset 0 0 0 2px var(--green-deep),
+			inset 0 0 0 5px var(--green);
 	}
 </style>

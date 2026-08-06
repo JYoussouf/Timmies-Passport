@@ -169,7 +169,7 @@
 			<div class="checkin-wrap">
 				<button
 					bind:this={btnEl}
-					class="pbtn {visited ? 'pbtn-mint' : 'pbtn-gold'} checkin"
+					class="pbtn {visited ? 'pbtn-green' : 'pbtn-gold'} checkin"
 					onclick={onCheckIn}
 				>
 					{#if visited}
@@ -357,7 +357,7 @@
 	 * transform, so :active keeps its travel - animations outrank normal
 	 * declarations, and animating transform here would swallow the press.
 	 */
-	.checkin:not(.pbtn-mint) {
+	.checkin:not(.pbtn-green) {
 		animation: invite 1.6s steps(2, end) infinite;
 	}
 	.checkin:active {

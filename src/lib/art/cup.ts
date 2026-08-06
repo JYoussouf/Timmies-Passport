@@ -27,7 +27,7 @@ export const CUP_PALETTE: Record<string, string> = {
 
 /**
  * The saturated (cup body) entries. Only these are re-hued for the collected
- * state; the lid stays grey so a mint cup still reads as the same object.
+ * state; the lid stays grey so a green cup still reads as the same object.
  */
 export const CUP_BODY = new Set(['e', 'f', 'g', 'h', 'i']);
 
@@ -116,8 +116,8 @@ export function cupPalette(hue?: number): Record<string, string> {
 	return out;
 }
 
-/** Hue of the collected state, matching the mint used across the UI. */
-export const MINT_HUE = hexToHsl('#3fa88b')[0];
+/** Hue of the collected state, matching the green used across the UI. */
+export const GREEN_HUE = hexToHsl('#3ed957')[0];
 
 /**
  * The palette drained of colour, for a store that has closed. Lightness is

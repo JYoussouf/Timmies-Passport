@@ -117,7 +117,7 @@
 			}
 		});
 
-		// Stamped - mint cups. Drawn above the unstamped ones so a collected
+		// Stamped - green cups. Drawn above the unstamped ones so a collected
 		// store always wins an overlap.
 		map.addLayer({
 			id: 'pins-visited',
@@ -501,14 +501,14 @@
 		}
 	}
 
-	/* The device's own position: a mint pixel square, pulsing. */
+	/* The device's own position: a green pixel square, pulsing. */
 	:global(.user-dot) {
 		width: 14px;
 		height: 14px;
-		background: var(--mint);
+		background: var(--green);
 		box-shadow:
 			0 0 0 3px var(--cabinet-lo),
-			0 0 0 6px rgba(63, 168, 139, 0.35);
+			0 0 0 6px rgba(62, 217, 87, 0.35);
 	}
 	@media (prefers-reduced-motion: no-preference) {
 		:global(.user-dot) {
@@ -519,7 +519,7 @@
 		50% {
 			box-shadow:
 				0 0 0 3px var(--cabinet-lo),
-				0 0 0 10px rgba(63, 168, 139, 0.18);
+				0 0 0 10px rgba(62, 217, 87, 0.18);
 		}
 	}
 

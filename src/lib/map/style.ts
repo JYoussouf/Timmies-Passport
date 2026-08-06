@@ -27,7 +27,6 @@ export const MAP_COLORS = {
 	labelHalo: 'rgba(240, 231, 216, 0.95)',
 	waterLabel: 'rgba(247, 239, 227, 0.5)',
 	red: '#d8232a',
-	mint: '#3fa88b',
 	gold: '#f2b134',
 	cabinet: '#2b1a14',
 	cream: '#f7efe3'

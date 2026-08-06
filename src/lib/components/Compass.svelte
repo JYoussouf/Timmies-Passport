@@ -3,7 +3,7 @@
 	 * The compass: a circular radar dial with the map controls set into its rim.
 	 *
 	 * The dial plots the Timmies around wherever you are looking - red for
-	 * unstamped, mint for collected - so it answers "what is near me" rather
+	 * unstamped, green for collected - so it answers "what is near me" rather
 	 * than repeating what the map already shows. Zoom sits north and south,
 	 * the view controls east and west.
 	 *
@@ -84,7 +84,7 @@
 					y={b.y - 2}
 					width="4"
 					height="4"
-					fill={b.visited ? 'var(--mint)' : 'var(--tim-red)'}
+					fill={b.visited ? 'var(--green)' : 'var(--tim-red)'}
 				/>
 			{/each}
 
@@ -221,12 +221,12 @@
 			0 0 0 2px var(--cabinet-lo);
 	}
 	.btn.on {
-		background: var(--mint);
+		background: var(--green);
 		color: #04150f;
 		box-shadow:
-			inset 0 2px 0 #6fd3b5,
-			0 0 0 2px var(--mint-deep),
-			0 3px 0 var(--mint-deep);
+			inset 0 2px 0 #7cf08d,
+			0 0 0 2px var(--green-deep),
+			0 3px 0 var(--green-deep);
 	}
 
 	.up {

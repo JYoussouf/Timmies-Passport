@@ -1,9 +1,9 @@
 <script lang="ts">
 	/**
 	 * The cup icon, drawn from the same art the map markers use.
-	 * `collected` re-hues the body to mint and leaves the lid alone.
+	 * `collected` re-hues the body to green and leaves the lid alone.
 	 */
-	import { cupRuns, cupPalette, cupPaletteClosed, CUP_W, CUP_H, MINT_HUE } from '$lib/art/cup';
+	import { cupRuns, cupPalette, cupPaletteClosed, CUP_W, CUP_H, GREEN_HUE } from '$lib/art/cup';
 
 	let {
 		height = 24,
@@ -26,7 +26,7 @@
 	const cell = $derived(raw >= 1 ? Math.round(raw) : raw);
 	const crisp = $derived(raw >= 1);
 	const palette = $derived(
-		closed ? cupPaletteClosed() : cupPalette(collected ? MINT_HUE : undefined)
+		closed ? cupPaletteClosed() : cupPalette(collected ? GREEN_HUE : undefined)
 	);
 </script>
 

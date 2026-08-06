@@ -1,6 +1,6 @@
 import type maplibregl from 'maplibre-gl';
 import { MAP_COLORS } from './style';
-import { CUP, CUP_W, CUP_H, cupPalette, cupPaletteClosed, MINT_HUE } from '$lib/art/cup';
+import { CUP, CUP_W, CUP_H, cupPalette, cupPaletteClosed, GREEN_HUE } from '$lib/art/cup';
 
 /**
  * Marker art, drawn as literal pixel grids and upscaled with nearest-neighbour.
@@ -107,7 +107,7 @@ function buildAll(): Record<string, Grid> {
 	// on the body, so the map speaks one shape at every zoom level.
 	return {
 		'pin-unstamped': cup(),
-		'pin-stamped': cup(MINT_HUE),
+		'pin-stamped': cup(GREEN_HUE),
 		'pin-closed': cup(undefined, cupPaletteClosed()),
 		reticle: reticle(CUP_W + 4, CUP_H + 4)
 	};

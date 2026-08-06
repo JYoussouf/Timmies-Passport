@@ -244,7 +244,7 @@
 	.caret {
 		flex: none;
 		font-size: 0.6rem;
-		color: var(--mint);
+		color: var(--green);
 	}
 	input {
 		flex: 1;
