@@ -128,8 +128,12 @@
 			justify-content: center;
 			align-items: flex-end;
 		}
-		/* Flush into the cabinet's right rail: no gap, and no right edge of its
-		   own, so it reads as part of the frame rather than a plate near it. */
+		/*
+		 * Flush into the cabinet's right rail. The two edges that meet something
+		 * carry no border and no bevel shadow, so the console reads as part of
+		 * the frame rather than a plate parked against it; the top and left keep
+		 * their highlight so it still reads as raised.
+		 */
 		.dock-right {
 			position: absolute;
 			/* The dock is fixed to the window, so meeting the cabinet's inner
@@ -138,13 +142,12 @@
 			bottom: 0;
 			gap: 8px;
 			padding: 8px;
-			border-right: none;
 			background: var(--cabinet);
 			border-top: 2px solid var(--cabinet-hi);
 			border-left: 2px solid var(--cabinet-hi);
-			border-right: 2px solid var(--cabinet-lo);
-			border-bottom: 2px solid var(--cabinet-lo);
-			box-shadow: var(--bevel-md);
+			border-right: none;
+			border-bottom: none;
+			box-shadow: none;
 		}
 	}
 </style>
