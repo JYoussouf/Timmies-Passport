@@ -62,22 +62,23 @@
 
 	<!--
 		Everything along the bottom stacks in one dock, so nothing above has to
-		hard-code the height of anything below it. The side controls hang off the
-		dock's top edge, which keeps them clear however tall it grows.
+		hard-code the height of anything below it.
 	-->
 	<div class="bottom-dock">
-		<div class="dock-right">
-			<MapControls
-				{locating}
-				onlocate={toggleLocate}
-				onglobal={() => mapView?.resetView()}
-				onzoomin={() => mapView?.zoomIn()}
-				onzoomout={() => mapView?.zoomOut()}
-			/>
-			<Radar {center} />
+		<div class="rail">
+			<SearchDock onpick={goTo} />
+			<div class="dock-right">
+				<MapControls
+					{locating}
+					onlocate={toggleLocate}
+					onglobal={() => mapView?.resetView()}
+					onzoomin={() => mapView?.zoomIn()}
+					onzoomout={() => mapView?.zoomOut()}
+				/>
+				<Radar {center} />
+			</div>
 		</div>
 		<Marquee />
-		<SearchDock onpick={goTo} />
 		<BottomNav />
 	</div>
 </Cabinet>
@@ -97,17 +98,16 @@
 	}
 
 	/*
-	 * A row in the stack rather than something floating above it, so the console
-	 * sits flush on the ticker however tall the rows below it grow. The pad and
-	 * radar travel together inside it, so neither needs the other's height.
-	 *
-	 * Mobile puts it at the top of the stack; desktop slots it beneath the
-	 * search island, which is centred and leaves this corner free.
+	 * Mobile keeps search and the console as separate rows in the stack, so the
+	 * rail dissolves and each takes its own order.
 	 */
+	.rail {
+		display: contents;
+	}
+
 	.dock-right {
 		order: 1;
 		align-self: flex-end;
-		margin-right: 10px;
 		z-index: 22;
 		display: flex;
 		flex-direction: column;
@@ -115,13 +115,30 @@
 		gap: 10px;
 	}
 
-	/* On desktop the pad and radar share one bevelled console. */
 	@media (min-width: 900px) {
+		/*
+		 * Desktop puts them on one line, both sitting on the ticker. The console
+		 * is absolute inside the rail so it can be far taller than the search bar
+		 * without pushing it up the screen or stealing the centring.
+		 */
+		.rail {
+			order: 1;
+			position: relative;
+			display: flex;
+			justify-content: center;
+			align-items: flex-end;
+		}
+		/* Flush into the cabinet's right rail: no gap, and no right edge of its
+		   own, so it reads as part of the frame rather than a plate near it. */
 		.dock-right {
-			order: 2;
-			margin-right: 14px;
+			position: absolute;
+			/* The dock is fixed to the window, so meeting the cabinet's inner
+			   edge means clearing the frame and its 2px border. */
+			right: calc(var(--frame) + 2px);
+			bottom: 0;
 			gap: 8px;
 			padding: 8px;
+			border-right: none;
 			background: var(--cabinet);
 			border-top: 2px solid var(--cabinet-hi);
 			border-left: 2px solid var(--cabinet-hi);
