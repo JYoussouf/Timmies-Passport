@@ -10,6 +10,27 @@
 
 	let stamping = $state(false);
 	let btnEl = $state<HTMLButtonElement>();
+	let streetOpen = $state(false);
+
+	/**
+	 * Street View, embedded rather than linked out.
+	 *
+	 * This keyless embed endpoint is what Google's own "share" dialog produces;
+	 * the supported alternative is the Maps Embed API, which needs a public API
+	 * key. If GOOGLE_MAPS_API_KEY is ever wired through to the client, switch to
+	 * https://www.google.com/maps/embed/v1/streetview.
+	 */
+	const streetUrl = $derived.by(() => {
+		const c = ui.selectedId ? locations.coordsOf(ui.selectedId) : undefined;
+		if (!c) return '';
+		return `https://maps.google.com/maps?q=${c[1]},${c[0]}&layer=c&cbll=${c[1]},${c[0]}&cbp=12,0,0,0,0&output=svembed`;
+	});
+
+	// A new selection should not inherit the previous card's open panel.
+	$effect(() => {
+		void ui.selectedId;
+		streetOpen = false;
+	});
 
 	function close() {
 		ui.select(null);
@@ -63,7 +84,8 @@
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<section
 		class="sheet"
-		style="transform: translate(-50%, {dragY}px)"
+		class:expanded={streetOpen}
+		style="transform: translate(-50%, {streetOpen ? `calc(-50% + ${dragY}px)` : `${dragY}px`})"
 		role="dialog"
 		aria-modal="true"
 		aria-label={loc.name}
@@ -86,6 +108,35 @@
 					<p class="addr">{locationPlace(loc) || loc.name}</p>
 				</div>
 			</header>
+
+			<button
+				class="pbtn street"
+				aria-expanded={streetOpen}
+				onclick={() => (streetOpen = !streetOpen)}
+			>
+				<svg viewBox="0 0 24 24" aria-hidden="true">
+					<path
+						d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					/>
+					<circle cx="12" cy="10" r="2.4" fill="currentColor" />
+				</svg>
+				{streetOpen ? 'Hide street view' : 'Street view'}
+			</button>
+
+			{#if streetOpen && streetUrl}
+				<div class="street-view">
+					<iframe
+						title="Street view of {locationLabel(loc)}"
+						src={streetUrl}
+						loading="lazy"
+						referrerpolicy="no-referrer-when-downgrade"
+						allowfullscreen
+					></iframe>
+				</div>
+			{/if}
 
 			<div class="checkin-wrap">
 				<button
@@ -146,6 +197,7 @@
 		width: min(420px, calc(100vw - 24px));
 		max-height: calc(50dvh - 2rem);
 		overflow-y: auto;
+		transition: max-height 0.2s linear;
 		/* Translucent so the street underneath stays readable. */
 		background: rgba(43, 26, 20, 0.86);
 		border-top: 3px solid var(--cabinet-hi);
@@ -159,6 +211,16 @@
 	}
 	.inner {
 		padding: 0 1.1rem 1.2rem;
+	}
+	/*
+	 * With street view open the card is taller than the space above the marker,
+	 * so it centres instead of growing off the top of the screen. Covering the
+	 * cup is fine at that point - the panel is the thing being looked at.
+	 */
+	.sheet.expanded {
+		top: 50%;
+		bottom: auto;
+		max-height: calc(100dvh - 2rem);
 	}
 
 	.grab {
@@ -194,6 +256,34 @@
 		color: var(--cream-dim);
 		font-size: 0.88rem;
 		line-height: 1.4;
+	}
+
+	.street {
+		width: 100%;
+		margin-bottom: 0.6rem;
+		font-size: 0.55rem;
+	}
+	.street svg {
+		width: 1.3em;
+		height: 1.3em;
+		flex: none;
+	}
+
+	/* Recessed like a screen set into the cartridge. */
+	.street-view {
+		margin-bottom: 0.75rem;
+		height: 190px;
+		background: var(--screen-deep);
+		border-top: 2px solid var(--cabinet-lo);
+		border-left: 2px solid var(--cabinet-lo);
+		border-right: 2px solid var(--cabinet-hi);
+		border-bottom: 2px solid var(--cabinet-hi);
+	}
+	.street-view iframe {
+		display: block;
+		width: 100%;
+		height: 100%;
+		border: 0;
 	}
 
 	.checkin-wrap {
