@@ -22,10 +22,35 @@
 
 	// Repeat the strip so the loop has no visible seam.
 	const text = $derived(items.join('  '));
+
+	/**
+	 * Pixels per second, rather than a fixed duration for the whole loop.
+	 *
+	 * With a fixed duration the speed depends on how much text there is, so the
+	 * ticker quietly sped up as a passport filled with stamps. Deriving the
+	 * duration from the measured width holds one pace forever.
+	 */
+	const SPEED = 18;
+
+	let track = $state<HTMLDivElement>();
+	let duration = $state(90);
+
+	$effect(() => {
+		if (!track) return;
+		void text; // remeasure when the contents change
+		const measure = () => {
+			if (track?.offsetWidth) duration = track.offsetWidth / SPEED;
+		};
+		measure();
+		const ro = new ResizeObserver(measure);
+		ro.observe(track);
+		return () => ro.disconnect();
+	});
+
 </script>
 
 <div class="marquee" aria-hidden="true">
-	<div class="track">
+	<div class="track" bind:this={track} style="animation-duration: {duration}s">
 		<span class="pixel">{text}</span>
 		<span class="pixel">{text}</span>
 	</div>
@@ -47,8 +72,8 @@
 		flex: none;
 		gap: 3rem;
 		padding-left: 100%;
-		/* Half speed: the ticker is ambient, not something to keep up with. */
-		animation: scroll 84s linear infinite;
+		/* Duration is set inline from the measured width; see SPEED above. */
+		animation: scroll 60s linear infinite;
 	}
 	.track span {
 		flex: none;
