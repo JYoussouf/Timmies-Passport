@@ -15,8 +15,16 @@
 	import { settings } from '$lib/stores/settings.svelte';
 	import { haptic } from '$lib/effects';
 	import { DISCLAIMER } from '$lib/brand';
+	import { isPlainKey, isTyping } from '$lib/keys';
 
-	let { onmove }: { onmove?: (c: { lng: number; lat: number; zoom: number }) => void } = $props();
+	let {
+		onmove,
+		onzoomed
+	}: {
+		onmove?: (c: { lng: number; lat: number; zoom: number }) => void;
+		/** Fired once the visitor has zoomed enough to have clearly meant it. */
+		onzoomed?: () => void;
+	} = $props();
 
 	let container: HTMLDivElement;
 	let map: maplibregl.Map | undefined;
@@ -26,6 +34,20 @@
 	const COUNT_FONT = ['Montserrat Bold', 'Open Sans Bold'];
 	/** Never overshoot a cluster tap past street level. */
 	const CLUSTER_ZOOM_CAP = 16;
+
+	/*
+	 * Flat on the way in: a lone cup has to be findable on a province-wide
+	 * view, and by street level the building around it has grown far faster,
+	 * so the cup settles to storefront scale. Shared by the unstamped and
+	 * closed layers, which must scale identically or they would disagree at
+	 * the moment a store closes.
+	 */
+	const CUP_SIZE_BY_ZOOM = [
+		'interpolate',
+		['linear'],
+		['zoom'],
+		3, 0.85, 8, 0.95, 13, 1.1, 17, 1.35, 20, 1.5
+	] as unknown as maplibregl.DataDrivenPropertyValueSpecification<number>;
 
 	function buildData(): GeoJSON.FeatureCollection {
 		const feats = (locations.collection?.features ?? [])
@@ -106,15 +128,7 @@
 				'icon-image': 'pin-unstamped',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				// Flat on the way in: a lone cup has to be findable on a
-				// province-wide view, and by street level the building around it
-				// has grown far faster, so the cup settles to storefront scale.
-				'icon-size': [
-					'interpolate',
-					['linear'],
-					['zoom'],
-					3, 0.85, 8, 0.95, 13, 1.1, 17, 1.35, 20, 1.5
-				]
+				'icon-size': CUP_SIZE_BY_ZOOM
 			}
 		});
 
@@ -157,12 +171,7 @@
 				'icon-image': 'pin-closed',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': [
-					'interpolate',
-					['linear'],
-					['zoom'],
-					3, 0.85, 8, 0.95, 13, 1.1, 17, 1.35, 20, 1.5
-				]
+				'icon-size': CUP_SIZE_BY_ZOOM
 			},
 			paint: { 'icon-opacity': 0.85 }
 		});
@@ -217,6 +226,8 @@
 				if (!f) return;
 				haptic(8);
 				const id = f.properties!.id as string;
+				/* A second tap on the cup you are already on means "closer". */
+				const again = ui.selectedId === id;
 				ui.select(id);
 				/*
 				 * The dataset's coordinates, not the clicked feature's.
@@ -228,11 +239,31 @@
 				 * now rendered from a zoom-17 tile, and it is exact. That is why
 				 * a first tap missed the centre and a second one hit it.
 				 */
-				focusStore(locations.coordsOf(id) ?? (f.geometry as GeoJSON.Point).coordinates as [number, number]);
+				focusStore(
+					locations.coordsOf(id) ??
+						((f.geometry as GeoJSON.Point).coordinates as [number, number]),
+					again
+				);
 			});
 			map.on('mouseenter', layer, () => (map!.getCanvas().style.cursor = 'pointer'));
 			map.on('mouseleave', layer, () => (map!.getCanvas().style.cursor = ''));
 		}
+
+		/*
+		 * Tapping bare map closes the card. This used to be a full-screen
+		 * backdrop element, which worked but sat over the map and ate every
+		 * click through it - including the second click on the selected cup
+		 * that asks to zoom in closer. Asking the map what was under the
+		 * pointer costs one query and leaves the cups reachable.
+		 */
+		map.on('click', (e) => {
+			if (!ui.selectedId) return;
+			const hit = map!.queryRenderedFeatures(e.point, {
+				layers: ['pins', 'pins-visited', 'pins-closed', 'clusters']
+			});
+			if (!hit.length) ui.select(null);
+		});
+
 		map.on('mouseenter', 'clusters', () => (map!.getCanvas().style.cursor = 'pointer'));
 		map.on('mouseleave', 'clusters', () => (map!.getCanvas().style.cursor = ''));
 
@@ -264,6 +295,15 @@
 	const STREET_ZOOM = 17;
 
 	/**
+	 * Where the first tap lands. Street zoom shows the storefront but throws
+	 * away the surroundings, and arriving there in one jump is disorienting
+	 * when you were looking at a province a moment ago - you cannot tell what
+	 * you are next to. Three levels out keeps the neighbourhood on screen; a
+	 * second tap on the same cup goes the rest of the way.
+	 */
+	const APPROACH_ZOOM = STREET_ZOOM - 3;
+
+	/**
 	 * Selecting a store puts it dead centre.
 	 *
 	 * An earlier version offset it to sit between the card and the bottom dock,
@@ -272,9 +312,9 @@
 	 * so the true centre is already clear of it, and anywhere else just reads as
 	 * off-centre.
 	 */
-	function focusStore(center: [number, number]) {
+	function focusStore(center: [number, number], closer = false) {
 		if (!map) return;
-		const zoom = Math.max(map.getZoom(), STREET_ZOOM);
+		const zoom = Math.max(map.getZoom(), closer ? STREET_ZOOM : APPROACH_ZOOM);
 		/*
 		 * flyTo, not easeTo. Tapping a cup on a country-wide view is a fourteen
 		 * level jump, and easeTo interpolates zoom and centre independently, so
@@ -286,6 +326,27 @@
 
 	export function flyTo(center: [number, number], zoom = STREET_ZOOM) {
 		map?.flyTo({ center, zoom, duration: 1400 });
+	}
+
+	/** The second half of the approach, from neighbourhood to storefront. */
+	export function goCloser(center: [number, number]) {
+		map?.flyTo({ center, zoom: STREET_ZOOM, duration: 700, essential: true });
+	}
+
+	/**
+	 * Move to a neighbouring store, keeping the zoom you were browsing at.
+	 * Walking a street at rooftop level should stay there, and surveying a city
+	 * at district level likewise - the arrows change where you are, not how
+	 * close.
+	 */
+	export function stepTo(center: [number, number]) {
+		if (!map) return;
+		map.flyTo({
+			center,
+			zoom: Math.max(map.getZoom(), APPROACH_ZOOM),
+			duration: 700,
+			essential: true
+		});
 	}
 
 	/**
@@ -306,12 +367,19 @@
 		);
 	}
 
+	/*
+	 * The compass buttons count as knowing how to zoom, even though they are
+	 * not the gesture the hint describes - someone who has found them does not
+	 * need to be told the map zooms.
+	 */
 	export function zoomIn() {
 		map?.easeTo({ zoom: (map?.getZoom() ?? 0) + 1.2, duration: 350 });
+		onzoomed?.();
 	}
 
 	export function zoomOut() {
 		map?.easeTo({ zoom: (map?.getZoom() ?? 0) - 1.2, duration: 350 });
+		onzoomed?.();
 	}
 
 	/**
@@ -403,6 +471,17 @@
 		map.scrollZoom.setWheelZoomRate(1 / 110);
 		map.scrollZoom.setZoomRate(1 / 50);
 
+		/*
+		 * Flat, always. A two-finger drag tilts and rotates by default, which on
+		 * a phone is almost never deliberate - it is what a slightly uneven
+		 * pinch does - and it leaves the map skewed with no obvious way back.
+		 * There is nothing here that a tilted view shows better: the basemap is
+		 * a flat tracker style with no buildings or terrain.
+		 */
+		map.dragRotate.disable();
+		map.touchZoomRotate.disableRotation();
+		map.touchPitch.disable();
+
 		// Dev-only handle, for driving the map from a console or a test harness.
 		if (import.meta.env.DEV) (window as unknown as { __map?: unknown }).__map = map;
 
@@ -410,6 +489,25 @@
 		map.on('load', async () => {
 			await locations.load();
 			addLayers();
+		});
+
+		/*
+		 * Watch for the visitor zooming on purpose, which is what retires the
+		 * hint in the corner.
+		 *
+		 * Only gestures count - a zoom carrying an originalEvent - so flying to
+		 * a search result or opening a cluster does not answer a question about
+		 * how to zoom that nobody has yet been shown the answer to. The
+		 * threshold is a bit under a full level, so one decisive scroll or
+		 * pinch is enough while a stray touch is not.
+		 */
+		let zoomedBy = 0;
+		let lastZoom = map.getZoom();
+		map.on('zoom', (e) => {
+			const now = map!.getZoom();
+			if ((e as { originalEvent?: Event }).originalEvent) zoomedBy += Math.abs(now - lastZoom);
+			lastZoom = now;
+			if (zoomedBy >= 0.8) onzoomed?.();
 		});
 
 		// Feed the radar. Coalesced to one report per frame so a fast pan does
@@ -425,12 +523,76 @@
 			});
 		});
 
+		const releaseKeys = bindArrowPanning(map);
+
 		return () => {
 			clearInterval(blinkTimer);
 			stopLocating();
+			releaseKeys();
 			map?.remove();
 		};
 	});
+
+	/**
+	 * Hold an arrow key to glide across the map.
+	 *
+	 * MapLibre's own keyboard handler moves a fixed step per keypress, so
+	 * holding a key inherits the operating system's repeat behaviour: a pause,
+	 * then a stutter of discrete jumps. Panning per animation frame instead
+	 * makes holding a key a continuous glide and a tap a small nudge, with no
+	 * special case between the two.
+	 *
+	 * Arrows belong to whatever is most specific: a text field first, then a
+	 * selected store, where they step to the neighbouring one. The map only
+	 * takes them when nothing else wants them.
+	 */
+	function bindArrowPanning(m: maplibregl.Map): () => void {
+		const KEYS: Record<string, [number, number]> = {
+			ArrowUp: [0, -1],
+			ArrowDown: [0, 1],
+			ArrowLeft: [-1, 0],
+			ArrowRight: [1, 0]
+		};
+		/* Pixels per frame at 60fps - about a screen-width every second. */
+		const SPEED = 11;
+
+		m.keyboard.disable();
+		const held = new Set<string>();
+		let frame: number | undefined;
+
+		const step = () => {
+			let dx = 0;
+			let dy = 0;
+			for (const key of held) {
+				dx += KEYS[key][0];
+				dy += KEYS[key][1];
+			}
+			if (dx || dy) m.panBy([dx * SPEED, dy * SPEED], { duration: 0 }, { keyboard: true });
+			frame = held.size ? requestAnimationFrame(step) : undefined;
+		};
+
+		const onDown = (e: KeyboardEvent) => {
+			if (!(e.key in KEYS) || !isPlainKey(e)) return;
+			if (isTyping(e.target) || ui.selectedId) return;
+			e.preventDefault();
+			held.add(e.key);
+			if (frame === undefined) frame = requestAnimationFrame(step);
+		};
+		const onUp = (e: KeyboardEvent) => held.delete(e.key);
+		/* Tabbing away mid-hold would otherwise leave the map drifting forever. */
+		const onBlur = () => held.clear();
+
+		window.addEventListener('keydown', onDown);
+		window.addEventListener('keyup', onUp);
+		window.addEventListener('blur', onBlur);
+
+		return () => {
+			window.removeEventListener('keydown', onDown);
+			window.removeEventListener('keyup', onUp);
+			window.removeEventListener('blur', onBlur);
+			if (frame !== undefined) cancelAnimationFrame(frame);
+		};
+	}
 
 	// Re-paint pins when the collection changes, or closures are toggled
 	$effect(() => {

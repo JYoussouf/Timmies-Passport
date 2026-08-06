@@ -108,7 +108,13 @@
 </script>
 
 {#if loc}
-	<button class="backdrop" aria-label="Close" onclick={close}></button>
+	<!--
+		No full-screen backdrop. It was only ever a dismiss target, and being
+		full-screen it also swallowed every click on the map underneath -
+		including a second click on the selected cup, which is how you ask to
+		zoom in closer. The map deselects on a click that hits no cup, which is
+		the same gesture without the overlay.
+	-->
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<section
 		class="sheet"
@@ -203,16 +209,6 @@
 {/if}
 
 <style>
-	.backdrop {
-		position: fixed;
-		inset: 0;
-		/* No tint at all: the card is foregrounded by its bevel and shadow, and
-		   the map underneath is what the user came to look at. This is only a
-		   click target for dismissing. */
-		background: transparent;
-		z-index: 40;
-		border: none;
-	}
 	/*
 	 * The cartridge floats directly above the selected cup, which the map
 	 * centres, so the marker you are about to stamp stays visible instead of

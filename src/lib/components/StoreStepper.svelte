@@ -8,12 +8,16 @@
 	 *
 	 * Each one jumps to the closest store in that quadrant - north-east still
 	 * answers to up - and is disabled when that quadrant is empty, which is what
-	 * happens at a coastline.
+	 * happens at a coastline. The arrow keys do the same four moves while a
+	 * store is selected; with nothing selected they belong to the map, which
+	 * pans with them.
 	 */
 	import { locations } from '$lib/stores/locations.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
+	import { haptic } from '$lib/effects';
+	import { isPlainKey, isTyping } from '$lib/keys';
 	import type { LocationProps } from '$lib/types';
 
 	let { onstep }: { onstep: (id: string) => void } = $props();
@@ -25,6 +29,32 @@
 		{ key: 'left', heading: 270, label: 'Nearest west', path: 'M19 12H5M11 6l-6 6 6 6' }
 	] as const;
 
+	type DirKey = (typeof DIRECTIONS)[number]['key'];
+	const OPPOSITE: Record<DirKey, DirKey> = {
+		up: 'down',
+		down: 'up',
+		left: 'right',
+		right: 'left'
+	};
+	const ARROW_KEYS: Record<string, DirKey> = {
+		ArrowUp: 'up',
+		ArrowDown: 'down',
+		ArrowLeft: 'left',
+		ArrowRight: 'right'
+	};
+
+	/**
+	 * Where each store was reached from, so going back goes back.
+	 *
+	 * "Nearest in this direction" is not a symmetric relation: step west from
+	 * A to B, and the nearest store east of B can easily be some third one
+	 * that happens to sit closer than A does. Correct by the rule, baffling in
+	 * the hand - you press left then right and end up somewhere new. Recording
+	 * the arrival makes the reverse step retrace it, and everything else falls
+	 * through to the ordinary search.
+	 */
+	const cameFrom = new Map<string, Partial<Record<DirKey, string>>>();
+
 	const here = $derived(ui.selectedId ? locations.coordsOf(ui.selectedId) : undefined);
 
 	/** Hidden closures are not somewhere the arrows should be able to strand you. */
@@ -33,10 +63,40 @@
 		(!p.closed || settings.showClosed || passport.isVisited(p.id));
 
 	const targets = $derived.by(() => {
-		if (!here) return {} as Record<string, string | undefined>;
+		if (!here || !ui.selectedId) return {} as Record<string, string | undefined>;
+		const back = cameFrom.get(ui.selectedId) ?? {};
 		const out: Record<string, string | undefined> = {};
-		for (const d of DIRECTIONS) out[d.key] = locations.nearestToward(here, d.heading, allow);
+		for (const d of DIRECTIONS) {
+			out[d.key] = back[d.key] ?? locations.nearestToward(here, d.heading, allow);
+		}
 		return out;
+	});
+
+	function step(dir: DirKey) {
+		const target = targets[dir];
+		if (!target || !ui.selectedId) return;
+		const trail = cameFrom.get(target) ?? {};
+		trail[OPPOSITE[dir]] = ui.selectedId;
+		cameFrom.set(target, trail);
+		onstep(target);
+	}
+
+	/*
+	 * The same four moves from the keyboard. Only while a store is selected -
+	 * otherwise the arrows belong to the map, which pans with them.
+	 */
+	$effect(() => {
+		if (!ui.selectedId) return;
+		const onKey = (e: KeyboardEvent) => {
+			const dir = ARROW_KEYS[e.key];
+			if (!dir || !isPlainKey(e) || isTyping(e.target)) return;
+			if (!targets[dir]) return;
+			e.preventDefault();
+			haptic(8);
+			step(dir);
+		};
+		window.addEventListener('keydown', onKey);
+		return () => window.removeEventListener('keydown', onKey);
 	});
 </script>
 
@@ -50,7 +110,7 @@
 					aria-label={d.label}
 					title={d.label}
 					disabled={!target}
-					onclick={() => target && onstep(target)}
+					onclick={() => step(d.key)}
 				>
 					<svg viewBox="0 0 24 24" aria-hidden="true">
 						<path
@@ -70,9 +130,10 @@
 
 <style>
 	/*
-	 * Above the check-in card's backdrop, which covers the whole screen to catch
-	 * dismiss taps. Both live inside the cabinet, which is what makes this
-	 * comparison meaningful - see the note in +page.svelte.
+	 * Above the check-in card, which is docked over the map's centre and would
+	 * otherwise cover the arrows nearest it. Both live inside the cabinet,
+	 * which is what makes this comparison meaningful - see the note in
+	 * +page.svelte.
 	 */
 	.stepper {
 		position: absolute;
