@@ -23,7 +23,6 @@
 	/* Screen -------------------------------------------------- */
 	--screen: #101d2e;
 	--screen-deep: #0b1524;
-	--screen-line: rgba(247, 239, 227, 0.12);
 	--land: #e8dcc8;
 
 	/* Brand --------------------------------------------------- */
@@ -37,15 +36,8 @@
 	--cream-dim: rgba(247, 239, 227, 0.55);
 	--cream-faint: rgba(247, 239, 227, 0.3);
 
-	/* Semantic ------------------------------------------------ */
-	--bg: var(--void);
-	--surface: var(--cabinet);
+
 	--surface-2: #3a231b;
-	--ink: var(--cream);
-	--ink-soft: var(--cream-dim);
-	--ink-faint: var(--cream-faint);
-	--accent: var(--tim-red);
-	--line: rgba(247, 239, 227, 0.14);
 
 	/* Type ---------------------------------------------------- */
 	--font-pixel: 'Press Start 2P', 'Courier New', monospace;
@@ -57,14 +49,11 @@
 	--bevel-lg: 5px 5px 0 var(--cabinet-lo);
 
 	/* Motion -------------------------------------------------- */
-	--ease-step: steps(4, end);
 	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
 	/* Safe-area-aware insets ---------------------------------- */
 	--safe-top: env(safe-area-inset-top, 0px);
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
-	--safe-left: env(safe-area-inset-left, 0px);
-	--safe-right: env(safe-area-inset-right, 0px);
 
 	/* Cabinet frame thickness - collapses on mobile ----------- */
 	--frame: 3px;
@@ -79,25 +68,6 @@
 }
 
 /* Primitives ---------------------------------------------------- */
-
-/* A raised cabinet surface: light top-left edge, dark bottom-right. */
-.plate {
-	background: var(--cabinet);
-	border-top: 2px solid var(--cabinet-hi);
-	border-left: 2px solid var(--cabinet-hi);
-	border-right: 2px solid var(--cabinet-lo);
-	border-bottom: 2px solid var(--cabinet-lo);
-	box-shadow: var(--bevel-md);
-}
-
-/* An inset surface: the inverse bevel, for screens and wells. */
-.inset {
-	background: var(--screen-deep);
-	border-top: 2px solid var(--cabinet-lo);
-	border-left: 2px solid var(--cabinet-lo);
-	border-right: 2px solid var(--cabinet-hi);
-	border-bottom: 2px solid var(--cabinet-hi);
-}
 
 /*
  * Chunky pressable button. Presses into its own shadow, no layout shift.

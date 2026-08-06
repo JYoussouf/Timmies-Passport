@@ -1,4 +1,4 @@
-import type { LocationCollection, LocationFeature, LocationProps, Place } from '$lib/types';
+import type { LocationCollection, LocationProps, Place } from '$lib/types';
 
 /**
  * Loads the worldwide Tim Hortons dataset once and indexes it by id.
@@ -57,13 +57,6 @@ class LocationStore {
 		return this.index.values();
 	}
 
-	feature(id: string): LocationFeature | undefined {
-		void this.collection;
-		const props = this.index.get(id);
-		const coordinates = this.coords.get(id);
-		if (!props || !coordinates) return undefined;
-		return { type: 'Feature', id, geometry: { type: 'Point', coordinates }, properties: props };
-	}
 
 	/**
 	 * Cities and towns, derived from the locations themselves.
@@ -132,12 +125,6 @@ class LocationStore {
 		return [...seen.values()];
 	}
 
-	/** Total distinct Tim Hortons in a given country code. */
-	countInCountry(cc: string): number {
-		let n = 0;
-		for (const p of this.all()) if (p.country_code === cc) n++;
-		return n;
-	}
 }
 
 export const locations = new LocationStore();
