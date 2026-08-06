@@ -97,7 +97,7 @@
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<section
 		class="sheet"
-		style="transform: translateY({dragY}px)"
+		style="transform: translate(-50%, calc(-50% + {dragY}px))"
 		role="dialog"
 		aria-modal="true"
 		aria-label={loc.name}
@@ -191,37 +191,31 @@
 		animation: fade 0.2s steps(3, end);
 		border: none;
 	}
-	/* The cartridge: a plate that slides into the bottom of the cabinet. */
+	/*
+	 * The cartridge: a centred card, so the store you are about to stamp is the
+	 * only thing on screen rather than something tucked into a corner.
+	 */
 	.sheet {
 		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
 		z-index: 41;
-		max-width: 560px;
-		margin: 0 auto;
+		width: min(420px, calc(100vw - 24px));
+		max-height: calc(100dvh - 2rem);
+		overflow-y: auto;
 		background: var(--cabinet);
 		border-top: 3px solid var(--cabinet-hi);
 		border-left: 3px solid var(--cabinet-hi);
 		border-right: 3px solid var(--cabinet-lo);
-		padding-bottom: var(--safe-bottom);
-		animation: rise 0.28s steps(6, end);
-		/* The sheet owns vertical drags; the map keeps its own gestures. */
+		border-bottom: 3px solid var(--cabinet-lo);
+		box-shadow: var(--bevel-lg);
+		animation: rise 0.22s steps(5, end);
+		/* The card owns vertical drags; the map keeps its own gestures. */
 		touch-action: none;
 	}
 	.inner {
 		padding: 0 1.1rem 1.2rem;
-	}
-	@media (min-width: 900px) {
-		.sheet {
-			bottom: 46px;
-			right: 14px;
-			left: auto;
-			margin: 0;
-			width: 380px;
-			border-bottom: 3px solid var(--cabinet-lo);
-			box-shadow: var(--bevel-lg);
-		}
 	}
 
 	.grab {
@@ -359,7 +353,8 @@
 
 	@keyframes rise {
 		from {
-			transform: translateY(100%);
+			transform: translate(-50%, -50%) scale(0.9);
+			opacity: 0;
 		}
 	}
 	@keyframes fade {
