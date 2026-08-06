@@ -24,7 +24,7 @@
 
 	function goTo(id: string) {
 		const c = locations.coordsOf(id);
-		if (c) mapView?.flyTo(c, 15);
+		if (c) mapView?.flyTo(c);
 		ui.select(id);
 	}
 

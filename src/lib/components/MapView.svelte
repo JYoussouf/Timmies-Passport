@@ -17,6 +17,8 @@
 
 	const SRC = 'timmies';
 	const COUNT_FONT = ['Montserrat Bold', 'Open Sans Bold'];
+	/** Never overshoot a cluster tap past street level. */
+	const CLUSTER_ZOOM_CAP = 16;
 
 	function buildData(): GeoJSON.FeatureCollection {
 		const feats = (locations.collection?.features ?? []).map((f) => ({
@@ -39,8 +41,10 @@
 			type: 'geojson',
 			data: buildData(),
 			cluster: true,
-			clusterRadius: 52,
-			clusterMaxZoom: 12
+			// A tighter radius and a lower ceiling mean individual cups appear
+			// much earlier: past zoom 9 you are looking at stores, not tallies.
+			clusterRadius: 38,
+			clusterMaxZoom: 9
 		});
 
 		// Clusters are the same cup, scaled up with the count printed on the
@@ -121,10 +125,18 @@
 			const clusterId = f.properties!.cluster_id;
 			(map!.getSource(SRC) as maplibregl.GeoJSONSource)
 				.getClusterExpansionZoom(clusterId)
-				.then((zoom) => {
+				.then((expansion) => {
+					// The expansion zoom only just splits the cluster, which turns
+					// drilling into a city into a long chain of clicks. Overshoot it,
+					// and always advance a decent step from wherever we are now.
+					const zoom = Math.min(
+						CLUSTER_ZOOM_CAP,
+						Math.max(expansion + 1.5, map!.getZoom() + 2.5)
+					);
 					map!.easeTo({
 						center: (f.geometry as GeoJSON.Point).coordinates as [number, number],
-						zoom
+						zoom,
+						duration: 700
 					});
 				});
 		});
@@ -136,11 +148,7 @@
 				haptic(8);
 				const id = f.properties!.id as string;
 				ui.select(id);
-				map!.easeTo({
-					center: (f.geometry as GeoJSON.Point).coordinates as [number, number],
-					offset: [0, -120],
-					duration: 600
-				});
+				focusStore(f.geometry as GeoJSON.Point);
 			});
 			map.on('mouseenter', layer, () => (map!.getCanvas().style.cursor = 'pointer'));
 			map.on('mouseleave', layer, () => (map!.getCanvas().style.cursor = ''));
@@ -167,8 +175,25 @@
 		}, 220);
 	}
 
-	export function flyTo(center: [number, number], zoom = 14) {
-		map?.flyTo({ center, zoom, offset: [0, -120], duration: 1400 });
+	/**
+	 * Zoom close enough to read the intersection a store sits on, and lift it
+	 * clear of the centred check-in card. Never zooms back out: tapping a store
+	 * you already flew to should not undo your zoom.
+	 */
+	const STREET_ZOOM = 17;
+	const cardOffset = (): [number, number] => [0, -Math.round(window.innerHeight * 0.2)];
+
+	function focusStore(geom: GeoJSON.Point) {
+		map?.easeTo({
+			center: geom.coordinates as [number, number],
+			zoom: Math.max(map.getZoom(), STREET_ZOOM),
+			offset: cardOffset(),
+			duration: 700
+		});
+	}
+
+	export function flyTo(center: [number, number], zoom = STREET_ZOOM) {
+		map?.flyTo({ center, zoom, offset: cardOffset(), duration: 1400 });
 	}
 
 	/** Pull back to the opening world view. */
