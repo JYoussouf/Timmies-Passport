@@ -123,6 +123,31 @@ npx wrangler d1 create timmies-passport-db   # paste database_id into wrangler.t
 npx wrangler pages project create timmies-passport --production-branch=main
 ```
 
+### In-app reporting
+
+The report form files a GitHub issue directly, so a reporter never needs an
+account.
+Every issue is opened by the token's owner and the body is marked as filed
+anonymously through the app - nothing about the reporter is attached beyond the
+browser string, which is what makes a rendering bug reproducible.
+
+Create a **fine-grained personal access token** scoped to this repository only,
+with the single permission **Issues: read and write**.
+Nothing else - if it leaks, the worst it can do is open issues.
+
+```bash
+npx wrangler pages secret put GITHUB_TOKEN   # the token
+npx wrangler pages secret put GITHUB_REPO    # JYoussouf/Timmies-Passport
+```
+
+Reports are capped at five per IP per hour, tracked in the `reports` table as a
+salted hash and a timestamp - no addresses and no report text, since the
+reports themselves live in GitHub.
+Run `npm run db:migrate` once to create it.
+
+Without the secrets the endpoint answers 503 and the form offers a prefilled
+link to the issue tracker instead, so a report always has somewhere to go.
+
 ### Street View
 
 The card's Street View panel uses Google's **Maps Embed API**, which is the

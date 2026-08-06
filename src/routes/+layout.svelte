@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import Toaster from '$lib/components/Toaster.svelte';
 	import AuthModal from '$lib/components/AuthModal.svelte';
+	import ReportDialog from '$lib/components/ReportDialog.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
@@ -41,3 +42,4 @@
 
 <Toaster />
 <AuthModal />
+<ReportDialog />

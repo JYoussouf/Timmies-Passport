@@ -4,7 +4,7 @@
 	import { ui } from '$lib/stores/ui.svelte';
 	import { confettiBurst, haptic } from '$lib/effects';
 	import { locationLabel, locationPlace } from '$lib/location';
-	import { REPO_URL } from '$lib/brand';
+	import { report } from '$lib/stores/report.svelte';
 	import { env } from '$env/dynamic/public';
 
 	const loc = $derived(ui.selectedId ? locations.get(ui.selectedId) : undefined);
@@ -28,26 +28,20 @@
 	const closed = $derived(!!loc?.closed);
 
 	/**
-	 * A report goes to the issue tracker with the store already identified.
-	 * OSM is the source of truth and lags reality, so a human saying "this one
-	 * is gone" is often the first signal there is.
+	 * A report opens the in-app form with the store already identified. OSM is
+	 * the source of truth and lags reality, so a human saying "this one is
+	 * gone" is often the first signal there is - which makes it worth removing
+	 * every step between noticing and saying so.
 	 */
-	const reportUrl = $derived.by(() => {
-		if (!loc || !coords) return '#';
-		const title = `Location issue: ${locationLabel(loc)}`;
-		const body = [
-			`**Store:** ${locationLabel(loc)}`,
-			`**Where:** ${locationPlace(loc) || '-'}`,
-			`**Coordinates:** ${coords[1]}, ${coords[0]}`,
-			`**Id:** ${ui.selectedId}`,
-			'',
-			'What is wrong? (permanently closed / wrong location / something else)',
-			''
-		].join('\n');
-		return `${REPO_URL}/issues/new?title=${encodeURIComponent(
-			title
-		)}&body=${encodeURIComponent(body)}`;
-	});
+	function openReport() {
+		if (!loc || !coords) return;
+		const where = locationPlace(loc);
+		report.start({
+			kind: 'location',
+			subject: where ? `${locationLabel(loc)}, ${where}` : locationLabel(loc),
+			storeId: `${ui.selectedId} (${coords[1]}, ${coords[0]})`
+		});
+	}
 
 	const streetUrl = $derived(
 		coords && mapsKey
@@ -159,9 +153,7 @@
 				<a class="link" href={mapsUrl} target="_blank" rel="noopener noreferrer">
 					Open in Maps &#8599;
 				</a>
-				<a class="link quiet" href={reportUrl} target="_blank" rel="noopener noreferrer">
-					Report
-				</a>
+				<button class="link quiet" type="button" onclick={openReport}>Report</button>
 			</div>
 
 			{#if streetOpen && streetUrl}
