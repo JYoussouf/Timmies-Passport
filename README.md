@@ -3,11 +3,16 @@
 Track every Tim Hortons in the world and collect the ones you've visited like
 passport stamps. Local-first, delightful, and mobile-first.
 
-- **Map of every Timmies** - 4,300+ locations harvested from OpenStreetMap, clustered on a themed MapLibre map.
-- **Collect stamps** - tap a location, check in with a satisfying passport-stamp animation, confetti, and haptics.
-- **Works with no account** - everything lives in `localStorage`. A gentle nudge invites you to sign up; signing up syncs your stamps to the cloud and across devices.
-- **Private notes** per location, plus a global "how many others checked in here".
-- **Badges, stats & a leaderboard** - countries visited, completion %, most-stamped Timmies, and country-completion races.
+**Live at [timmies-passport.pages.dev](https://timmies-passport.pages.dev)**
+
+![The map screen: a retro arcade cabinet framing a dark tracker map of Canada, cup markers clustered by count, with a compass dial of nearby locations](docs/screenshot.png)
+
+- **Map of every Timmies** - 4,200+ locations harvested from OpenStreetMap, deduplicated, and clustered on a hand-styled MapLibre map.
+- **Collect stamps** - tap a cup, check in with a pixel stamp animation, confetti, and haptics.
+- **Works with no account** - everything lives in `localStorage`. Signing up syncs your stamps across devices.
+- **Search cities or stores** - 1,300 cities rank above individual addresses; picking one frames every Timmies in it.
+- **Your passport** - progress against the worldwide total, countries and regions visited, recent stamps with private notes.
+- **Leaderboard** - the API and schema exist; the screen is marked coming soon.
 
 ## Tech
 
@@ -81,10 +86,11 @@ Optionally add a Google key for live ratings/photos:
 | --- | --- |
 | `scripts/fetch-locations.ts` | Overpass harvester + reverse-geocoder |
 | `src/lib/stores/*.svelte.ts` | local-first passport, locations index, auth, UI |
-| `src/lib/components/` | Cabinet, MapView, LocationSheet (stamp animation), Hud, Marquee, … |
+| `src/lib/components/` | Cabinet, MapView, Compass, SearchDock, LocationSheet, … |
 | `src/lib/styles/arcade.css` | design tokens + primitives (`plate`, `pbtn`, `chip`, `veil`) |
 | `src/lib/map/style.ts` | hand-rolled tracker basemap style |
 | `src/lib/map/sprites.ts` | pixel-art marker sprites, built as raw RGBA |
+| `src/lib/art/cup.ts` | the cup artwork as a pixel grid, shared by map and UI |
 | `src/routes/api/**` | locations, visits, auth, leaderboard endpoints |
 | `migrations/0001_init.sql` | D1 schema |
 
