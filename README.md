@@ -1,4 +1,4 @@
-# ☕ Timmies Passport
+# ☕ My Timmies Passport!
 
 Track every Tim Hortons in the world and collect the ones you've visited like
 passport stamps. Local-first, delightful, and mobile-first.
