@@ -29,6 +29,12 @@
 	const shown = $derived(showAll ? passport.timeline : passport.timeline.slice(0, PREVIEW));
 	const hidden = $derived(Math.max(0, passport.timeline.length - PREVIEW));
 
+	/** Notes live here rather than on the map, where they interrupted a check-in. */
+	let editing = $state<string | null>(null);
+	function toggleNote(id: string) {
+		editing = editing === id ? null : id;
+	}
+
 	const countries = $derived(passport.countriesVisited.size);
 	const regions = $derived(passport.regionsVisited.size);
 	const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
@@ -55,10 +61,10 @@
 	}
 </script>
 
-<svelte:head><title>Your Timmies Passport</title></svelte:head>
+<svelte:head><title>My Timmies Passport</title></svelte:head>
 
 <div class="page">
-	<PageHeader title="Your Timmies Passport" />
+	<PageHeader title="My Timmies Passport" />
 
 	<div class="body">
 		<section class="score">
@@ -98,12 +104,35 @@
 				<ul class="stamps">
 					{#each shown as item (item.id)}
 						<li>
-							<CupIcon height={20} collected />
-							<div class="info">
-								<strong>{locationLabel(locations.get(item.id))}</strong>
-								<small>{locationPlace(locations.get(item.id))}</small>
+							<div class="row">
+								<CupIcon height={20} collected />
+								<div class="info">
+									<strong>{locationLabel(locations.get(item.id))}</strong>
+									<small>{locationPlace(locations.get(item.id))}</small>
+								</div>
+								<time>{fmt(item.visit.visitedAt)}</time>
 							</div>
-							<time>{fmt(item.visit.visitedAt)}</time>
+
+							{#if editing === item.id}
+								<textarea
+									rows="2"
+									placeholder="Apple fritter and a double-double, no notes"
+									value={passport.getNote(item.id)}
+									onblur={(e) => {
+										passport.setNote(item.id, e.currentTarget.value);
+										editing = null;
+									}}
+									{@attach (el) => el.focus()}
+								></textarea>
+							{:else if passport.getNote(item.id)}
+								<button class="note" onclick={() => toggleNote(item.id)}>
+									{passport.getNote(item.id)}
+								</button>
+							{:else}
+								<button class="add-note pixel" onclick={() => toggleNote(item.id)}>
+									+ Add note
+								</button>
+							{/if}
 						</li>
 					{/each}
 				</ul>
@@ -213,11 +242,13 @@
 		padding: 0;
 	}
 	.stamps li {
+		padding: 0.75rem 0;
+		border-bottom: 1px solid rgba(247, 239, 227, 0.1);
+	}
+	.row {
 		display: flex;
 		align-items: center;
 		gap: 0.85rem;
-		padding: 0.75rem 0;
-		border-bottom: 1px solid rgba(247, 239, 227, 0.1);
 	}
 	.stamps li:last-child {
 		border-bottom: none;
@@ -243,6 +274,48 @@
 		flex: none;
 		font-size: 0.75rem;
 		color: var(--cream-dim);
+	}
+
+	/* Notes: quiet until there is one, then plain readable text. */
+	.add-note,
+	.note {
+		display: block;
+		margin: 0.5rem 0 0 2.05rem;
+		padding: 0.2rem 0;
+		text-align: left;
+	}
+	.add-note {
+		font-size: 0.42rem;
+		color: var(--cream-faint);
+	}
+	.add-note:hover {
+		color: var(--gold);
+	}
+	.note {
+		font-size: 0.88rem;
+		line-height: 1.45;
+		color: var(--cream-dim);
+		border-bottom: 1px dashed rgba(247, 239, 227, 0.2);
+	}
+	.note:hover {
+		color: var(--cream);
+	}
+	.stamps textarea {
+		width: calc(100% - 2.05rem);
+		margin: 0.5rem 0 0 2.05rem;
+		padding: 0.6rem;
+		font-family: var(--font-sans);
+		font-size: 0.9rem;
+		resize: none;
+		background: var(--screen-deep);
+		color: var(--cream);
+		border-top: 2px solid var(--cabinet-lo);
+		border-left: 2px solid var(--cabinet-lo);
+		border-right: 2px solid var(--cabinet-hi);
+		border-bottom: 2px solid var(--cabinet-hi);
+	}
+	.stamps textarea:focus {
+		outline: 3px solid var(--gold);
 	}
 
 	.more {
