@@ -3,29 +3,13 @@
 	import { passport } from '$lib/stores/passport.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
 	import { confettiBurst, haptic } from '$lib/effects';
-	import { fetchLocationStats } from '$lib/api';
 	import { locationLabel, locationPlace } from '$lib/location';
 
 	const loc = $derived(ui.selectedId ? locations.get(ui.selectedId) : undefined);
 	const visited = $derived(ui.selectedId ? passport.isVisited(ui.selectedId) : false);
 
 	let stamping = $state(false);
-	let othersCount = $state<number | null>(null);
-	let note = $state('');
-	let noteSaved = $state(false);
 	let btnEl = $state<HTMLButtonElement>();
-
-	// Load the per-location note + global count whenever the selection changes
-	$effect(() => {
-		const id = ui.selectedId;
-		othersCount = null;
-		if (!id) return;
-		note = passport.getNote(id);
-		noteSaved = false;
-		fetchLocationStats(id).then((s) => {
-			if (ui.selectedId === id) othersCount = s?.checkInCount ?? null;
-		});
-	});
 
 	function close() {
 		ui.select(null);
@@ -41,34 +25,16 @@
 				const r = btnEl.getBoundingClientRect();
 				confettiBurst(r.left + r.width / 2, r.top + r.height / 2);
 			}
-			ui.toast({
-				emoji: '🎟️',
-				title: 'Stamped!',
-				body: locationLabel(loc)
-			});
 			ui.maybeNudge(passport.count, passport.cloud);
 			const n = passport.count;
 			if ([10, 50, 100].includes(n))
 				ui.toast({ emoji: '🎉', title: `${n} stamps!`, body: 'Keep the streak going.' });
-			setTimeout(() => (stamping = false), 900);
+			setTimeout(() => (stamping = false), 1900);
 		} else {
 			haptic(8);
 		}
 	}
 
-	function saveNote() {
-		if (!ui.selectedId) return;
-		passport.setNote(ui.selectedId, note);
-		noteSaved = true;
-		setTimeout(() => (noteSaved = false), 1600);
-	}
-
-	const mapsUrl = $derived.by(() => {
-		if (!ui.selectedId) return '#';
-		const c = locations.coordsOf(ui.selectedId);
-		if (!c) return '#';
-		return `https://www.google.com/maps/search/?api=1&query=${c[1]},${c[0]}`;
-	});
 
 	// Drag-to-dismiss
 	let dragY = $state(0);
@@ -97,7 +63,7 @@
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<section
 		class="sheet"
-		style="transform: translate(-50%, calc(-50% + {dragY}px))"
+		style="transform: translate(-50%, {dragY}px)"
 		role="dialog"
 		aria-modal="true"
 		aria-label={loc.name}
@@ -119,9 +85,6 @@
 					<h2 class="pixel">{locationLabel(loc)}</h2>
 					<p class="addr">{locationPlace(loc) || loc.name}</p>
 				</div>
-				{#if loc.country_code}
-					<span class="cc pixel" title={loc.country}>{loc.country_code}</span>
-				{/if}
 			</header>
 
 			<div class="checkin-wrap">
@@ -153,31 +116,7 @@
 				{/if}
 			</div>
 
-			<div class="stats">
-				<span class="others">
-					{#if othersCount === null}
-						<em>Counting check-ins…</em>
-					{:else}
-						<strong>{othersCount.toLocaleString()}</strong> passport holder{othersCount === 1
-							? ''
-							: 's'} checked in
-					{/if}
-				</span>
-				<a class="maps pixel" href={mapsUrl} target="_blank" rel="noopener noreferrer">Maps &#8599;</a>
-			</div>
 
-			{#if visited}
-				<label class="note">
-					<span class="pixel">Your private note</span>
-					<textarea
-						bind:value={note}
-						rows="2"
-						placeholder="Apple fritter and a double-double, no notes"
-						onblur={saveNote}
-					></textarea>
-					<small class:saved={noteSaved}>{noteSaved ? 'Saved ✓' : 'Only you can see this'}</small>
-				</label>
-			{/if}
 		</div>
 	</section>
 {/if}
@@ -186,27 +125,29 @@
 	.backdrop {
 		position: fixed;
 		inset: 0;
-		/* Light enough to still read the street you are standing on: the card is
-		   foregrounded by its bevel and shadow, not by blacking out the map. */
-		background: rgba(8, 15, 26, 0.25);
+		/* No tint at all: the card is foregrounded by its bevel and shadow, and
+		   the map underneath is what the user came to look at. This is only a
+		   click target for dismissing. */
+		background: transparent;
 		z-index: 40;
-		animation: fade 0.2s steps(3, end);
 		border: none;
 	}
 	/*
-	 * The cartridge: a centred card, so the store you are about to stamp is the
-	 * only thing on screen rather than something tucked into a corner.
+	 * The cartridge floats directly above the selected cup, which the map
+	 * centres, so the marker you are about to stamp stays visible instead of
+	 * being covered by its own dialog.
 	 */
 	.sheet {
 		position: fixed;
-		top: 50%;
+		bottom: calc(50% + 26px);
 		left: 50%;
-		transform: translate(-50%, -50%);
+		transform: translateX(-50%);
 		z-index: 41;
 		width: min(420px, calc(100vw - 24px));
-		max-height: calc(100dvh - 2rem);
+		max-height: calc(50dvh - 2rem);
 		overflow-y: auto;
-		background: var(--cabinet);
+		/* Translucent so the street underneath stays readable. */
+		background: rgba(43, 26, 20, 0.86);
 		border-top: 3px solid var(--cabinet-hi);
 		border-left: 3px solid var(--cabinet-hi);
 		border-right: 3px solid var(--cabinet-lo);
@@ -254,23 +195,33 @@
 		font-size: 0.88rem;
 		line-height: 1.4;
 	}
-	.cc {
-		flex: none;
-		font-size: 0.5rem;
-		color: var(--cream);
-		background: var(--screen-deep);
-		border: 2px solid var(--cabinet-lo);
-		padding: 0.4rem 0.45rem;
-	}
 
 	.checkin-wrap {
 		position: relative;
 	}
 	.checkin {
 		width: 100%;
-		font-size: 0.72rem;
-		padding: 1.05rem;
-		min-height: 52px;
+		font-size: 0.78rem;
+		padding: 1.15rem;
+		min-height: 58px;
+	}
+	/*
+	 * An idle pulse invites the press. It animates the glow rather than the
+	 * transform, so :active keeps its travel - animations outrank normal
+	 * declarations, and animating transform here would swallow the press.
+	 */
+	.checkin:not(.pbtn-mint) {
+		animation: invite 1.6s steps(2, end) infinite;
+	}
+	.checkin:active {
+		transform: translate(4px, 4px);
+	}
+	@keyframes invite {
+		50% {
+			box-shadow:
+				var(--bevel-md),
+				0 0 0 5px rgba(242, 177, 52, 0.3);
+		}
 	}
 	.tick {
 		width: 1.5em;
@@ -291,71 +242,14 @@
 		transform: rotate(-8deg) scale(2.4);
 		opacity: 0;
 		pointer-events: none;
-		animation: slam 0.9s steps(6, end) forwards;
+		animation: slam 1.9s steps(8, end) forwards;
 	}
 
-	.stats {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		margin: 1rem 0 0;
-		font-size: 0.85rem;
-		color: var(--cream-dim);
-	}
-	.others strong {
-		color: var(--cream);
-	}
-	.maps {
-		flex: none;
-		font-size: 0.5rem;
-		color: var(--gold);
-		text-decoration: none;
-		padding: 0.55rem 0;
-	}
-	.maps:hover {
-		text-decoration: underline;
-	}
 
-	.note {
-		display: block;
-		margin-top: 1.1rem;
-	}
-	.note > span {
-		font-size: 0.45rem;
-		color: var(--cream-dim);
-	}
-	textarea {
-		width: 100%;
-		margin-top: 0.5rem;
-		padding: 0.7rem;
-		font-family: var(--font-sans);
-		font-size: 0.95rem;
-		resize: none;
-		background: var(--screen-deep);
-		color: var(--cream);
-		border-top: 2px solid var(--cabinet-lo);
-		border-left: 2px solid var(--cabinet-lo);
-		border-right: 2px solid var(--cabinet-hi);
-		border-bottom: 2px solid var(--cabinet-hi);
-	}
-	textarea:focus {
-		outline: 3px solid var(--gold);
-		outline-offset: 0;
-	}
-	.note small {
-		display: block;
-		margin-top: 0.4rem;
-		color: var(--cream-dim);
-		font-size: 0.75rem;
-	}
-	.note small.saved {
-		color: var(--mint);
-	}
 
 	@keyframes rise {
 		from {
-			transform: translate(-50%, -50%) scale(0.9);
+			transform: translate(-50%, 12px);
 			opacity: 0;
 		}
 	}
@@ -364,18 +258,23 @@
 			opacity: 0;
 		}
 	}
+	/* Slams down fast, then sits there long enough to read before it lifts. */
 	@keyframes slam {
 		0% {
 			opacity: 0;
 			transform: rotate(-8deg) scale(2.6);
 		}
-		40% {
+		18% {
 			opacity: 1;
 			transform: rotate(-8deg) scale(0.9);
 		}
-		60% {
+		26% {
 			opacity: 1;
 			transform: rotate(-8deg) scale(1.06);
+		}
+		80% {
+			opacity: 1;
+			transform: rotate(-8deg) scale(1);
 		}
 		100% {
 			opacity: 0;
