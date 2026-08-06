@@ -1,17 +1,39 @@
 <script lang="ts">
 	/**
-	 * Follow my location, and pull back to the whole world.
-	 * Placement is owned by the parent, which stacks these with the other
-	 * bottom-left controls.
+	 * The map pad: zoom in on top, the two view buttons beneath it, zoom out
+	 * below. Replaces MapLibre's own NavigationControl so all four sit in one
+	 * cluster instead of two competing corners.
 	 */
 	let {
 		locating,
 		onlocate,
-		onglobal
-	}: { locating: boolean; onlocate: () => void; onglobal: () => void } = $props();
+		onglobal,
+		onzoomin,
+		onzoomout
+	}: {
+		locating: boolean;
+		onlocate: () => void;
+		onglobal: () => void;
+		onzoomin: () => void;
+		onzoomout: () => void;
+	} = $props();
 </script>
 
-<div class="controls">
+<div class="pad">
+	<button class="ctl wide" aria-label="Zoom in" title="Zoom in" onclick={onzoomin}>
+		<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+			<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="square" />
+		</svg>
+	</button>
+
+	<button class="ctl" aria-label="Zoom out to the whole world" title="Whole world" onclick={onglobal}>
+		<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+			<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+			<ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="2" />
+			<path d="M3 12h18" stroke="currentColor" stroke-width="2" />
+		</svg>
+	</button>
+
 	<button
 		class="ctl"
 		class:on={locating}
@@ -20,7 +42,7 @@
 		title={locating ? 'Stop following my location' : 'Follow my location'}
 		onclick={onlocate}
 	>
-		<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+		<svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
 			<circle cx="12" cy="12" r="4" fill="currentColor" />
 			<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2" />
 			<path
@@ -32,20 +54,22 @@
 		</svg>
 	</button>
 
-	<button class="ctl" aria-label="Zoom out to the whole world" title="Whole world" onclick={onglobal}>
+	<button class="ctl wide" aria-label="Zoom out" title="Zoom out" onclick={onzoomout}>
 		<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-			<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
-			<ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="2" />
-			<path d="M3 12h18" stroke="currentColor" stroke-width="2" />
+			<path d="M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="square" />
 		</svg>
 	</button>
 </div>
 
 <style>
-	.controls {
-		display: flex;
-		flex-direction: column;
+	.pad {
+		display: grid;
+		grid-template-columns: repeat(2, 44px);
 		gap: 6px;
+	}
+	.wide {
+		grid-column: 1 / -1;
+		width: 100%;
 	}
 	.ctl {
 		display: grid;

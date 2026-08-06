@@ -196,6 +196,14 @@
 	}
 
 	/** Pull back to the opening world view. */
+	export function zoomIn() {
+		map?.easeTo({ zoom: (map?.getZoom() ?? 0) + 1.2, duration: 350 });
+	}
+
+	export function zoomOut() {
+		map?.easeTo({ zoom: (map?.getZoom() ?? 0) - 1.2, duration: 350 });
+	}
+
 	export function resetView() {
 		map?.easeTo({ ...INITIAL_VIEW, duration: 900 });
 	}
@@ -260,8 +268,6 @@
 			attributionControl: { compact: true },
 			maxZoom: 18
 		});
-
-		map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
 		// A single wheel notch should cover real ground. MapLibre's defaults are
 		// slow enough on a mouse that zooming in feels like winching; these rates
@@ -394,48 +400,7 @@
 		}
 	}
 
-	/* MapLibre's own controls, rebuilt as cabinet switches. */
-	:global(.maplibregl-ctrl-group) {
-		border-radius: 0 !important;
-		background: var(--cabinet) !important;
-		border-top: 2px solid var(--cabinet-hi);
-		border-left: 2px solid var(--cabinet-hi);
-		border-right: 2px solid var(--cabinet-lo);
-		border-bottom: 2px solid var(--cabinet-lo);
-		box-shadow: var(--bevel-md) !important;
-		overflow: hidden;
-	}
-	:global(.maplibregl-ctrl-group button) {
-		width: 36px !important;
-		height: 36px !important;
-		background: transparent !important;
-	}
-	:global(.maplibregl-ctrl-group button + button) {
-		border-top: 2px solid var(--cabinet-lo) !important;
-	}
-	:global(.maplibregl-ctrl-group button:hover) {
-		background: var(--cabinet-hi) !important;
-	}
-	/* MapLibre ships dark glyphs; invert them onto the dark cabinet. */
-	:global(.maplibregl-ctrl-group button .maplibregl-ctrl-icon) {
-		filter: invert(1) sepia(0.3) saturate(0.4) brightness(1.15);
-	}
-	:global(.maplibregl-ctrl-bottom-right) {
-		margin-bottom: calc(var(--safe-bottom) + 141px);
-		margin-right: 12px;
-	}
-	/* Desktop keeps the radar plate in that corner, so the controls move up. */
-	@media (min-width: 900px) {
-		:global(.maplibregl-ctrl-bottom-right) {
-			margin-bottom: 214px;
-			margin-right: 14px;
-		}
-	}
-	@media (min-width: 900px) and (max-height: 620px) {
-		:global(.maplibregl-ctrl-bottom-right) {
-			margin-bottom: 56px;
-		}
-	}
+
 	:global(.maplibregl-ctrl-attrib),
 	:global(.maplibregl-ctrl-attrib.maplibregl-compact) {
 		background: rgba(21, 13, 10, 0.88) !important;
