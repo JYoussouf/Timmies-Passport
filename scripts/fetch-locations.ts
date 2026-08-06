@@ -458,6 +458,66 @@ export function buildSeedSql(locs: Loc[]): string {
 	return lines.join('\n') + '\n';
 }
 
+/**
+ * A gazetteer of world places, so search can navigate to somewhere that has no
+ * Tim Hortons in it.
+ *
+ * Search can only find places that hold a store, which means a city like
+ * Pittsburgh - whose nearest Timmies are in the suburbs - looks like a dead
+ * end. Natural Earth's populated places cover ~7,000 towns and cities with
+ * coordinates, free and offline.
+ *
+ * Names are interned because the country repeats thousands of times; the file
+ * is a third of the size written out flat.
+ */
+const NE_PLACES =
+	'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_populated_places_simple.geojson';
+
+async function buildGazetteer() {
+	console.log('→ building the place gazetteer …');
+	const res = await fetch(NE_PLACES, {
+		headers: { 'User-Agent': 'TimmiesPassport/0.1 gazetteer' }
+	});
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	const fc = (await res.json()) as { features: any[] };
+
+	const regions: string[] = [];
+	const countries: string[] = [];
+	const intern = (pool: string[], v: string) => {
+		if (!v) return -1;
+		let i = pool.indexOf(v);
+		if (i < 0) i = pool.push(v) - 1;
+		return i;
+	};
+
+	const cities = fc.features
+		.map((f) => {
+			const p = f.properties ?? {};
+			const [lng, lat] = f.geometry?.coordinates ?? [];
+			if (typeof lng !== 'number' || typeof lat !== 'number') return null;
+			const name = p.name || p.nameascii;
+			if (!name) return null;
+			return [
+				name,
+				intern(regions, p.adm1name ?? ''),
+				intern(countries, p.adm0name ?? ''),
+				+lat.toFixed(3),
+				+lng.toFixed(3),
+				p.pop_max ?? 0
+			];
+		})
+		.filter(Boolean)
+		// Biggest first, so a bare "london" offers the largest one.
+		.sort((a: any, b: any) => b[5] - a[5]);
+
+	await writeFile(
+		resolve(ROOT, 'static/cities.json'),
+		JSON.stringify({ regions, countries, cities }),
+		'utf-8'
+	);
+	console.log(`✓ wrote static/cities.json (${cities.length} places)`);
+}
+
 async function main() {
 	const elements = await runOverpass();
 	console.log(`← received ${elements.length} raw elements`);
@@ -530,6 +590,12 @@ async function main() {
 		'utf-8'
 	);
 	console.log('✓ wrote static/locations.json');
+
+	try {
+		await buildGazetteer();
+	} catch (err) {
+		console.warn(`! gazetteer skipped (${(err as Error).message})`);
+	}
 
 	// D1 seed - chunked INSERTs (a single 4k-row statement hits SQLITE_TOOBIG)
 	await writeFile(resolve(ROOT, 'scripts/seed.sql'), buildSeedSql(locs), 'utf-8');

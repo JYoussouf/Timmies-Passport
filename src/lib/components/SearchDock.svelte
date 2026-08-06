@@ -11,11 +11,13 @@
 	import { passport } from '$lib/stores/passport.svelte';
 	import { locationLabel, locationPlace } from '$lib/location';
 	import CupIcon from './CupIcon.svelte';
+	import { gazetteer } from '$lib/stores/gazetteer.svelte';
 	import type { Place } from '$lib/types';
 
 	export type Pick =
 		| { kind: 'store'; id: string }
-		| { kind: 'place'; bounds: [number, number, number, number] };
+		| { kind: 'place'; bounds: [number, number, number, number] }
+		| { kind: 'point'; center: [number, number] };
 
 	let { onpick }: { onpick: (p: Pick) => void } = $props();
 
@@ -62,7 +64,16 @@
 		return out;
 	});
 
-	const hasResults = $derived(placeHits.length + storeHits.length > 0);
+	/**
+	 * Only consulted when nothing in the dataset matched. A place with stores is
+	 * always the better answer; this is the difference between "no results" and
+	 * "here is Pittsburgh, see for yourself".
+	 */
+	const gazetteerHits = $derived(
+		placeHits.length + storeHits.length > 0 ? [] : gazetteer.search(term)
+	);
+
+	const hasResults = $derived(placeHits.length + storeHits.length + gazetteerHits.length > 0);
 
 	const open = $derived(focused && term.length >= 2);
 
@@ -128,6 +139,29 @@
 				</li>
 			{/each}
 
+			{#each gazetteerHits as g (g.name + g.context)}
+				<li>
+					<button
+						onpointerdown={(e) => e.preventDefault()}
+						onclick={() => choose({ kind: 'point', center: [g.lng, g.lat] })}
+					>
+						<svg class="place faint" viewBox="0 0 24 24" aria-hidden="true">
+							<path
+								d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							/>
+						</svg>
+						<span class="info">
+							<strong>{g.name}</strong>
+							<small>{g.context}</small>
+						</span>
+						<span class="count pixel">no timmies</span>
+					</button>
+				</li>
+			{/each}
+
 			{#if !hasResults}
 				<li class="none">Nothing matches “{q}”.</li>
 			{/if}
@@ -139,7 +173,10 @@
 		<input
 			bind:this={input}
 			bind:value={q}
-			onfocus={() => (focused = true)}
+				onfocus={() => {
+				focused = true;
+				gazetteer.load();
+			}}
 			onblur={() => (focused = false)}
 			onkeydown={onKeydown}
 			placeholder="Search {locations.total ? locations.total.toLocaleString() : ''} Timmies"
@@ -270,6 +307,10 @@
 		height: 26px;
 		flex: none;
 		color: var(--gold);
+	}
+	/* A place we can fly to, but with nothing to collect there yet. */
+	.place.faint {
+		color: var(--cream-faint);
 	}
 	.count {
 		flex: none;
