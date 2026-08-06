@@ -111,14 +111,6 @@ class Passport {
 		return m;
 	}
 
-	get regionsVisited(): Set<string> {
-		const s = new Set<string>();
-		for (const id of this.visitedIds) {
-			const r = locations.get(id)?.region;
-			if (r) s.add(r);
-		}
-		return s;
-	}
 
 	/** Most recent check-in timestamps, newest first. */
 	get timeline(): { id: string; visit: Visit }[] {
