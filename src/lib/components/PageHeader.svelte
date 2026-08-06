@@ -84,10 +84,10 @@
 		font-size: 0.6rem;
 	}
 	.signin {
-		max-width: 40%;
-		padding: 0.4rem 0.7rem;
-		font-size: 0.4rem;
-		line-height: 1.7;
+		max-width: 42%;
+		padding: 0.45rem 0.7rem;
+		font-size: 0.46rem;
+		line-height: 1.8;
 		text-align: center;
 		color: var(--gold);
 	}

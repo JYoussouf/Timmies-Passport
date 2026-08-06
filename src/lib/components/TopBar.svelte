@@ -103,17 +103,17 @@
 		font-size: 0.6rem;
 	}
 	.signin {
-		max-width: 62%;
-		padding: 0.4rem 0.7rem;
-		font-size: 0.42rem;
-		line-height: 1.7;
+		max-width: 64%;
+		padding: 0.45rem 0.75rem;
+		font-size: 0.5rem;
+		line-height: 1.8;
 		text-align: center;
 	}
 
 	@media (min-width: 900px) {
 		.signin {
-			font-size: 0.5rem;
-			padding: 0.4rem 1rem;
+			font-size: 0.58rem;
+			padding: 0.45rem 1.1rem;
 		}
 	}
 </style>
