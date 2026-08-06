@@ -20,11 +20,18 @@
 	 * key. If GOOGLE_MAPS_API_KEY is ever wired through to the client, switch to
 	 * https://www.google.com/maps/embed/v1/streetview.
 	 */
-	const streetUrl = $derived.by(() => {
-		const c = ui.selectedId ? locations.coordsOf(ui.selectedId) : undefined;
-		if (!c) return '';
-		return `https://maps.google.com/maps?q=${c[1]},${c[0]}&layer=c&cbll=${c[1]},${c[0]}&cbp=12,0,0,0,0&output=svembed`;
-	});
+	const coords = $derived(ui.selectedId ? locations.coordsOf(ui.selectedId) : undefined);
+
+	const streetUrl = $derived(
+		coords
+			? `https://maps.google.com/maps?q=&layer=c&cbll=${coords[1]},${coords[0]}&cbp=11,0,0,0,0&output=svembed`
+			: ''
+	);
+
+	/** Coverage is patchy for stores set back from the road, so never a dead end. */
+	const mapsUrl = $derived(
+		coords ? `https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[0]}` : '#'
+	);
 
 	// A new selection should not inherit the previous card's open panel.
 	$effect(() => {
@@ -109,22 +116,14 @@
 				</div>
 			</header>
 
-			<button
-				class="pbtn street"
-				aria-expanded={streetOpen}
-				onclick={() => (streetOpen = !streetOpen)}
-			>
-				<svg viewBox="0 0 24 24" aria-hidden="true">
-					<path
-						d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					/>
-					<circle cx="12" cy="10" r="2.4" fill="currentColor" />
-				</svg>
-				{streetOpen ? 'Hide street view' : 'Street view'}
-			</button>
+			<div class="links">
+				<button class="link" aria-expanded={streetOpen} onclick={() => (streetOpen = !streetOpen)}>
+					{streetOpen ? 'Hide street view' : 'Street view'}
+				</button>
+				<a class="link" href={mapsUrl} target="_blank" rel="noopener noreferrer">
+					Open in Maps &#8599;
+				</a>
+			</div>
 
 			{#if streetOpen && streetUrl}
 				<div class="street-view">
@@ -258,15 +257,22 @@
 		line-height: 1.4;
 	}
 
-	.street {
-		width: 100%;
-		margin-bottom: 0.6rem;
-		font-size: 0.55rem;
+	/* Secondary actions: text links, not buttons competing with Stamp it. */
+	.links {
+		display: flex;
+		gap: 1rem;
+		margin: 0 0 0.85rem;
 	}
-	.street svg {
-		width: 1.3em;
-		height: 1.3em;
-		flex: none;
+	.link {
+		padding: 0.25rem 0;
+		font-family: var(--font-sans);
+		font-size: 0.85rem;
+		color: var(--gold);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.link:hover {
+		color: #ffc450;
 	}
 
 	/* Recessed like a screen set into the cartridge. */
