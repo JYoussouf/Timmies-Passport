@@ -141,8 +141,8 @@
 	 * on any edge lands exactly on the dial's rim.
 	 */
 	.compass {
-		--dial: 104px;
-		--btn: 36px;
+		--dial: 92px;
+		--btn: 32px;
 		position: relative;
 		flex: none;
 		width: calc(var(--dial) + var(--btn));

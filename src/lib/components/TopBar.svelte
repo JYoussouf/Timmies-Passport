@@ -55,9 +55,12 @@
 	.brand {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0 0.7rem 0 0.5rem;
-		min-height: 44px;
+		gap: 0.4rem;
+		padding: 0 0.55rem 0 0.4rem;
+		/* Trimmed from 44px. Both chips overlay the map, and on a phone every
+		   row they give back is map. Still comfortably past the 24px minimum
+		   for a touch target, and the sign-in chip is the only one that is one. */
+		min-height: 36px;
 		text-decoration: none;
 		color: var(--cream);
 	}
@@ -67,12 +70,12 @@
 		gap: 3px;
 	}
 	.num {
-		font-size: 0.72rem;
+		font-size: 0.6rem;
 		line-height: 1;
 		color: var(--gold);
 	}
 	.cap {
-		font-size: 0.4rem;
+		font-size: 0.34rem;
 		line-height: 1;
 		color: var(--cream-dim);
 	}
@@ -80,7 +83,7 @@
 	.signin {
 		display: grid;
 		place-items: center;
-		min-height: 44px;
+		min-height: 36px;
 		color: var(--gold);
 		transition: background 0.12s linear;
 	}
