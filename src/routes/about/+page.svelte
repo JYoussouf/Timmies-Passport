@@ -52,8 +52,8 @@
 	<div class="body">
 		<section>
 			<p class="lead">
-				A hobby project for collecting Tim Hortons like passport stamps. Everything
-				lives on your device unless you sign up.
+				MyTimmiesPassport is a fanmade hobby project for tracking Tim Hortons locations visited across the world! Everything
+				lives on your device until you sign up.
 			</p>
 			<p class="disclaim">
 				Not affiliated with, endorsed by, or sponsored by Tim Hortons or Restaurant
@@ -63,7 +63,7 @@
 		</section>
 
 		<section>
-			<h2 class="section-title">Where the data comes from</h2>
+			<h2 class="section-title">Data Sources and Credit</h2>
 			<ul class="sources">
 				{#each sources as s (s.name)}
 					<li>
@@ -73,29 +73,10 @@
 					</li>
 				{/each}
 			</ul>
-			<p class="note">
-				The location data shipped with this app is a derived database of
-				OpenStreetMap, and is offered under the same ODbL licence.
-			</p>
-		</section>
-
-		<section>
 			<h2 class="section-title">Type and art</h2>
 			<p class="note">
 				Press Start 2P by CodeMan38 and Inter by Rasmus Andersson, both under the SIL
 				Open Font License. The coffee cup was drawn for this project.
-			</p>
-		</section>
-
-		<section>
-			<h2 class="section-title">Source</h2>
-			<p class="note">
-				The code is MIT licensed and on
-				<a
-					href={REPO_URL}
-					target="_blank"
-					rel="noopener noreferrer">GitHub</a
-				>. Found a store that has moved or closed? Use the Report link on its card.
 			</p>
 		</section>
 	</div>
@@ -138,7 +119,6 @@
 		line-height: 1.55;
 		color: var(--cream-dim);
 		background: var(--screen-deep);
-		border-left: 3px solid var(--tim-red);
 	}
 	.section-title {
 		font-size: 0.58rem;
@@ -182,12 +162,13 @@
 		line-height: 1.55;
 		color: var(--cream-dim);
 	}
-	.note a,
 	.sources a {
 		text-decoration: underline;
 		text-underline-offset: 3px;
 	}
-	.note a {
+	.note :global(a) {
 		color: var(--gold);
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 </style>

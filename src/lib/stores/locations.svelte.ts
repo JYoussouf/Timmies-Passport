@@ -116,6 +116,51 @@ class LocationStore {
 	}
 
 	/**
+	 * The closest store lying roughly in a compass direction from a point.
+	 *
+	 * "Roughly" is the point: the four headings carve the map into quadrants,
+	 * so anything north-east or north-west of you still answers to up. Without
+	 * that, an arrow would refuse to move whenever the next store was not
+	 * dead on the axis, which is nearly always.
+	 *
+	 * Longitude is scaled by cos(latitude) so a degree east counts for what it
+	 * is worth this far from the equator; over the distance between two stores
+	 * that is accurate enough to rank them.
+	 */
+	nearestToward(
+		from: [number, number],
+		heading: number,
+		allow: (p: LocationProps) => boolean = () => true
+	): string | undefined {
+		void this.collection;
+		const [lng, lat] = from;
+		const kx = Math.cos((lat * Math.PI) / 180);
+		let best: string | undefined;
+		let bestDist = Infinity;
+
+		for (const [id, [x, y]] of this.coords) {
+			const dx = (x - lng) * kx;
+			const dy = y - lat;
+			if (dx === 0 && dy === 0) continue;
+
+			// Bearing clockwise from north, folded into +/-180 of the heading.
+			const bearing = (Math.atan2(dx, dy) * 180) / Math.PI;
+			let off = bearing - heading;
+			while (off > 180) off -= 360;
+			while (off < -180) off += 360;
+			if (Math.abs(off) > 45) continue;
+
+			const dist = dx * dx + dy * dy;
+			if (dist >= bestDist) continue;
+			const props = this.index.get(id);
+			if (!props || !allow(props)) continue;
+			best = id;
+			bestDist = dist;
+		}
+		return best;
+	}
+
+	/**
 	 * A spatially even sample of locations within `span` degrees of a point.
 	 *
 	 * Taking the N nearest would be useless for the radar: in a dense metro the

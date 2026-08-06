@@ -6,6 +6,7 @@
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import LocationSheet from '$lib/components/LocationSheet.svelte';
 	import SearchDock, { type Pick } from '$lib/components/SearchDock.svelte';
+	import StoreStepper from '$lib/components/StoreStepper.svelte';
 	import Compass from '$lib/components/Compass.svelte';
 	import Legend from '$lib/components/Legend.svelte';
 	import Marquee from '$lib/components/Marquee.svelte';
@@ -62,6 +63,17 @@
 
 	<Legend />
 
+	<StoreStepper onstep={(id: string) => goTo({ kind: 'store', id })} />
+
+	<!--
+		The card lives inside the cabinet, not beside it. `position: fixed` makes
+		the cabinet a stacking context, so anything outside it wins against
+		everything inside it regardless of z-index - which meant the card's
+		full-screen backdrop swallowed every tap on the stepper's arrows. Same
+		context, and the two order normally again.
+	-->
+	<LocationSheet />
+
 	<!--
 		Everything along the bottom stacks in one dock, so nothing above has to
 		hard-code the height of anything below it.
@@ -84,8 +96,6 @@
 		<BottomNav />
 	</div>
 </Cabinet>
-
-<LocationSheet />
 
 <style>
 	.bottom-dock {
