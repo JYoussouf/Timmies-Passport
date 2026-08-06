@@ -2,35 +2,32 @@
 	/**
 	 * Desktop-only stats rail.
 	 *
-	 * It is not rendered on mobile on purpose: the top bar's meter already
-	 * shows the collected count and the HUD shows what is left, so these chips
-	 * would be a third copy of the same two numbers competing for a 390px row.
-	 * The full breakdown lives one tap away on the Passport tab.
+	 * It does not repeat the stamped count - that is the HUD plate's job - and
+	 * it is not rendered on mobile at all, where those chips would just crowd a
+	 * 390px row with numbers the HUD and Passport tab already show.
 	 */
 	import { passport } from '$lib/stores/passport.svelte';
+	import { locations } from '$lib/stores/locations.svelte';
+	import CupIcon from './CupIcon.svelte';
 
+	const remaining = $derived(Math.max(0, locations.total - passport.count));
 	const countries = $derived(passport.countriesVisited.size);
 </script>
 
 <div class="legend">
-	<span class="chip"><i class="sw mint" aria-hidden="true"></i> Stamped <strong>{passport.count}</strong></span>
-	<span class="chip"><i class="sw gold" aria-hidden="true"></i> Countries <strong>{countries}</strong></span>
+	<span class="chip">
+		<CupIcon size={12} outline="var(--tim-red)" fill="var(--cream)" />
+		To go <strong>{remaining.toLocaleString()}</strong>
+	</span>
+	<span class="chip">
+		<CupIcon size={12} outline="var(--mint)" fill="var(--cream)" />
+		Countries <strong>{countries}</strong>
+	</span>
 </div>
 
 <style>
 	.legend {
 		display: none;
-	}
-	.sw {
-		width: 8px;
-		height: 8px;
-		flex: none;
-	}
-	.sw.mint {
-		background: var(--mint);
-	}
-	.sw.gold {
-		background: var(--gold);
 	}
 
 	@media (min-width: 900px) {

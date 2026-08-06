@@ -1,60 +1,33 @@
 <script lang="ts">
-	import { passport } from '$lib/stores/passport.svelte';
-	import { locations } from '$lib/stores/locations.svelte';
+	/**
+	 * The brand plate doubles as the score readout. A separate floating counter
+	 * over the map competed with the markers for attention; folded into the
+	 * corner it stays available without sitting in the middle of the screen.
+	 */
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
-
-	let { onsearch }: { onsearch: () => void } = $props();
-
-	/** Collection progress, quantised into 10 segments for the pixel meter. */
-	const pct = $derived(
-		locations.total ? Math.min(100, (passport.count / locations.total) * 100) : 0
-	);
-	const lit = $derived(Math.min(10, Math.ceil((pct / 100) * 10)));
-	const segments = Array.from({ length: 10 }, (_, i) => i);
+	import { passport } from '$lib/stores/passport.svelte';
+	import CupIcon from './CupIcon.svelte';
 </script>
 
 <header class="bar">
-	<a class="brand" href="/" aria-label="Timmies Passport home">
-		<span class="logo" aria-hidden="true"></span>
-		<span class="name pixel">Timmies</span>
+	<a class="brand" href="/passport" aria-label="{passport.count} stamps collected. Open your passport.">
+		<CupIcon size={24} outline="var(--tim-red)" fill="var(--cream)" />
+		<span class="score">
+			<span class="num pixel">{passport.count.toLocaleString()}</span>
+			<span class="cap pixel">stamped</span>
+		</span>
 	</a>
 
-	<div class="right">
-		<div
-			class="meter"
-			title="{passport.count} of {locations.total} locations collected"
-			role="img"
-			aria-label="{passport.count} of {locations.total} locations collected"
-		>
-			<span class="segs" aria-hidden="true">
-				{#each segments as i (i)}
-					<i class:on={i < lit}></i>
-				{/each}
-			</span>
-			<span class="count pixel">{passport.count}</span>
-		</div>
-
-		<button class="icon" aria-label="Search locations" onclick={onsearch}>
-			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"
-				><path
-					d="M21 21l-4.3-4.3M11 19a8 8 0 110-16 8 8 0 010 16z"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2.6"
-					stroke-linecap="square"
-				/></svg
-			>
+	{#if auth.signedIn}
+		<button class="avatar pixel" aria-label="Sign out" onclick={() => auth.logout()}>
+			{auth.user!.displayName.slice(0, 1).toUpperCase()}
 		</button>
-
-		{#if auth.signedIn}
-			<button class="avatar pixel" aria-label="Sign out" onclick={() => auth.logout()}>
-				{auth.user!.displayName.slice(0, 1).toUpperCase()}
-			</button>
-		{:else}
-			<button class="signin pixel" onclick={() => ui.openAuth('login')}>Sign in</button>
-		{/if}
-	</div>
+	{:else}
+		<button class="signin pixel" onclick={() => ui.openAuth('signup')}>
+			Sign in to save your progress
+		</button>
+	{/if}
 </header>
 
 <style>
@@ -71,10 +44,9 @@
 		pointer-events: none;
 	}
 	.brand,
-	.right {
+	.avatar,
+	.signin {
 		pointer-events: auto;
-		display: flex;
-		align-items: center;
 		background: var(--cabinet);
 		border-top: 2px solid var(--cabinet-hi);
 		border-left: 2px solid var(--cabinet-hi);
@@ -83,99 +55,65 @@
 		box-shadow: var(--bevel-md);
 	}
 	.brand {
+		display: flex;
+		align-items: center;
 		gap: 0.5rem;
 		padding: 0 0.7rem 0 0.5rem;
 		min-height: 44px;
 		text-decoration: none;
 		color: var(--cream);
 	}
-	/* A donut: red ring, hole punched out. Hard steps, like the map sprites. */
-	.logo {
-		width: 18px;
-		height: 18px;
-		flex: none;
-		background: var(--cabinet);
-		box-shadow: inset 0 0 0 5px var(--tim-red);
-	}
-	.name {
-		font-size: 0.6rem;
-		color: var(--gold);
-	}
-	@media (max-width: 400px) {
-		.name {
-			display: none;
-		}
-		.brand {
-			padding: 0 0.5rem;
-		}
-	}
-
-	.right {
-		gap: 0.3rem;
-		padding: 0.25rem;
-	}
-	.meter {
+	.score {
 		display: flex;
 		flex-direction: column;
 		gap: 3px;
-		justify-content: center;
-		padding: 0 0.5rem 0 0.4rem;
 	}
-	.segs {
-		display: flex;
-		gap: 2px;
-	}
-	.segs i {
-		width: 4px;
-		height: 8px;
-		background: rgba(247, 239, 227, 0.16);
-	}
-	.segs i.on {
-		background: var(--gold);
-	}
-	.count {
-		font-size: 0.55rem;
-		color: var(--cream);
+	.num {
+		font-size: 0.72rem;
 		line-height: 1;
+		color: var(--gold);
+	}
+	.cap {
+		font-size: 0.4rem;
+		line-height: 1;
+		color: var(--cream-dim);
 	}
 
-	.icon,
 	.avatar,
 	.signin {
 		display: grid;
 		place-items: center;
-		min-height: 40px;
-		border-top: 2px solid var(--cabinet-hi);
-		border-left: 2px solid var(--cabinet-hi);
-		border-right: 2px solid var(--cabinet-lo);
-		border-bottom: 2px solid var(--cabinet-lo);
-		background: var(--surface-2);
+		min-height: 44px;
+		color: var(--gold);
 		transition: background 0.12s linear;
 	}
-	.icon:active,
+	.avatar:hover,
+	.signin:hover {
+		background: var(--cabinet-hi);
+	}
 	.avatar:active,
 	.signin:active {
 		transform: translate(2px, 2px);
-	}
-	.icon {
-		width: 40px;
-		color: var(--cream);
-	}
-	.icon:hover {
-		background: var(--cabinet-hi);
+		box-shadow: none;
 	}
 	.avatar {
-		width: 40px;
+		width: 44px;
 		background: var(--tim-red);
 		color: #fff;
 		font-size: 0.6rem;
 	}
 	.signin {
-		padding: 0 0.7rem;
-		font-size: 0.5rem;
-		color: var(--gold);
+		max-width: 62%;
+		padding: 0.4rem 0.7rem;
+		font-size: 0.42rem;
+		line-height: 1.7;
+		text-align: center;
 	}
-	.signin:hover {
-		background: var(--cabinet-hi);
+
+	@media (min-width: 900px) {
+		.signin {
+			font-size: 0.5rem;
+			padding: 0.4rem 1rem;
+		}
 	}
 </style>

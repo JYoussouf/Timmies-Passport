@@ -43,7 +43,7 @@
 			clusterMaxZoom: 12
 		});
 
-		// Clusters — beveled cabinet plates, stepped by how many they hold.
+		// Clusters - beveled cabinet plates, stepped by how many they hold.
 		map.addLayer({
 			id: 'clusters',
 			type: 'symbol',
@@ -70,7 +70,7 @@
 			paint: { 'text-color': MAP_COLORS.gold }
 		});
 
-		// Unstamped — hollow red donut rings.
+		// Unstamped - red cups.
 		map.addLayer({
 			id: 'pins',
 			type: 'symbol',
@@ -84,8 +84,8 @@
 			}
 		});
 
-		// Stamped — mint donuts with sprinkles and a soft glow. Drawn above the
-		// unstamped ones so a collected store always wins an overlap.
+		// Stamped - mint cups. Drawn above the unstamped ones so a collected
+		// store always wins an overlap.
 		map.addLayer({
 			id: 'pins-visited',
 			type: 'symbol',
@@ -172,6 +172,62 @@
 		map?.flyTo({ center, zoom, offset: [0, -120], duration: 1400 });
 	}
 
+	/** Pull back to the opening world view. */
+	export function resetView() {
+		map?.easeTo({ ...INITIAL_VIEW, duration: 900 });
+	}
+
+	// --- The user's own position ------------------------------------------
+	let userMarker: maplibregl.Marker | undefined;
+	let watchId: number | undefined;
+
+	function showUser(lng: number, lat: number) {
+		if (!map) return;
+		if (!userMarker) {
+			const el = document.createElement('div');
+			el.className = 'user-dot';
+			userMarker = new maplibregl.Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
+		} else {
+			userMarker.setLngLat([lng, lat]);
+		}
+	}
+
+	/**
+	 * Start following the device's position, flying to it on the first fix.
+	 * Resolves false when permission is refused or unavailable.
+	 */
+	export function startLocating(): Promise<boolean> {
+		if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(false);
+		return new Promise((resolve) => {
+			let first = true;
+			watchId = navigator.geolocation.watchPosition(
+				({ coords }) => {
+					showUser(coords.longitude, coords.latitude);
+					if (first) {
+						first = false;
+						map?.easeTo({ center: [coords.longitude, coords.latitude], zoom: 13, duration: 1200 });
+						resolve(true);
+					}
+				},
+				() => {
+					stopLocating();
+					if (first) {
+						first = false;
+						resolve(false);
+					}
+				},
+				{ enableHighAccuracy: true, maximumAge: 15_000 }
+			);
+		});
+	}
+
+	export function stopLocating() {
+		if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+		watchId = undefined;
+		userMarker?.remove();
+		userMarker = undefined;
+	}
+
 	onMount(() => {
 		map = new maplibregl.Map({
 			container,
@@ -183,13 +239,12 @@
 		});
 
 		map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
-		map.addControl(
-			new maplibregl.GeolocateControl({
-				positionOptions: { enableHighAccuracy: true },
-				trackUserLocation: true
-			}),
-			'bottom-right'
-		);
+
+		// A single wheel notch should cover real ground. MapLibre's defaults are
+		// slow enough on a mouse that zooming in feels like winching; these rates
+		// are roughly 4x the wheel default and 2x the trackpad default.
+		map.scrollZoom.setWheelZoomRate(1 / 110);
+		map.scrollZoom.setZoomRate(1 / 50);
 
 		map.on('load', async () => {
 			await locations.load();
@@ -211,6 +266,7 @@
 
 		return () => {
 			clearInterval(blinkTimer);
+			stopLocating();
 			map?.remove();
 		};
 	});
@@ -293,6 +349,28 @@
 		}
 	}
 
+	/* The device's own position: a mint pixel square, pulsing. */
+	:global(.user-dot) {
+		width: 14px;
+		height: 14px;
+		background: var(--mint);
+		box-shadow:
+			0 0 0 3px var(--cabinet-lo),
+			0 0 0 6px rgba(63, 168, 139, 0.35);
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		:global(.user-dot) {
+			animation: ping 1.6s steps(2, end) infinite;
+		}
+	}
+	@keyframes ping {
+		50% {
+			box-shadow:
+				0 0 0 3px var(--cabinet-lo),
+				0 0 0 10px rgba(63, 168, 139, 0.18);
+		}
+	}
+
 	/* MapLibre's own controls, rebuilt as cabinet switches. */
 	:global(.maplibregl-ctrl-group) {
 		border-radius: 0 !important;
@@ -320,7 +398,7 @@
 		filter: invert(1) sepia(0.3) saturate(0.4) brightness(1.15);
 	}
 	:global(.maplibregl-ctrl-bottom-right) {
-		margin-bottom: calc(var(--safe-bottom) + 128px);
+		margin-bottom: calc(var(--safe-bottom) + 141px);
 		margin-right: 12px;
 	}
 	/* Desktop keeps the radar plate in that corner, so the controls move up. */

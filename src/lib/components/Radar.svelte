@@ -1,32 +1,59 @@
 <script lang="ts">
 	/**
-	 * Desktop-only viewport indicator. On a phone the map already tells you
-	 * where you are, and the plate would just eat screen, so it is not rendered.
+	 * Local radar: the Timmies around wherever you are looking, red for
+	 * unstamped and mint for collected, on a crosshair grid.
+	 *
+	 * It deliberately tracks the map's own scale rather than showing a fixed
+	 * world outline - a dot on a world map repeats what the map already says,
+	 * whereas this answers "what is near me right now".
+	 *
+	 * Desktop only. On a phone the map itself is the radar.
 	 */
-	let { center }: { center: { lng: number; lat: number } } = $props();
+	import { locations } from '$lib/stores/locations.svelte';
+	import { passport } from '$lib/stores/passport.svelte';
 
-	// Equirectangular projection into the 100x100 viewBox.
-	const dot = $derived({
-		x: ((center.lng + 180) / 360) * 100,
-		y: ((90 - center.lat) / 180) * 100
-	});
+	let { center }: { center: { lng: number; lat: number; zoom: number } } = $props();
+
+	/** Half-width of the radar in degrees of longitude, tied to map zoom. */
+	const span = $derived(Math.min(120, 180 / Math.pow(2, Math.max(0, center.zoom - 1))));
+
+	const blips = $derived(
+		locations.sampleAround(center.lng, center.lat, span).map((l) => ({
+			id: l.id,
+			// Latitude is inverted: north is up.
+			x: 50 + ((l.lng - center.lng) / span) * 50,
+			y: 50 - ((l.lat - center.lat) / span) * 50,
+			visited: passport.isVisited(l.id)
+		}))
+	);
 </script>
 
-<div class="radar" aria-hidden="true">
-	<svg viewBox="0 0 100 100" role="presentation">
+<div class="radar">
+	<svg viewBox="0 0 100 100" role="img" aria-label="{blips.length} Tim Hortons near this view">
 		<rect x="0" y="0" width="100" height="100" fill="var(--screen-deep)" />
-		<g stroke="rgba(247,239,227,0.16)" stroke-width="0.6">
-			<line x1="0" y1="50" x2="100" y2="50" />
-			<line x1="50" y1="0" x2="50" y2="100" />
+		<g stroke="rgba(247,239,227,0.14)" stroke-width="0.6">
 			<line x1="0" y1="25" x2="100" y2="25" />
 			<line x1="0" y1="75" x2="100" y2="75" />
 			<line x1="25" y1="0" x2="25" y2="100" />
 			<line x1="75" y1="0" x2="75" y2="100" />
 		</g>
-		<circle cx="50" cy="50" r="30" fill="none" stroke="rgba(247,239,227,0.12)" stroke-width="0.6" />
-		<line x1={dot.x} y1="0" x2={dot.x} y2="100" stroke="var(--gold)" stroke-width="0.7" opacity="0.5" />
-		<line x1="0" y1={dot.y} x2="100" y2={dot.y} stroke="var(--gold)" stroke-width="0.7" opacity="0.5" />
-		<rect x={dot.x - 3} y={dot.y - 3} width="6" height="6" fill="var(--gold)" />
+		<g stroke="var(--gold)" stroke-width="0.7" opacity="0.45">
+			<line x1="0" y1="50" x2="100" y2="50" />
+			<line x1="50" y1="0" x2="50" y2="100" />
+		</g>
+
+		{#each blips as b (b.id)}
+			<rect
+				x={b.x - 2}
+				y={b.y - 2}
+				width="4"
+				height="4"
+				fill={b.visited ? 'var(--mint)' : 'var(--tim-red)'}
+			/>
+		{/each}
+
+		<!-- Where the map is centred. -->
+		<rect x="48.5" y="48.5" width="3" height="3" fill="var(--gold)" />
 	</svg>
 	<span class="coords pixel">
 		{Math.abs(center.lat).toFixed(1)}{center.lat >= 0 ? 'N' : 'S'}
@@ -60,6 +87,7 @@
 			display: block;
 			width: 100%;
 			height: auto;
+			shape-rendering: crispEdges;
 		}
 		.coords {
 			display: block;

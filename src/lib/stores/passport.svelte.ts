@@ -27,7 +27,7 @@ class Passport {
 			const raw = localStorage.getItem(LS_KEY);
 			if (raw) this.visits = JSON.parse(raw);
 		} catch {
-			/* corrupt store — start fresh */
+			/* corrupt store - start fresh */
 		}
 	}
 

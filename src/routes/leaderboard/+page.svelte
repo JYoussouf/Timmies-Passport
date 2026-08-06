@@ -19,7 +19,7 @@
 	const place = ['gold', 'silver', 'bronze'];
 </script>
 
-<svelte:head><title>Leaderboard — Timmies Passport</title></svelte:head>
+<svelte:head><title>Leaderboard - Timmies Passport</title></svelte:head>
 
 <div class="page">
 	<PageHeader title="High Scores" />
@@ -43,8 +43,8 @@
 					<li class={place[i] ?? ''}>
 						<span class="pos pixel">{String(i + 1).padStart(2, '0')}</span>
 						<div class="info">
-							<strong>{l.address || l.name}</strong>
-							<small>{[l.city, l.region].filter(Boolean).join(', ') || '—'}</small>
+							<strong>{l.address || l.city || l.name}</strong>
+							<small>{[l.city, l.region].filter(Boolean).join(', ') || ' - '}</small>
 						</div>
 						<span class="count pixel">{l.count.toLocaleString()}</span>
 					</li>
@@ -156,12 +156,7 @@
 		font-size: 0.55rem;
 		color: var(--cream-dim);
 	}
-	/* Podium plates. */
-	.rank li.gold,
-	.rank li.silver,
-	.rank li.bronze {
-		box-shadow: inset 4px 0 0 var(--plate);
-	}
+	/* Podium colours live on the rank number alone - no side bar. */
 	.rank li.gold {
 		--plate: #f2b134;
 	}
@@ -208,7 +203,7 @@
 	/*
 	 * An empty track has to read as empty. A pale full-width bar looks like a
 	 * completed one, so the track is a dark well and the fill is the only
-	 * bright thing in it — with a floor so a nonzero count is never invisible.
+	 * bright thing in it - with a floor so a nonzero count is never invisible.
 	 */
 	.cbar {
 		margin-top: 0.4rem;

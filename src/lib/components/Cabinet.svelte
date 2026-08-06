@@ -8,6 +8,7 @@
 	 * every pixel of vertical space goes to the map instead of to decoration.
 	 */
 	import type { Snippet } from 'svelte';
+	import CupIcon from './CupIcon.svelte';
 
 	let { children }: { children: Snippet } = $props();
 </script>
@@ -18,9 +19,9 @@
 	</div>
 
 	<div class="title-plate" aria-hidden="true">
-		<span class="bolt"></span>
-		<span class="label pixel">&#9749; Timmies Passport &#9749;</span>
-		<span class="bolt"></span>
+		<CupIcon size={24} outline="var(--tim-red)" fill="var(--cream)" />
+		<span class="label pixel">My Timmies Passport</span>
+		<CupIcon size={24} outline="var(--tim-red)" fill="var(--cream)" />
 	</div>
 </div>
 
@@ -80,12 +81,6 @@
 			font-size: 0.75rem;
 			color: var(--gold);
 			text-shadow: 2px 2px 0 var(--cabinet-lo);
-		}
-		.bolt {
-			width: 7px;
-			height: 7px;
-			background: var(--cabinet-hi);
-			box-shadow: inset 1px 1px 0 var(--cabinet-lo);
 		}
 	}
 </style>

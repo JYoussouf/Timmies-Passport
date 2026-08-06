@@ -1,0 +1,79 @@
+<script lang="ts">
+	/**
+	 * Follow my location, and pull back to the whole world.
+	 * Placement is owned by the parent, which stacks these with the other
+	 * bottom-left controls.
+	 */
+	let {
+		locating,
+		onlocate,
+		onglobal
+	}: { locating: boolean; onlocate: () => void; onglobal: () => void } = $props();
+</script>
+
+<div class="controls">
+	<button
+		class="ctl"
+		class:on={locating}
+		aria-pressed={locating}
+		aria-label={locating ? 'Stop following my location' : 'Follow my location'}
+		title={locating ? 'Stop following my location' : 'Follow my location'}
+		onclick={onlocate}
+	>
+		<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+			<circle cx="12" cy="12" r="4" fill="currentColor" />
+			<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2" />
+			<path
+				d="M12 1v3M12 20v3M1 12h3M20 12h3"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="square"
+			/>
+		</svg>
+	</button>
+
+	<button class="ctl" aria-label="Zoom out to the whole world" title="Whole world" onclick={onglobal}>
+		<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+			<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+			<ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="2" />
+			<path d="M3 12h18" stroke="currentColor" stroke-width="2" />
+		</svg>
+	</button>
+</div>
+
+<style>
+	.controls {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.ctl {
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		color: var(--cream);
+		background: var(--cabinet);
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+		box-shadow: var(--bevel-md);
+		transition: background 0.12s linear;
+	}
+	.ctl:hover {
+		background: var(--cabinet-hi);
+	}
+	.ctl:active {
+		transform: translate(3px, 3px);
+		box-shadow: none;
+	}
+	.ctl.on {
+		background: var(--mint);
+		color: #04150f;
+		border-top-color: #6fd3b5;
+		border-left-color: #6fd3b5;
+		border-right-color: var(--mint-deep);
+		border-bottom-color: var(--mint-deep);
+	}
+</style>

@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
+	import CupIcon from './CupIcon.svelte';
 	let { title }: { title: string } = $props();
 </script>
 
 <header class="ph">
 	<a class="back" href="/" aria-label="Back to map">
-		<span class="logo" aria-hidden="true"></span>
+		<CupIcon size={24} outline="var(--tim-red)" fill="var(--cream)" />
 	</a>
 	<h1 class="pixel">{title}</h1>
 	{#if auth.signedIn}
@@ -14,7 +15,7 @@
 			{auth.user!.displayName.slice(0, 1).toUpperCase()}
 		</button>
 	{:else}
-		<button class="signin pixel" onclick={() => ui.openAuth('login')}>Sign in</button>
+		<button class="signin pixel" onclick={() => ui.openAuth('signup')}>Sign in to save your progress</button>
 	{/if}
 </header>
 
@@ -46,17 +47,19 @@
 	.back:active {
 		transform: translate(2px, 2px);
 	}
-	.logo {
-		width: 18px;
-		height: 18px;
-		background: var(--surface-2);
-		box-shadow: inset 0 0 0 5px var(--tim-red);
-	}
+	/* Wraps rather than truncates: a clipped "Your Timmies..." tells the user
+	   less than a two-line title does. */
 	h1 {
 		flex: 1;
 		min-width: 0;
-		font-size: 0.7rem;
+		font-size: 0.62rem;
+		line-height: 1.6;
 		color: var(--gold);
+	}
+	@media (min-width: 560px) {
+		h1 {
+			font-size: 0.7rem;
+		}
 	}
 	.avatar,
 	.signin {
@@ -81,8 +84,11 @@
 		font-size: 0.6rem;
 	}
 	.signin {
-		padding: 0 0.8rem;
-		font-size: 0.5rem;
+		max-width: 40%;
+		padding: 0.4rem 0.7rem;
+		font-size: 0.4rem;
+		line-height: 1.7;
+		text-align: center;
 		color: var(--gold);
 	}
 </style>

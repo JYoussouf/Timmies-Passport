@@ -173,12 +173,12 @@ The search overlay becomes a full-screen terminal-style list with a pixel input 
 
 New:
 
-- `src/lib/styles/arcade.css` — tokens and primitives (bevel, plate, pixel-button, chip, scanline).
-- `src/lib/map/sprites.ts` — sprite generation and registration.
-- `src/lib/components/Cabinet.svelte` — the responsive frame wrapper.
-- `src/lib/components/Hud.svelte` — the unstamped-count plate.
-- `src/lib/components/Marquee.svelte` — the scrolling ticker.
-- `static/fonts/` — self-hosted pixel font woff2 and its license.
+- `src/lib/styles/arcade.css` - tokens and primitives (bevel, plate, pixel-button, chip, scanline).
+- `src/lib/map/sprites.ts` - sprite generation and registration.
+- `src/lib/components/Cabinet.svelte` - the responsive frame wrapper.
+- `src/lib/components/Hud.svelte` - the unstamped-count plate.
+- `src/lib/components/Marquee.svelte` - the scrolling ticker.
+- `static/fonts/` - self-hosted pixel font woff2 and its license.
 
 Rewritten:
 
@@ -264,7 +264,7 @@ Defects found while verifying, all outside the original scope but fixed rather t
 - `.pbtn:hover` (specificity 0,2,0) silently overrode every button variant's background (0,1,0), so hovering the gold or mint buttons repainted them brown and dropped the text to unreadable contrast.
   Variants are now expressed as custom properties, which state selectors cannot outrank.
 - `locations.index` and `locations.coords` are plain Maps, so reading them created no reactive dependency.
-  Anything rendered before the dataset finished loading kept its fallback forever — this is why "Countries" reported 0 with stamps collected, and why the passport inventory showed generic names.
+  Anything rendered before the dataset finished loading kept its fallback forever - this is why "Countries" reported 0 with stamps collected, and why the passport inventory showed generic names.
   Every accessor now touches the reactive `collection` first.
 - Lists showed the store name, which is always "Tim Hortons".
   Search results, the passport inventory and timeline, the marquee, the stamp toast, and the leaderboard now lead with the street address.

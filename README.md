@@ -3,11 +3,11 @@
 Track every Tim Hortons in the world and collect the ones you've visited like
 passport stamps. Local-first, delightful, and mobile-first.
 
-- **Map of every Timmies** — 4,300+ locations harvested from OpenStreetMap, clustered on a themed MapLibre map.
-- **Collect stamps** — tap a location, check in with a satisfying passport-stamp animation, confetti, and haptics.
-- **Works with no account** — everything lives in `localStorage`. A gentle nudge invites you to sign up; signing up syncs your stamps to the cloud and across devices.
+- **Map of every Timmies** - 4,300+ locations harvested from OpenStreetMap, clustered on a themed MapLibre map.
+- **Collect stamps** - tap a location, check in with a satisfying passport-stamp animation, confetti, and haptics.
+- **Works with no account** - everything lives in `localStorage`. A gentle nudge invites you to sign up; signing up syncs your stamps to the cloud and across devices.
 - **Private notes** per location, plus a global "how many others checked in here".
-- **Badges, stats & a leaderboard** — countries visited, completion %, most-stamped Timmies, and country-completion races.
+- **Badges, stats & a leaderboard** - countries visited, completion %, most-stamped Timmies, and country-completion races.
 
 ## Tech
 
@@ -28,7 +28,7 @@ npm run dev          # http://localhost:5173
 ```
 
 Local dev uses `platformProxy`, so the D1 binding from `wrangler.toml` is
-available to the API routes. Without D1 the app still runs fully local-first —
+available to the API routes. Without D1 the app still runs fully local-first  - 
 accounts/leaderboards just stay empty.
 
 ## Refresh the location data
@@ -73,8 +73,8 @@ Optionally add a Google key for live ratings/photos:
 
 The UI is a retro arcade cabinet: dark-only, zero border-radius, depth from
 stepped unblurred shadows rather than blur.
-`Press Start 2P` (self-hosted, no CDN) is used for chrome only — HUD, headings,
-nav, buttons — while Inter carries every piece of body copy, because pixel type
+`Press Start 2P` (self-hosted, no CDN) is used for chrome only - HUD, headings,
+nav, buttons - while Inter carries every piece of body copy, because pixel type
 is unreadable at paragraph length.
 
 - The cabinet frame **dissolves rather than shrinks** below 900px.

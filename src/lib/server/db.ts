@@ -7,7 +7,7 @@ export function getDb(event: RequestEvent): D1Database | null {
 	return event.platform?.env?.DB ?? null;
 }
 
-/** Like getDb but throws a clean 503 — use in routes that require the backend. */
+/** Like getDb but throws a clean 503 - use in routes that require the backend. */
 export function requireDb(event: RequestEvent): D1Database {
 	const db = getDb(event);
 	if (!db) throw error(503, 'Cloud backend not configured');

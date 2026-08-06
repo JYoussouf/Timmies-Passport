@@ -12,7 +12,7 @@ import type { StyleSpecification } from 'maplibre-gl';
 const TILES = 'https://tiles.basemaps.cartocdn.com/vector/carto.streets/v1/tiles.json';
 const GLYPHS = 'https://tiles.basemaps.cartocdn.com/fonts/{fontstack}/{range}.pbf';
 
-/** Palette mirror of the CSS tokens — MapLibre cannot read CSS variables. */
+/** Palette mirror of the CSS tokens - MapLibre cannot read CSS variables. */
 export const MAP_COLORS = {
 	land: '#e8dcc8',
 	landShade: '#dccdb4',
@@ -220,7 +220,7 @@ export function trackerStyle(): StyleSpecification {
 				paint: { 'text-color': MAP_COLORS.waterLabel }
 			},
 
-			// Countries, then regions, then cities — each appearing only when
+			// Countries, then regions, then cities - each appearing only when
 			// there is room for it.
 			{
 				id: 'label-country',

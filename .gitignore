@@ -7,3 +7,6 @@ node_modules
 .env.*
 !.env.example
 vite.config.ts.timestamp-*
+
+# Harvest-time reverse-geocode cache
+scripts/.geocache.json

@@ -38,7 +38,7 @@ class LocationStore {
 	 * `index` and `coords` are plain Maps, so reading them inside a component
 	 * or a `$derived` creates no reactive dependency. Every accessor touches
 	 * the reactive `collection` first so lookups made before the fetch lands
-	 * re-run once it does — without that, anything rendered during loading
+	 * re-run once it does - without that, anything rendered during loading
 	 * keeps its fallback value forever.
 	 */
 	get(id: string): LocationProps | undefined {
@@ -63,6 +63,32 @@ class LocationStore {
 		const coordinates = this.coords.get(id);
 		if (!props || !coordinates) return undefined;
 		return { type: 'Feature', id, geometry: { type: 'Point', coordinates }, properties: props };
+	}
+
+	/**
+	 * A spatially even sample of locations within `span` degrees of a point.
+	 *
+	 * Taking the N nearest would be useless for the radar: in a dense metro the
+	 * closest sixty stores all land on the same pixel. Instead the window is
+	 * divided into a `grid` x `grid` lattice and one store is kept per cell, so
+	 * the blips actually describe the surrounding area.
+	 *
+	 * A linear scan over ~4k points is well under a millisecond, so there is no
+	 * reason to carry a spatial index for this.
+	 */
+	sampleAround(lng: number, lat: number, span: number, grid = 14) {
+		void this.collection;
+		const seen = new Map<number, { id: string; lng: number; lat: number }>();
+		for (const [id, [x, y]] of this.coords) {
+			const dx = x - lng;
+			const dy = y - lat;
+			if (Math.abs(dx) > span || Math.abs(dy) > span) continue;
+			const cx = Math.round(((dx / span) * grid) / 2);
+			const cy = Math.round(((dy / span) * grid) / 2);
+			const key = cx * 1000 + cy;
+			if (!seen.has(key)) seen.set(key, { id, lng: x, lat: y });
+		}
+		return [...seen.values()];
 	}
 
 	/** Total distinct Tim Hortons in a given country code. */

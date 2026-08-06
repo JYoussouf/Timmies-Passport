@@ -1,5 +1,5 @@
 /**
- * Timmies Passport — location harvester
+ * Timmies Passport - location harvester
  * ---------------------------------------------------------------
  * Pulls every Tim Hortons in the world from OpenStreetMap via the
  * Overpass API, normalizes it, and writes:
@@ -11,7 +11,7 @@
  *
  *   npm run fetch:locations
  */
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, readFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -153,6 +153,78 @@ async function buildGeocoder() {
 	};
 }
 
+// --- Street addresses via Nominatim ----------------------------------------
+// Only about half of OSM's Tim Hortons nodes carry addr:* tags, and every store
+// shares the same name, so the rest would be indistinguishable ("Tim Hortons,
+// Ontario" describes hundreds). We resolve the gap once here, at harvest time,
+// so the app pays nothing at runtime.
+//
+// Nominatim's policy caps bulk use at 1 request/second, hence the delay. The
+// answers are cached on disk so re-running the harvester is nearly free and an
+// interrupted run resumes where it stopped.
+const NOMINATIM = 'https://nominatim.openstreetmap.org/reverse';
+const GEO_CACHE = resolve(__dirname, '.geocache.json');
+const RATE_MS = 1100;
+
+type Fix = { road?: string; house?: string; city?: string };
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function reverseGeocode(lat: number, lng: number): Promise<Fix> {
+	const url = `${NOMINATIM}?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+	const res = await fetch(url, {
+		headers: {
+			'User-Agent': 'TimmiesPassport/0.1 (location harvester; contact: dev@timmiespassport.app)',
+			'Accept-Language': 'en'
+		}
+	});
+	if (!res.ok) throw new Error(`HTTP ${res.status}`);
+	const a = ((await res.json()) as { address?: Record<string, string> }).address ?? {};
+	return {
+		road: a.road || a.pedestrian || a.footway || a.neighbourhood || '',
+		house: a.house_number || '',
+		city: a.city || a.town || a.village || a.suburb || a.municipality || a.county || ''
+	};
+}
+
+async function fillMissingAddresses(locs: Loc[]) {
+	let cache: Record<string, Fix> = {};
+	try {
+		cache = JSON.parse(await readFile(GEO_CACHE, 'utf-8'));
+	} catch {
+		/* first run */
+	}
+
+	const todo = locs.filter((l) => !l.address && !cache[l.id]);
+	const apply = (l: Loc, fix: Fix) => {
+		if (!l.address) l.address = [fix.house, fix.road].filter(Boolean).join(' ') || fix.road || '';
+		if (!l.city) l.city = fix.city ?? '';
+	};
+
+	if (todo.length) {
+		console.log(`→ reverse-geocoding ${todo.length} addresses (~${Math.ceil(todo.length * RATE_MS / 60000)} min) …`);
+	}
+	let done = 0;
+	for (const l of todo) {
+		try {
+			cache[l.id] = await reverseGeocode(l.lat, l.lng);
+		} catch (err) {
+			cache[l.id] = {}; // remember the miss so we do not retry every run
+			console.warn(`  ${l.id}: ${(err as Error).message}`);
+		}
+		if (++done % 50 === 0) {
+			await writeFile(GEO_CACHE, JSON.stringify(cache), 'utf-8');
+			console.log(`  ${done}/${todo.length}`);
+		}
+		await sleep(RATE_MS);
+	}
+	await writeFile(GEO_CACHE, JSON.stringify(cache), 'utf-8');
+
+	for (const l of locs) if (cache[l.id]) apply(l, cache[l.id]);
+	const named = locs.filter((l) => l.address).length;
+	console.log(`✓ ${named}/${locs.length} locations now have a street address`);
+}
+
 async function runOverpass(): Promise<OverpassElement[]> {
 	let lastErr: unknown;
 	for (const url of ENDPOINTS) {
@@ -184,8 +256,19 @@ function normalize(el: OverpassElement): Loc | null {
 	if (lat == null || lng == null) return null;
 	const t = el.tags ?? {};
 
-	const houseAndStreet = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
-	const address = houseAndStreet || t['addr:full'] || '';
+	// Every store is called "Tim Hortons", so the address is the only thing that
+	// identifies one. Roughly half of OSM's nodes carry no addr:housenumber, so
+	// fall through progressively coarser tags rather than giving up: a branch
+	// name ("Yonge & Eglinton") still tells a human which store this is.
+	const street = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+	const address =
+		street ||
+		t['addr:full'] ||
+		t['addr:street'] ||
+		t['addr:place'] ||
+		t['branch'] ||
+		t['addr:neighbourhood'] ||
+		'';
 
 	return {
 		id: `${el.type[0]}${el.id}`,
@@ -194,7 +277,15 @@ function normalize(el: OverpassElement): Loc | null {
 		lat: +lat.toFixed(6),
 		lng: +lng.toFixed(6),
 		address,
-		city: t['addr:city'] || t['addr:town'] || t['addr:village'] || '',
+		city:
+			t['addr:city'] ||
+			t['addr:town'] ||
+			t['addr:village'] ||
+			t['addr:suburb'] ||
+			t['addr:hamlet'] ||
+			t['addr:municipality'] ||
+			t['addr:district'] ||
+			'',
 		region: t['addr:state'] || t['addr:province'] || '',
 		country: t['addr:country'] || '',
 		country_code: (t['addr:country'] || '').toUpperCase()
@@ -256,8 +347,10 @@ async function main() {
 		}
 		console.log(`✓ reverse-geocoded ${filled} locations to a country`);
 	} catch (err) {
-		console.warn(`! reverse-geocoding skipped (${(err as Error).message}) — using OSM tags only`);
+		console.warn(`! reverse-geocoding skipped (${(err as Error).message}) - using OSM tags only`);
 	}
+
+	await fillMissingAddresses(locs);
 
 	// GeoJSON for the map
 	const geojson = {
@@ -287,7 +380,7 @@ async function main() {
 	);
 	console.log('✓ wrote static/locations.json');
 
-	// D1 seed — chunked INSERTs (a single 4k-row statement hits SQLITE_TOOBIG)
+	// D1 seed - chunked INSERTs (a single 4k-row statement hits SQLITE_TOOBIG)
 	await writeFile(resolve(ROOT, 'scripts/seed.sql'), buildSeedSql(locs), 'utf-8');
 	console.log('✓ wrote scripts/seed.sql');
 }

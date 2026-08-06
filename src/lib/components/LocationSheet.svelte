@@ -4,6 +4,7 @@
 	import { ui } from '$lib/stores/ui.svelte';
 	import { confettiBurst, haptic } from '$lib/effects';
 	import { fetchLocationStats } from '$lib/api';
+	import { locationLabel, locationPlace } from '$lib/location';
 
 	const loc = $derived(ui.selectedId ? locations.get(ui.selectedId) : undefined);
 	const visited = $derived(ui.selectedId ? passport.isVisited(ui.selectedId) : false);
@@ -43,7 +44,7 @@
 			ui.toast({
 				emoji: '🎟️',
 				title: 'Stamped!',
-				body: loc?.address || loc?.name || 'Location collected.'
+				body: locationLabel(loc)
 			});
 			ui.maybeNudge(passport.count, passport.cloud);
 			const n = passport.count;
@@ -115,12 +116,8 @@
 		<div class="inner">
 			<header class="head">
 				<div class="titles">
-					<h2 class="pixel">{loc.name}</h2>
-					<p class="addr">
-						{[loc.address, loc.city, loc.region].filter(Boolean).join(', ') ||
-							loc.country ||
-							'Tim Hortons'}
-					</p>
+					<h2 class="pixel">{locationLabel(loc)}</h2>
+					<p class="addr">{locationPlace(loc) || loc.name}</p>
 				</div>
 				{#if loc.country_code}
 					<span class="cc pixel" title={loc.country}>{loc.country_code}</span>
@@ -133,7 +130,23 @@
 					class="pbtn {visited ? 'pbtn-mint' : 'pbtn-gold'} checkin"
 					onclick={onCheckIn}
 				>
-					{visited ? '✓ Collected' : 'Stamp it'}
+					{#if visited}
+						<!-- Drawn, not typed: the pixel font has no tick, so a text
+						     glyph falls back to Inter and renders tiny beside it. -->
+						<svg class="tick" viewBox="0 0 24 24" aria-hidden="true">
+							<path
+								d="M4 13l6 6L20 5"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="4"
+								stroke-linecap="square"
+								stroke-linejoin="miter"
+							/>
+						</svg>
+						Collected
+					{:else}
+						Stamp it
+					{/if}
 				</button>
 				{#if stamping}
 					<span class="stamp pixel" aria-hidden="true">VISITED</span>
@@ -159,7 +172,7 @@
 					<textarea
 						bind:value={note}
 						rows="2"
-						placeholder="Best date square ever, met an old friend…"
+						placeholder="Apple fritter and a double-double, no notes"
 						onblur={saveNote}
 					></textarea>
 					<small class:saved={noteSaved}>{noteSaved ? 'Saved ✓' : 'Only you can see this'}</small>
@@ -262,6 +275,11 @@
 		font-size: 0.72rem;
 		padding: 1.05rem;
 		min-height: 52px;
+	}
+	.tick {
+		width: 1.5em;
+		height: 1.5em;
+		flex: none;
 	}
 
 	/* Six-frame pixel thunk. */

@@ -1,5 +1,5 @@
 /* ============================================================
-   Timmies Passport — arcade cabinet design system
+   Timmies Passport - arcade cabinet design system
    Dark-only. Zero radius. Depth from stepped, unblurred shadows.
    ============================================================ */
 
@@ -66,7 +66,7 @@
 	--safe-left: env(safe-area-inset-left, 0px);
 	--safe-right: env(safe-area-inset-right, 0px);
 
-	/* Cabinet frame thickness — collapses on mobile ----------- */
+	/* Cabinet frame thickness - collapses on mobile ----------- */
 	--frame: 3px;
 
 	color-scheme: dark;

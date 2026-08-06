@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { fade, scale } from 'svelte/transition';
+	import CupIcon from './CupIcon.svelte';
 
 	let email = $state('');
 	let password = $state('');
@@ -30,7 +31,7 @@
 		<button class="scrim" aria-label="Close" onclick={() => ui.closeAuth()}></button>
 		<div class="modal" transition:scale={{ start: 0.96, duration: 200 }}>
 			<div class="cap pixel">
-				<span class="dot" aria-hidden="true"></span> Insert Passport
+				<CupIcon size={12} outline="var(--tim-red)" fill="var(--cream)" /> Insert Passport
 			</div>
 			<div class="inner">
 				<h2 class="pixel">{mode === 'signup' ? 'Save your passport' : 'Welcome back'}</h2>
@@ -114,11 +115,6 @@
 		color: var(--gold);
 		background: var(--screen-deep);
 		border-bottom: 2px solid var(--cabinet-lo);
-	}
-	.dot {
-		width: 9px;
-		height: 9px;
-		background: var(--tim-red);
 	}
 	.inner {
 		padding: 1.3rem 1.2rem 1.4rem;

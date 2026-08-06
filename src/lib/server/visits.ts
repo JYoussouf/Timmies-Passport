@@ -2,7 +2,7 @@ import type { D1Database } from '@cloudflare/workers-types';
 import type { Visits } from '$lib/types';
 
 /** Recompute the public check_in_count for the given locations from `visits`.
- *  Idempotent — safe to call after any sync/toggle. */
+ *  Idempotent - safe to call after any sync/toggle. */
 export async function recount(db: D1Database, locationIds: string[]) {
 	const ids = [...new Set(locationIds)].filter(Boolean);
 	if (!ids.length) return;
