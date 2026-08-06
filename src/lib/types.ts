@@ -29,16 +29,6 @@ export interface Visit {
 
 export type Visits = Record<string, Visit>;
 
-export interface Badge {
-	id: string;
-	label: string;
-	description: string;
-	emoji: string;
-	earned: boolean;
-	/** 0..1 toward earning, for not-yet-earned badges. */
-	progress: number;
-}
-
 export interface SessionUser {
 	id: string;
 	email: string;

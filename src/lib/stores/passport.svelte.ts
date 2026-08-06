@@ -1,4 +1,4 @@
-import type { Badge, Visit, Visits } from '$lib/types';
+import type { Visit, Visits } from '$lib/types';
 import { locations } from './locations.svelte';
 import { pushVisit } from '$lib/api';
 
@@ -125,95 +125,6 @@ class Passport {
 		return Object.entries(this.visits)
 			.map(([id, visit]) => ({ id, visit }))
 			.sort((a, b) => b.visit.visitedAt.localeCompare(a.visit.visitedAt));
-	}
-
-	private maxInOneDay(): number {
-		const byDay = new Map<string, number>();
-		for (const v of Object.values(this.visits)) {
-			const day = v.visitedAt.slice(0, 10);
-			byDay.set(day, (byDay.get(day) ?? 0) + 1);
-		}
-		return Math.max(0, ...byDay.values());
-	}
-
-	private hasEarlyRiser(): boolean {
-		return Object.values(this.visits).some((v) => {
-			const h = new Date(v.visitedAt).getHours();
-			return h >= 4 && h < 8;
-		});
-	}
-
-	get badges(): Badge[] {
-		const n = this.count;
-		const countries = this.countriesVisited.size;
-		const perDay = this.maxInOneDay();
-		const clamp = (x: number) => Math.max(0, Math.min(1, x));
-		return [
-			{
-				id: 'first',
-				emoji: '🎉',
-				label: 'First Stamp',
-				description: 'Check in to your first Timmies.',
-				earned: n >= 1,
-				progress: clamp(n / 1)
-			},
-			{
-				id: 'ten',
-				emoji: '☕',
-				label: 'Regular',
-				description: 'Collect 10 locations.',
-				earned: n >= 10,
-				progress: clamp(n / 10)
-			},
-			{
-				id: 'fifty',
-				emoji: '🍩',
-				label: 'Double-Double Devotee',
-				description: 'Collect 50 locations.',
-				earned: n >= 50,
-				progress: clamp(n / 50)
-			},
-			{
-				id: 'hundred',
-				emoji: '🏆',
-				label: 'Centurion',
-				description: 'Collect 100 locations.',
-				earned: n >= 100,
-				progress: clamp(n / 100)
-			},
-			{
-				id: 'doubledouble',
-				emoji: '✌️',
-				label: 'Double-Double',
-				description: 'Check in to 2 locations in a single day.',
-				earned: perDay >= 2,
-				progress: clamp(perDay / 2)
-			},
-			{
-				id: 'passport',
-				emoji: '🌍',
-				label: 'Passport Holder',
-				description: 'Visit Timmies in 2 different countries.',
-				earned: countries >= 2,
-				progress: clamp(countries / 2)
-			},
-			{
-				id: 'globetrotter',
-				emoji: '✈️',
-				label: 'Globetrotter',
-				description: 'Visit Timmies in 5 different countries.',
-				earned: countries >= 5,
-				progress: clamp(countries / 5)
-			},
-			{
-				id: 'earlyriser',
-				emoji: '🌅',
-				label: 'Early Riser',
-				description: 'Check in before 8am.',
-				earned: this.hasEarlyRiser(),
-				progress: this.hasEarlyRiser() ? 1 : 0
-			}
-		];
 	}
 }
 

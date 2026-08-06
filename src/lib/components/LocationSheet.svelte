@@ -49,7 +49,7 @@
 			ui.maybeNudge(passport.count, passport.cloud);
 			const n = passport.count;
 			if ([10, 50, 100].includes(n))
-				ui.toast({ emoji: '🏅', title: `${n} stamps!`, body: 'A new badge is yours.' });
+				ui.toast({ emoji: '🎉', title: `${n} stamps!`, body: 'Keep the streak going.' });
 			setTimeout(() => (stamping = false), 900);
 		} else {
 			haptic(8);
