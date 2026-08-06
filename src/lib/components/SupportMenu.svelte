@@ -4,9 +4,8 @@
 	 * report and an about link. Collapsed by default so it costs one control's
 	 * worth of screen, which is all a rarely-used utility should take.
 	 */
-	import { REPO_URL } from '$lib/brand';
+	import { report } from '$lib/stores/report.svelte';
 
-	const BUG_URL = `${REPO_URL}/issues/new`;
 	const ABOUT_URL = 'https://joseppy.ca';
 
 	let open = $state(false);
@@ -37,19 +36,16 @@
 <div class="support" bind:this={root}>
 	{#if open}
 		<div class="menu" role="menu">
-			<a
+			<button
 				class="item pixel"
 				role="menuitem"
-				href={BUG_URL}
-				target="_blank"
-				rel="noopener noreferrer"
-				onclick={close}
+				onclick={() => {
+					close();
+					report.start({ kind: 'bug' });
+				}}
 			>
 				Report a bug
-			</a>
-			<a class="item pixel" role="menuitem" href="/about" onclick={close}>
-				About &amp; credits
-			</a>
+			</button>
 			<a
 				class="item pixel"
 				role="menuitem"
@@ -59,6 +55,9 @@
 				onclick={close}
 			>
 				About me
+			</a>
+			<a class="item pixel" role="menuitem" href="/about" onclick={close}>
+				Legal
 			</a>
 		</div>
 	{/if}
@@ -89,10 +88,6 @@
 <style>
 	.support {
 		position: relative;
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 6px;
 	}
 	.ctl {
 		display: grid;
@@ -124,7 +119,17 @@
 		border-bottom-color: var(--gold-deep);
 	}
 
+	/*
+	 * Opens upward, out of flow. In flow it grew the button's box, and the
+	 * gutter that holds it is centred with translateY(-50%) - so every item
+	 * added pushed the button half its height further down, off the bottom of
+	 * the screen, and clipped the menu's own last row. Anchored, the gutter
+	 * only ever centres the 44px button. Mirrors the settings menu opposite.
+	 */
 	.menu {
+		position: absolute;
+		bottom: calc(100% + 6px);
+		left: 0;
 		display: flex;
 		flex-direction: column;
 		background: var(--cabinet);
@@ -142,11 +147,15 @@
 			opacity: 0;
 		}
 	}
+	/* Anchors and the report button, which has to look identical to its neighbours. */
 	.item {
 		display: flex;
 		align-items: center;
+		width: 100%;
 		min-height: 44px;
 		padding: 0 0.9rem;
+		text-align: left;
+		background: none;
 		font-size: 0.45rem;
 		color: var(--gold);
 		text-decoration: none;
