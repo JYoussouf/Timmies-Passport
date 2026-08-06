@@ -20,6 +20,7 @@ export const MAP_COLORS = {
 	border: 'rgba(43, 26, 20, 0.38)',
 	borderState: 'rgba(43, 26, 20, 0.16)',
 	road: 'rgba(43, 26, 20, 0.3)',
+	poi: '#6b4a33',
 	roadMinor: 'rgba(43, 26, 20, 0.16)',
 	building: 'rgba(43, 26, 20, 0.1)',
 	label: '#5b3a29',
@@ -192,6 +193,101 @@ export function trackerStyle(): StyleSpecification {
 					'text-opacity': 0.95,
 					'text-halo-color': MAP_COLORS.labelHalo,
 					'text-halo-width': 2.4
+				}
+			},
+
+			/*
+			 * Landmarks worth navigating by: "the Timmies next to the Superstore".
+			 *
+			 * Curated hard, because the full POI layer buries the map - in one
+			 * Toronto view it carries 339 car parks, 275 neighbourhood gardens
+			 * and 170 bus stops. No restaurants or cafes either: they are dense,
+			 * rarely how anyone gives directions, and a rival coffee shop beside
+			 * our cup is just confusing.
+			 *
+			 * `rank` is the tiles' own importance ordering, but it is only
+			 * comparable within a class - malls sit at rank 2 while a Petro-Canada
+			 * is rank 59. So the cap is per group: tight on the dense classes,
+			 * loose on the sparse ones that are landmarks whatever their rank.
+			 */
+			{
+				id: 'label-poi',
+				type: 'symbol',
+				source: 'carto',
+				'source-layer': 'poi',
+				minzoom: 15,
+				filter: [
+					'any',
+					// Sparse and unmistakable - show them wherever they appear.
+					[
+						'match',
+						['get', 'class'],
+						[
+							'hospital',
+							'railway',
+							'aerodrome',
+							'ferry_terminal',
+							'harbor',
+							'museum',
+							'cinema',
+							'theatre',
+							'stadium',
+							'town_hall',
+							'police',
+							'fire_station',
+							'castle',
+							'monument',
+							'zoo',
+							'attraction',
+							'college'
+						],
+						true,
+						false
+					],
+					/*
+					 * `shop` is where malls live, alongside every corner store. Rank
+					 * is per-tile, so downtown a textbook shop can score as low as a
+					 * mall does in the suburbs - hence a tight cap here.
+					 */
+					['all', ['==', ['get', 'class'], 'shop'], ['<=', ['get', 'rank'], 4]],
+					/*
+					 * `library` is also where bookshops land - a public library ranks
+					 * around 6, a comic shop around 20 - so it needs a cap rather
+					 * than a free pass.
+					 */
+					['all', ['==', ['get', 'class'], 'library'], ['<=', ['get', 'rank'], 8]],
+					[
+						'all',
+						['match', ['get', 'class'], ['park', 'school', 'pharmacy', 'art_gallery'], true, false],
+						['<=', ['get', 'rank'], 20]
+					],
+					[
+						'all',
+						[
+							'match',
+							['get', 'class'],
+							['grocery', 'fuel', 'marketplace', 'department_store', 'alcohol_shop', 'lodging'],
+							true,
+							false
+						],
+						['<=', ['get', 'rank'], 60]
+					]
+				],
+				layout: {
+					'text-field': ['coalesce', ['get', 'name_en'], ['get', 'name']],
+					'text-font': LABEL_FONT,
+					'text-size': ['interpolate', ['linear'], ['zoom'], 15, 9.5, 18, 11.5],
+					'text-max-width': 7,
+					'text-padding': 6,
+					// Street names matter more; a landmark can be dropped instead.
+					'text-optional': true,
+					'symbol-sort-key': ['get', 'rank']
+				},
+				paint: {
+					'text-color': MAP_COLORS.poi,
+					'text-opacity': 0.8,
+					'text-halo-color': MAP_COLORS.labelHalo,
+					'text-halo-width': 1.8
 				}
 			},
 
