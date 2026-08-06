@@ -71,12 +71,11 @@
 			display: block;
 			width: 132px;
 			padding: 4px;
-			background: var(--cabinet);
-			border-top: 2px solid var(--cabinet-hi);
-			border-left: 2px solid var(--cabinet-hi);
-			border-right: 2px solid var(--cabinet-lo);
-			border-bottom: 2px solid var(--cabinet-lo);
-			box-shadow: var(--bevel-md);
+			background: var(--screen-deep);
+			border-top: 2px solid var(--cabinet-lo);
+			border-left: 2px solid var(--cabinet-lo);
+			border-right: 2px solid var(--cabinet-hi);
+			border-bottom: 2px solid var(--cabinet-hi);
 			pointer-events: none;
 		}
 		.radar svg {

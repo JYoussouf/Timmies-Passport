@@ -101,8 +101,22 @@
 	.dock-right {
 		display: flex;
 		flex-direction: column;
-		align-items: flex-end;
+		align-items: center;
 		gap: 10px;
+	}
+
+	/* On desktop they share one bevelled console rather than floating apart. */
+	@media (min-width: 900px) {
+		.dock-right {
+			gap: 8px;
+			padding: 8px;
+			background: var(--cabinet);
+			border-top: 2px solid var(--cabinet-hi);
+			border-left: 2px solid var(--cabinet-hi);
+			border-right: 2px solid var(--cabinet-lo);
+			border-bottom: 2px solid var(--cabinet-lo);
+			box-shadow: var(--bevel-md);
+		}
 	}
 	.dock-right {
 		right: 10px;
