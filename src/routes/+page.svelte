@@ -95,23 +95,31 @@
 		flex-direction: column;
 		padding-bottom: var(--safe-bottom);
 	}
+
+	/*
+	 * A row in the stack rather than something floating above it, so the console
+	 * sits flush on the ticker however tall the rows below it grow. The pad and
+	 * radar travel together inside it, so neither needs the other's height.
+	 *
+	 * Mobile puts it at the top of the stack; desktop slots it beneath the
+	 * search island, which is centred and leaves this corner free.
+	 */
 	.dock-right {
-		position: absolute;
-		bottom: calc(100% + 10px);
+		order: 1;
+		align-self: flex-end;
+		margin-right: 10px;
 		z-index: 22;
-	}
-	/* The pad and the radar travel together, so neither needs to know the
-	   other's height. */
-	.dock-right {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 10px;
 	}
 
-	/* On desktop they share one bevelled console rather than floating apart. */
+	/* On desktop the pad and radar share one bevelled console. */
 	@media (min-width: 900px) {
 		.dock-right {
+			order: 2;
+			margin-right: 14px;
 			gap: 8px;
 			padding: 8px;
 			background: var(--cabinet);
@@ -120,15 +128,6 @@
 			border-right: 2px solid var(--cabinet-lo);
 			border-bottom: 2px solid var(--cabinet-lo);
 			box-shadow: var(--bevel-md);
-		}
-	}
-	.dock-right {
-		right: 10px;
-	}
-
-	@media (min-width: 900px) {
-		.dock-right {
-			right: 14px;
 		}
 	}
 </style>

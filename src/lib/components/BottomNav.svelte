@@ -54,7 +54,7 @@
 	 * nothing above has to guess this bar's height.
 	 */
 	.nav {
-		order: 3;
+		order: 4;
 		position: relative;
 		display: flex;
 		justify-content: center;

@@ -33,6 +33,7 @@
 
 <style>
 	.marquee {
+		order: 2;
 		height: 28px;
 		display: flex;
 		align-items: center;
@@ -64,7 +65,7 @@
 
 	@media (min-width: 900px) {
 		.marquee {
-			order: 2;
+			order: 3;
 			height: 32px;
 		}
 		.track span {

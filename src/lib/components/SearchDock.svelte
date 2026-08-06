@@ -160,6 +160,7 @@
 
 <style>
 	.dock {
+		order: 3;
 		position: relative;
 		z-index: 25;
 		display: flex;
