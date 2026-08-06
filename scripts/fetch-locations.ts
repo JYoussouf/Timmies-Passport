@@ -58,14 +58,23 @@ type Loc = {
 // --- Offline reverse-geocoding via Natural Earth boundaries ----------------
 // OSM almost never tags addr:country, so we derive country + region from the
 // point's coordinates using point-in-polygon. Fetched once at harvest time.
+// 50m, not 110m: at 110m the country outlines are so coarse that border towns
+// land on the wrong side. Windsor sat inside the United States.
 const NE_COUNTRIES =
-	'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson';
+	'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson';
 const NE_REGIONS =
 	'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_admin_1_states_provinces.geojson';
 
 type Ring = number[][];
 type Poly = Ring[];
-type Area = { name: string; iso: string; bbox: [number, number, number, number]; polys: Poly[] };
+type Area = {
+	name: string;
+	iso: string;
+	/** For regions: the country that owns them, so the two can never disagree. */
+	country?: string;
+	bbox: [number, number, number, number];
+	polys: Poly[];
+};
 
 function geomToPolys(geom: any): Poly[] {
 	if (!geom) return [];
@@ -116,7 +125,7 @@ function pointInArea(x: number, y: number, area: Area): boolean {
 
 async function loadAreas(
 	url: string,
-	pick: (p: any) => { name: string; iso: string }
+	pick: (p: any) => { name: string; iso: string; country?: string }
 ): Promise<Area[]> {
 	const res = await fetch(url, {
 		headers: { 'User-Agent': 'TimmiesPassport/0.1 boundaries' }
@@ -125,8 +134,8 @@ async function loadAreas(
 	const fc = (await res.json()) as { features: any[] };
 	return fc.features.map((f) => {
 		const polys = geomToPolys(f.geometry);
-		const { name, iso } = pick(f.properties);
-		return { name, iso, polys, bbox: bboxOf(polys) };
+		const { name, iso, country } = pick(f.properties);
+		return { name, iso, country, polys, bbox: bboxOf(polys) };
 	});
 }
 
@@ -137,14 +146,27 @@ async function buildGeocoder() {
 			name: p.ADMIN || p.NAME || '',
 			iso: (p.ISO_A2 !== '-99' ? p.ISO_A2 : p.ISO_A2_EH) || ''
 		})),
-		loadAreas(NE_REGIONS, (p) => ({ name: p.name || '', iso: p.iso_3166_2 || '' })).catch(
-			() => [] as Area[]
-		)
+		loadAreas(NE_REGIONS, (p) => ({
+			name: p.name || '',
+			// e.g. "CA-ON" - the first half is the country this region belongs to.
+			iso: p.iso_3166_2 || '',
+			country: p.admin || ''
+		})).catch(() => [] as Area[])
 	]);
 	console.log(`  ${countries.length} countries, ${regions.length} regions loaded`);
 	return (lng: number, lat: number) => {
-		let country = countries.find((a) => pointInArea(lng, lat, a));
-		let region = regions.find((a) => pointInArea(lng, lat, a));
+		const region = regions.find((a) => pointInArea(lng, lat, a));
+		// Prefer the country that owns the matched region: it comes from the same
+		// polygon, so region and country cannot contradict each other. The
+		// country outlines are only a fallback for points no region covers.
+		if (region?.country && region.iso.length >= 2) {
+			return {
+				country: region.country,
+				country_code: region.iso.slice(0, 2).toUpperCase(),
+				region: region.name
+			};
+		}
+		const country = countries.find((a) => pointInArea(lng, lat, a));
 		return {
 			country: country?.name ?? '',
 			country_code: country?.iso ?? '',
@@ -225,8 +247,25 @@ async function fillMissingAddresses(locs: Loc[]) {
 	console.log(`✓ ${named}/${locs.length} locations now have a street address`);
 }
 
+/**
+ * Raw Overpass response, kept on disk. The API is frequently overloaded and a
+ * failed query should not block work that only needs to re-derive fields from
+ * coordinates we already have.
+ */
+const OVERPASS_CACHE = resolve(__dirname, '.overpass.json');
+
+async function readOverpassCache(): Promise<OverpassElement[] | null> {
+	try {
+		return JSON.parse(await readFile(OVERPASS_CACHE, 'utf-8')) as OverpassElement[];
+	} catch {
+		return null;
+	}
+}
+
 async function runOverpass(): Promise<OverpassElement[]> {
 	let lastErr: unknown;
+	const cached = await readOverpassCache();
+
 	for (const url of ENDPOINTS) {
 		try {
 			console.log(`→ querying ${url} …`);
@@ -241,11 +280,33 @@ async function runOverpass(): Promise<OverpassElement[]> {
 			});
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
 			const json = (await res.json()) as { elements: OverpassElement[] };
-			return json.elements ?? [];
+			const elements = json.elements ?? [];
+
+			/*
+			 * Overpass sometimes answers 200 with a truncated result when it is
+			 * under load, which would silently shrink the dataset. Treat a sudden
+			 * drop as a bad response and keep what we already had. Set
+			 * ALLOW_SHRINK=1 when the brand really has closed that many stores.
+			 */
+			if (cached && elements.length < cached.length * 0.97 && !process.env.ALLOW_SHRINK) {
+				console.warn(
+					`! ${url} returned ${elements.length} of an expected ~${cached.length} - ` +
+						`looks truncated, keeping the cached set (ALLOW_SHRINK=1 to override)`
+				);
+				continue;
+			}
+
+			if (elements.length) await writeFile(OVERPASS_CACHE, JSON.stringify(elements), 'utf-8');
+			return elements;
 		} catch (err) {
 			console.warn(`  failed: ${(err as Error).message}`);
 			lastErr = err;
 		}
+	}
+
+	if (cached) {
+		console.warn(`! Overpass unusable - reusing ${cached.length} cached elements`);
+		return cached;
 	}
 	throw lastErr;
 }
@@ -333,16 +394,20 @@ async function main() {
 	const locs = [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
 	console.log(`✓ normalized to ${locs.length} unique locations`);
 
-	// Enrich missing country/region from coordinates (OSM tags win when present).
+	/*
+	 * Derive country and region from coordinates, preferring that over the OSM
+	 * tags. OSM records provinces however each mapper felt like it - "Ontario",
+	 * "ON", "Ont", "ON." and "On" all appear - whereas the boundary data gives
+	 * one canonical name, which is what lists and grouping need.
+	 */
 	try {
 		const geocode = await buildGeocoder();
 		let filled = 0;
 		for (const l of locs) {
-			if (l.country_code && l.region) continue;
 			const g = geocode(l.lng, l.lat);
-			if (!l.country) l.country = g.country;
-			if (!l.country_code) l.country_code = g.country_code;
-			if (!l.region) l.region = g.region;
+			if (g.country) l.country = g.country;
+			if (g.country_code) l.country_code = g.country_code;
+			if (g.region) l.region = g.region;
 			if (l.country_code) filled++;
 		}
 		console.log(`✓ reverse-geocoded ${filled} locations to a country`);

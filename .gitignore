@@ -8,3 +8,6 @@ node_modules
 !.env.example
 vite.config.ts.timestamp-*
 
+
+# Raw Overpass response (re-fetched in ~1 min; only a resilience cache)
+scripts/.overpass.json
