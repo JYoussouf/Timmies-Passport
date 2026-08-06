@@ -16,11 +16,11 @@
 
 <div class="legend">
 	<span class="chip">
-		<CupIcon size={12} outline="var(--tim-red)" fill="var(--cream)" />
+		<CupIcon height={14} />
 		To go <strong>{remaining.toLocaleString()}</strong>
 	</span>
 	<span class="chip">
-		<CupIcon size={12} outline="var(--mint)" fill="var(--cream)" />
+		<CupIcon height={14} collected />
 		Countries <strong>{countries}</strong>
 	</span>
 </div>

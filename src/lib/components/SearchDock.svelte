@@ -60,11 +60,7 @@
 					<!-- pointerdown is swallowed so the input never loses focus
 					     before the click lands. -->
 					<button onpointerdown={(e) => e.preventDefault()} onclick={() => choose(r.id)}>
-						<CupIcon
-							size={24}
-							outline={passport.isVisited(r.id) ? 'var(--mint)' : 'var(--tim-red)'}
-							fill="var(--cream)"
-						/>
+						<CupIcon height={26} collected={passport.isVisited(r.id)} />
 						<span class="info">
 							<strong>{locationLabel(r)}</strong>
 							<small>{locationPlace(r) || r.name}</small>

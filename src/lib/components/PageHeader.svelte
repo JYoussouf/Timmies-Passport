@@ -7,7 +7,7 @@
 
 <header class="ph">
 	<a class="back" href="/" aria-label="Back to map">
-		<CupIcon size={24} outline="var(--tim-red)" fill="var(--cream)" />
+		<CupIcon height={22} />
 	</a>
 	<h1 class="pixel">{title}</h1>
 	{#if auth.signedIn}

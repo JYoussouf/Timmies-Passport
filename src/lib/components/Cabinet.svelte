@@ -19,9 +19,9 @@
 	</div>
 
 	<div class="title-plate" aria-hidden="true">
-		<CupIcon size={24} outline="var(--tim-red)" fill="var(--cream)" />
+		<CupIcon height={20} />
 		<span class="label pixel">My Timmies Passport</span>
-		<CupIcon size={24} outline="var(--tim-red)" fill="var(--cream)" />
+		<CupIcon height={20} />
 	</div>
 </div>
 

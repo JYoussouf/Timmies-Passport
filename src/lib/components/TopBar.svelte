@@ -12,7 +12,7 @@
 
 <header class="bar">
 	<a class="brand" href="/passport" aria-label="{passport.count} stamps collected. Open your passport.">
-		<CupIcon size={24} outline="var(--tim-red)" fill="var(--cream)" />
+		<CupIcon height={24} />
 		<span class="score">
 			<span class="num pixel">{passport.count.toLocaleString()}</span>
 			<span class="cap pixel">stamped</span>

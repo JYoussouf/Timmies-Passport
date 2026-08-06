@@ -101,7 +101,7 @@
 			<ul class="timeline">
 				{#each shown as item (item.id)}
 					<li>
-						<CupIcon size={18} outline="var(--mint)" fill="var(--cream)" />
+						<CupIcon height={20} collected />
 						<div class="info">
 							<strong>{locationLabel(locations.get(item.id))}</strong>
 							<small>{locationPlace(locations.get(item.id))}</small>

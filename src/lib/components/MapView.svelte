@@ -55,12 +55,14 @@
 				'icon-image': 'pin-unstamped',
 				// The body is half the sprite's width, so the cup has to be scaled
 				// generously for a four-character count like "1.8k" to fit inside it.
-				'icon-size': ['step', ['get', 'point_count'], 1.6, 25, 2.2, 150, 2.9],
+				'icon-size': ['step', ['get', 'point_count'], 0.9, 25, 1.3, 150, 1.8],
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
 				'text-field': ['get', 'point_count_abbreviated'],
 				'text-font': COUNT_FONT,
 				'text-size': ['step', ['get', 'point_count'], 10, 25, 12, 150, 13],
+				// The cup body sits slightly below centre, so the count follows it.
+				'text-offset': [0, 0.3],
 				'text-allow-overlap': true,
 				'text-ignore-placement': true
 			},
@@ -77,7 +79,7 @@
 				'icon-image': 'pin-unstamped',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.42, 8, 0.7, 13, 1]
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.28, 8, 0.4, 13, 0.55]
 			}
 		});
 
@@ -92,7 +94,7 @@
 				'icon-image': 'pin-stamped',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.5, 8, 0.8, 13, 1.1]
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.32, 8, 0.45, 13, 0.6]
 			}
 		});
 
@@ -106,7 +108,7 @@
 				'icon-image': 'reticle',
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
-				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.7, 13, 1.2]
+				'icon-size': ['interpolate', ['linear'], ['zoom'], 3, 0.4, 13, 0.75]
 			},
 			paint: { 'icon-opacity': 1 }
 		});

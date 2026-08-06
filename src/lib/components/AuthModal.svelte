@@ -31,7 +31,7 @@
 		<button class="scrim" aria-label="Close" onclick={() => ui.closeAuth()}></button>
 		<div class="modal" transition:scale={{ start: 0.96, duration: 200 }}>
 			<div class="cap pixel">
-				<CupIcon size={12} outline="var(--tim-red)" fill="var(--cream)" /> Insert Passport
+				<CupIcon height={14} /> Insert Passport
 			</div>
 			<div class="inner">
 				<h2 class="pixel">{mode === 'signup' ? 'Save your passport' : 'Welcome back'}</h2>
