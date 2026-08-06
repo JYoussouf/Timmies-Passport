@@ -46,7 +46,8 @@
 		flex: none;
 		gap: 3rem;
 		padding-left: 100%;
-		animation: scroll 42s linear infinite;
+		/* Half speed: the ticker is ambient, not something to keep up with. */
+		animation: scroll 84s linear infinite;
 	}
 	.track span {
 		flex: none;
