@@ -116,7 +116,7 @@
 							{#if editing === item.id}
 								<textarea
 									rows="2"
-									placeholder="Apple fritter and a double-double, no notes"
+									placeholder="Apple fritter and a double-double!"
 									value={passport.getNote(item.id)}
 									onblur={(e) => {
 										passport.setNote(item.id, e.currentTarget.value);
@@ -146,13 +146,21 @@
 		</section>
 	</div>
 
-	<BottomNav />
+	<div class="bottom-dock"><BottomNav /></div>
 </div>
 
 <style>
 	.page {
 		min-height: 100dvh;
 		background: var(--void);
+	}
+	.bottom-dock {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 35;
+		padding-bottom: var(--safe-bottom);
 	}
 	.body {
 		max-width: 620px;

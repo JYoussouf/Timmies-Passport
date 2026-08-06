@@ -102,10 +102,7 @@
 
 <style>
 	.dock {
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: calc(var(--safe-bottom) + 59px);
+		position: relative;
 		z-index: 25;
 		display: flex;
 		flex-direction: column;
@@ -169,7 +166,12 @@
 		color: var(--cream);
 	}
 
+	/* Grows upward out of the stack rather than pushing the bar down. */
 	.suggestions {
+		position: absolute;
+		bottom: 100%;
+		left: 0;
+		right: 0;
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -232,12 +234,8 @@
 
 	@media (min-width: 900px) {
 		.dock {
-			left: 50%;
-			right: auto;
-			transform: translateX(-50%);
-			/* Clears the floating desktop tab bar and the ticker below it. */
-			bottom: calc(var(--frame) + 100px);
-			width: 360px;
+			width: 420px;
+			margin: 0 auto;
 		}
 		.field {
 			border: 2px solid var(--cabinet-lo);
@@ -250,7 +248,6 @@
 			border-top-color: var(--cabinet-hi);
 			border-left-color: var(--cabinet-hi);
 			box-shadow: var(--bevel-md);
-			margin-bottom: 6px;
 		}
 	}
 </style>

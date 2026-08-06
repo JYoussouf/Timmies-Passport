@@ -58,34 +58,66 @@
 	<Legend />
 
 	<Radar {center} />
-	<div class="dock-left">
-		<SupportMenu />
-		<MapControls {locating} onlocate={toggleLocate} onglobal={() => mapView?.resetView()} />
+
+	<!--
+		Everything along the bottom stacks in one dock, so nothing above has to
+		hard-code the height of anything below it. The side controls hang off the
+		dock's top edge, which keeps them clear however tall it grows.
+	-->
+	<div class="bottom-dock">
+		<div class="dock-left"><SupportMenu /></div>
+		<div class="dock-right">
+			<MapControls
+				{locating}
+				onlocate={toggleLocate}
+				onglobal={() => mapView?.resetView()}
+				onzoomin={() => mapView?.zoomIn()}
+				onzoomout={() => mapView?.zoomOut()}
+			/>
+		</div>
+		<Marquee />
+		<SearchDock onpick={goTo} />
+		<BottomNav />
 	</div>
-	<SearchDock onpick={goTo} />
-	<Marquee />
 </Cabinet>
 
 <LocationSheet />
-<BottomNav />
 
 <style>
-	.dock-left {
+	.bottom-dock {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 30;
+		padding-bottom: var(--safe-bottom);
+	}
+	.dock-left,
+	.dock-right {
 		position: absolute;
-		left: 10px;
-		/* Clears the ticker, the search dock and the tab bar stacked below. */
-		bottom: calc(var(--safe-bottom) + 141px);
+		bottom: calc(100% + 10px);
 		z-index: 22;
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 6px;
+	}
+	.dock-left {
+		left: 10px;
+	}
+	.dock-right {
+		right: 10px;
 	}
 
 	@media (min-width: 900px) {
 		.dock-left {
 			left: 14px;
-			bottom: 46px;
+		}
+		.dock-right {
+			right: 14px;
+			/* Clears the radar plate, which owns this corner. */
+			bottom: calc(100% + 165px);
+		}
+	}
+	@media (min-width: 900px) and (max-height: 620px) {
+		.dock-right {
+			bottom: calc(100% + 10px);
 		}
 	}
 </style>

@@ -33,12 +33,6 @@
 
 <style>
 	.marquee {
-		position: absolute;
-		left: 0;
-		right: 0;
-		/* Sits directly on top of the full-width mobile tab bar. */
-		bottom: calc(var(--safe-bottom) + 105px);
-		z-index: 18;
 		height: 28px;
 		display: flex;
 		align-items: center;
@@ -69,8 +63,6 @@
 
 	@media (min-width: 900px) {
 		.marquee {
-			/* Desktop floats the nav and search above the ticker. */
-			bottom: 0;
 			height: 32px;
 		}
 		.track span {
