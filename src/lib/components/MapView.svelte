@@ -2,7 +2,12 @@
 	import { onMount } from 'svelte';
 	import maplibregl from 'maplibre-gl';
 	import 'maplibre-gl/dist/maplibre-gl.css';
-	import { trackerStyle, INITIAL_VIEW, MAP_COLORS } from '$lib/map/style';
+	import {
+		trackerStyle,
+		HOME_BOUNDS,
+		HOME_PADDING,
+		MAP_COLORS
+	} from '$lib/map/style';
 	import { registerSprites } from '$lib/map/sprites';
 	import { locations } from '$lib/stores/locations.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
@@ -196,20 +201,23 @@
 	}
 
 	/**
-	 * Frame a city: fit every Timmies in it, capped so a one-store town does not
-	 * slam all the way to rooftop zoom.
+	 * Frame a bounding box. Used for a city (capped so a one-store town does not
+	 * slam to rooftop zoom) and for the home view.
 	 */
-	export function fitBounds(b: [number, number, number, number]) {
+	export function fitBounds(
+		b: [number, number, number, number],
+		padding: number | typeof HOME_PADDING = 70,
+		duration = 1100
+	) {
 		map?.fitBounds(
 			[
 				[b[0], b[1]],
 				[b[2], b[3]]
 			],
-			{ padding: 70, maxZoom: 14, duration: 1100 }
+			{ padding, maxZoom: 14, duration }
 		);
 	}
 
-	/** Pull back to the opening world view. */
 	export function zoomIn() {
 		map?.easeTo({ zoom: (map?.getZoom() ?? 0) + 1.2, duration: 350 });
 	}
@@ -218,8 +226,13 @@
 		map?.easeTo({ zoom: (map?.getZoom() ?? 0) - 1.2, duration: 350 });
 	}
 
+	/**
+	 * Back to the opening view: the whole of Canada, framed as bounds so it
+	 * fills whatever screen it lands on. A fixed zoom showed Canada on a desktop
+	 * window and the Great Lakes on a phone.
+	 */
 	export function resetView() {
-		map?.easeTo({ ...INITIAL_VIEW, duration: 900 });
+		fitBounds(HOME_BOUNDS, HOME_PADDING, 900);
 	}
 
 	// --- The user's own position ------------------------------------------
@@ -277,8 +290,12 @@
 		map = new maplibregl.Map({
 			container,
 			style: trackerStyle(),
-			center: INITIAL_VIEW.center,
-			zoom: INITIAL_VIEW.zoom,
+			// Framed from the first paint, so no jump once the data lands.
+			bounds: [
+				[HOME_BOUNDS[0], HOME_BOUNDS[1]],
+				[HOME_BOUNDS[2], HOME_BOUNDS[3]]
+			],
+			fitBoundsOptions: { padding: HOME_PADDING },
 			attributionControl: { compact: true },
 			maxZoom: 18
 		});

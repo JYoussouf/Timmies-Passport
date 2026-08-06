@@ -17,7 +17,6 @@ export const MAP_COLORS = {
 	land: '#e8dcc8',
 	landShade: '#dccdb4',
 	ocean: '#101d2e',
-	oceanDeep: '#0b1524',
 	border: 'rgba(43, 26, 20, 0.38)',
 	borderState: 'rgba(43, 26, 20, 0.16)',
 	road: 'rgba(43, 26, 20, 0.3)',
@@ -37,10 +36,24 @@ export const MAP_COLORS = {
 const LABEL_FONT = ['Montserrat Medium', 'Open Sans Bold'];
 const BOLD_FONT = ['Montserrat Bold', 'Open Sans Bold'];
 
-export const INITIAL_VIEW = {
-	center: [-92, 49] as [number, number], // Tim's heartland: Canada + northern US
-	zoom: 3.2
-};
+/**
+ * The opening view: every Canadian Tim Hortons, from Vancouver Island to
+ * Newfoundland and up to Whitehorse.
+ *
+ * Framed as bounds rather than a centre and a zoom because a fixed zoom means
+ * a different amount of world on every screen - 3.2 filled a desktop window
+ * with Canada and a phone with the Great Lakes.
+ */
+export const HOME_BOUNDS: [number, number, number, number] = [-135.5, 41.5, -52.0, 64.0];
+
+/** Padding around the home view, leaving room for the app's own chrome. */
+export const HOME_PADDING = { top: 70, bottom: 160, left: 24, right: 24 };
+
+/** Centre of the home view, for anything that needs a point before the map moves. */
+export const HOME_CENTER: [number, number] = [
+	(HOME_BOUNDS[0] + HOME_BOUNDS[2]) / 2,
+	(HOME_BOUNDS[1] + HOME_BOUNDS[3]) / 2
+];
 
 export function trackerStyle(): StyleSpecification {
 	return {
