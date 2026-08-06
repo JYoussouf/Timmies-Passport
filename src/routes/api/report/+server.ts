@@ -128,12 +128,21 @@ async function enforceRateLimit(event: Parameters<RequestHandler>[0]) {
 	const key = await sha256(`report:${ip}`);
 	const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-	const row = await db
-		.prepare('SELECT COUNT(*) AS n FROM reports WHERE reporter_key = ? AND created_at > ?')
-		.bind(key, since)
-		.first<{ n: number }>();
+	let count: number;
+	try {
+		const row = await db
+			.prepare('SELECT COUNT(*) AS n FROM reports WHERE reporter_key = ? AND created_at > ?')
+			.bind(key, since)
+			.first<{ n: number }>();
+		count = row?.n ?? 0;
+	} catch (e) {
+		/* Usually an unmigrated database. Let the report through - the brake is
+		   not worth dropping genuine reports over. */
+		console.error('Report rate-limit lookup failed', e);
+		return;
+	}
 
-	if ((row?.n ?? 0) >= HOURLY_LIMIT) {
+	if (count >= HOURLY_LIMIT) {
 		throw error(429, 'That is a lot of reports in one hour. Please try again later.');
 	}
 
