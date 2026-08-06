@@ -30,11 +30,7 @@ const C = {
 	red: hex(MAP_COLORS.red),
 	mint: hex(MAP_COLORS.mint),
 	cream: hex('#fffaf2'),
-	gold: hex(MAP_COLORS.gold),
-	goldHi: hex('#ffd479'),
-	cabinet: hex(MAP_COLORS.cabinet),
-	cabinetHi: hex('#4a2e23'),
-	cabinetLo: hex('#0f0806')
+	gold: hex(MAP_COLORS.gold)
 } as const;
 
 /** A square grid of RGBA cells, drawn at "art" resolution. */
@@ -80,21 +76,6 @@ function cup(outline: RGBA, fill: RGBA = C.cream): Grid {
 	return g;
 }
 
-/** A beveled square plate: light top/left, dark bottom/right, coloured border. */
-function plate(size: number, fill: RGBA, border: RGBA, hi: RGBA, lo: RGBA): Grid {
-	const g = new Grid(size);
-	for (let y = 0; y < size; y++) {
-		for (let x = 0; x < size; x++) {
-			const edge = x === 0 || y === 0 || x === size - 1 || y === size - 1;
-			const bevel = x === 1 || y === 1 || x === size - 2 || y === size - 2;
-			if (edge) g.set(x, y, border);
-			else if (bevel) g.set(x, y, x === size - 2 || y === size - 2 ? lo : hi);
-			else g.set(x, y, fill);
-		}
-	}
-	return g;
-}
-
 /** Four corner brackets - the selection reticle. */
 function reticle(size: number): Grid {
 	const g = new Grid(size);
@@ -121,12 +102,11 @@ const SCALE = 4;
 const PIXEL_RATIO = 2;
 
 function buildAll(): Record<string, Grid> {
+	// Clusters reuse the unstamped cup, just scaled up with the count printed
+	// on the body, so the map speaks one shape at every zoom level.
 	return {
 		'pin-unstamped': cup(C.red),
 		'pin-stamped': cup(C.mint),
-		'cluster-sm': plate(13, C.cabinet, C.gold, C.cabinetHi, C.cabinetLo),
-		'cluster-md': plate(17, C.cabinet, C.gold, C.cabinetHi, C.cabinetLo),
-		'cluster-lg': plate(21, C.cabinet, C.goldHi, C.cabinetHi, C.cabinetLo),
 		reticle: reticle(19)
 	};
 }

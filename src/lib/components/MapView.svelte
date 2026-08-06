@@ -43,31 +43,28 @@
 			clusterMaxZoom: 12
 		});
 
-		// Clusters - beveled cabinet plates, stepped by how many they hold.
+		// Clusters are the same cup, scaled up with the count printed on the
+		// body. One shape at every zoom: a cup with a number becomes a plain cup
+		// once you are close enough for the stores to separate.
 		map.addLayer({
 			id: 'clusters',
 			type: 'symbol',
 			source: SRC,
 			filter: ['has', 'point_count'],
 			layout: {
-				'icon-image': [
-					'step',
-					['get', 'point_count'],
-					'cluster-sm',
-					25,
-					'cluster-md',
-					150,
-					'cluster-lg'
-				],
+				'icon-image': 'pin-unstamped',
+				// The body is half the sprite's width, so the cup has to be scaled
+				// generously for a four-character count like "1.8k" to fit inside it.
+				'icon-size': ['step', ['get', 'point_count'], 1.6, 25, 2.2, 150, 2.9],
 				'icon-allow-overlap': true,
 				'icon-ignore-placement': true,
 				'text-field': ['get', 'point_count_abbreviated'],
 				'text-font': COUNT_FONT,
-				'text-size': ['step', ['get', 'point_count'], 10, 25, 11, 150, 12],
+				'text-size': ['step', ['get', 'point_count'], 10, 25, 12, 150, 13],
 				'text-allow-overlap': true,
 				'text-ignore-placement': true
 			},
-			paint: { 'text-color': MAP_COLORS.gold }
+			paint: { 'text-color': MAP_COLORS.cabinet }
 		});
 
 		// Unstamped - red cups.
