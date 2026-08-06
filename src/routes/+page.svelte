@@ -5,21 +5,16 @@
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import LocationSheet from '$lib/components/LocationSheet.svelte';
 	import SearchDock, { type Pick } from '$lib/components/SearchDock.svelte';
-	import MapControls from '$lib/components/MapControls.svelte';
+	import Compass from '$lib/components/Compass.svelte';
 	import Legend from '$lib/components/Legend.svelte';
-	import Radar from '$lib/components/Radar.svelte';
 	import Marquee from '$lib/components/Marquee.svelte';
 	import { locations } from '$lib/stores/locations.svelte';
-	import { INITIAL_VIEW } from '$lib/map/style';
+	import { HOME_CENTER } from '$lib/map/style';
 	import { ui } from '$lib/stores/ui.svelte';
 
 	let mapView: MapView;
 	let locating = $state(false);
-	let center = $state({
-		lng: INITIAL_VIEW.center[0],
-		lat: INITIAL_VIEW.center[1],
-		zoom: INITIAL_VIEW.zoom
-	});
+	let center = $state({ lng: HOME_CENTER[0], lat: HOME_CENTER[1], zoom: 3 });
 
 	function goTo(p: Pick) {
 		if (p.kind === 'place') {
@@ -68,14 +63,14 @@
 		<div class="rail">
 			<SearchDock onpick={goTo} />
 			<div class="dock-right">
-				<MapControls
+				<Compass
+					{center}
 					{locating}
 					onlocate={toggleLocate}
 					onglobal={() => mapView?.resetView()}
 					onzoomin={() => mapView?.zoomIn()}
 					onzoomout={() => mapView?.zoomOut()}
 				/>
-				<Radar {center} />
 			</div>
 		</div>
 		<Marquee />
@@ -98,8 +93,8 @@
 	}
 
 	/*
-	 * Mobile keeps search and the console as separate rows in the stack, so the
-	 * rail dissolves and each takes its own order.
+	 * Mobile keeps the compass and the search bar as separate rows in the stack,
+	 * so the rail dissolves and each takes its own order.
 	 */
 	.rail {
 		display: contents;
@@ -108,18 +103,15 @@
 	.dock-right {
 		order: 1;
 		align-self: flex-end;
+		margin: 0 10px 8px;
 		z-index: 22;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 10px;
 	}
 
 	@media (min-width: 900px) {
 		/*
-		 * Desktop puts them on one line, both sitting on the ticker. The console
-		 * is absolute inside the rail so it can be far taller than the search bar
-		 * without pushing it up the screen or stealing the centring.
+		 * Desktop puts them on one line. The compass is absolute inside the rail
+		 * so it can be taller than the search bar without pushing it up the
+		 * screen or stealing the centring.
 		 */
 		.rail {
 			order: 1;
@@ -128,26 +120,13 @@
 			justify-content: center;
 			align-items: flex-end;
 		}
-		/*
-		 * Flush into the cabinet's right rail. The two edges that meet something
-		 * carry no border and no bevel shadow, so the console reads as part of
-		 * the frame rather than a plate parked against it; the top and left keep
-		 * their highlight so it still reads as raised.
-		 */
 		.dock-right {
 			position: absolute;
-			/* The dock is fixed to the window, so meeting the cabinet's inner
-			   edge means clearing the frame and its 2px border. */
-			right: calc(var(--frame) + 2px);
-			bottom: 0;
-			gap: 8px;
-			padding: 8px;
-			background: var(--cabinet);
-			border-top: 2px solid var(--cabinet-hi);
-			border-left: 2px solid var(--cabinet-hi);
-			border-right: none;
-			border-bottom: none;
-			box-shadow: none;
+			/* The dock is fixed to the window, so clearing the cabinet frame and
+			   its border keeps the compass inside the screen. */
+			right: calc(var(--frame) + 10px);
+			bottom: 8px;
+			margin: 0;
 		}
 	}
 </style>
