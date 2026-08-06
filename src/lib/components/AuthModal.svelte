@@ -38,7 +38,7 @@
 				<p class="sub">
 					{mode === 'signup'
 						? `Keep your ${passport.count} stamp${passport.count === 1 ? '' : 's'} forever and sync across devices.`
-						: 'Sign in to load your collected Timmies.'}
+						: 'Sign in to sync your stamps across devices.'}
 				</p>
 
 				<form onsubmit={submit}>
@@ -67,11 +67,11 @@
 
 				<p class="switch">
 					{#if mode === 'signup'}
-						Already have one?
-						<button class="pixel" onclick={() => (ui.authMode = 'login')}>Sign in</button>
+						Already have a passport?
+						<button class="pixel" onclick={() => (ui.authMode = 'login')}>Sign in instead</button>
 					{:else}
-						New here?
-						<button class="pixel" onclick={() => (ui.authMode = 'signup')}>Create a passport</button>
+						No passport yet?
+						<button class="pixel" onclick={() => (ui.authMode = 'signup')}>Create one</button>
 					{/if}
 				</p>
 			</div>

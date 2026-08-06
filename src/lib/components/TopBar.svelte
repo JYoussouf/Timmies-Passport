@@ -8,6 +8,7 @@
 	import { ui } from '$lib/stores/ui.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import CupIcon from './CupIcon.svelte';
+	import AccountMenu from './AccountMenu.svelte';
 </script>
 
 <header class="bar">
@@ -20,11 +21,9 @@
 	</a>
 
 	{#if auth.signedIn}
-		<button class="avatar pixel" aria-label="Sign out" onclick={() => auth.logout()}>
-			{auth.user!.displayName.slice(0, 1).toUpperCase()}
-		</button>
+		<AccountMenu />
 	{:else}
-		<button class="signin pixel" onclick={() => ui.openAuth('signup')}>
+		<button class="signin pixel" onclick={() => ui.openAuth('login')}>
 			Sign in to save your progress
 		</button>
 	{/if}
@@ -44,7 +43,6 @@
 		pointer-events: none;
 	}
 	.brand,
-	.avatar,
 	.signin {
 		pointer-events: auto;
 		background: var(--cabinet);
@@ -79,7 +77,6 @@
 		color: var(--cream-dim);
 	}
 
-	.avatar,
 	.signin {
 		display: grid;
 		place-items: center;
@@ -87,20 +84,12 @@
 		color: var(--gold);
 		transition: background 0.12s linear;
 	}
-	.avatar:hover,
 	.signin:hover {
 		background: var(--cabinet-hi);
 	}
-	.avatar:active,
 	.signin:active {
 		transform: translate(2px, 2px);
 		box-shadow: none;
-	}
-	.avatar {
-		width: 44px;
-		background: var(--tim-red);
-		color: #fff;
-		font-size: 0.6rem;
 	}
 	.signin {
 		max-width: 64%;

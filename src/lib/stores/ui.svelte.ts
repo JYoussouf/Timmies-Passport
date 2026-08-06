@@ -13,7 +13,7 @@ const NUDGE_AFTER = 3; // check-ins before we suggest signing up
 class UI {
 	selectedId = $state<string | null>(null);
 	authOpen = $state(false);
-	authMode = $state<'signup' | 'login'>('signup');
+	authMode = $state<'signup' | 'login'>('login');
 	toasts = $state<Toast[]>([]);
 	private nextId = 1;
 	nudged = $state(false);
@@ -22,7 +22,7 @@ class UI {
 		this.selectedId = id;
 	}
 
-	openAuth(mode: 'signup' | 'login' = 'signup') {
+	openAuth(mode: 'signup' | 'login' = 'login') {
 		this.authMode = mode;
 		this.authOpen = true;
 	}

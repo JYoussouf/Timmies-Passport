@@ -2,6 +2,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
 	import CupIcon from './CupIcon.svelte';
+	import AccountMenu from './AccountMenu.svelte';
 	let { title }: { title: string } = $props();
 </script>
 
@@ -11,11 +12,9 @@
 	</a>
 	<h1 class="pixel">{title}</h1>
 	{#if auth.signedIn}
-		<button class="avatar pixel" onclick={() => auth.logout()} aria-label="Sign out">
-			{auth.user!.displayName.slice(0, 1).toUpperCase()}
-		</button>
+		<AccountMenu />
 	{:else}
-		<button class="signin pixel" onclick={() => ui.openAuth('signup')}>Sign in to save your progress</button>
+		<button class="signin pixel" onclick={() => ui.openAuth('login')}>Sign in to save your progress</button>
 	{/if}
 </header>
 
@@ -61,7 +60,6 @@
 			font-size: 0.7rem;
 		}
 	}
-	.avatar,
 	.signin {
 		flex: none;
 		min-height: 44px;
@@ -73,15 +71,8 @@
 		border-right: 2px solid var(--cabinet-lo);
 		border-bottom: 2px solid var(--cabinet-lo);
 	}
-	.avatar:active,
 	.signin:active {
 		transform: translate(2px, 2px);
-	}
-	.avatar {
-		width: 44px;
-		background: var(--tim-red);
-		color: #fff;
-		font-size: 0.6rem;
 	}
 	.signin {
 		max-width: 42%;
