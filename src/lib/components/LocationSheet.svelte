@@ -189,7 +189,14 @@
 	 */
 	.sheet {
 		position: fixed;
-		bottom: calc(50% + 26px);
+		/*
+		 * Docked under the top bar rather than floating a fixed distance above
+		 * the cup. The map centres the cup in the visible band, and a card tall
+		 * enough to reach up from there would collide with the top bar - this
+		 * way neither can ever cover the other, whatever the card contains.
+		 */
+		top: calc(var(--safe-top) + 66px);
+		bottom: auto;
 		left: 50%;
 		transform: translateX(-50%);
 		z-index: 41;

@@ -16,14 +16,37 @@
 	let locating = $state(false);
 	let center = $state({ lng: HOME_CENTER[0], lat: HOME_CENTER[1], zoom: 3 });
 
+	/*
+	 * The bottom dock covers the lower part of the screen, so the middle of the
+	 * window is not the middle of the map anyone can see. Publishing the dock's
+	 * height lets the map centre a store in the visible band, and lets the card
+	 * sit directly above wherever that lands - no hard-coded offsets.
+	 */
+	let dock = $state<HTMLDivElement>();
+	$effect(() => {
+		if (!dock) return;
+		const publish = () =>
+			document.documentElement.style.setProperty('--dock-h', `${dock!.offsetHeight}px`);
+		publish();
+		const ro = new ResizeObserver(publish);
+		ro.observe(dock);
+		return () => ro.disconnect();
+	});
+
 	function goTo(p: Pick) {
 		if (p.kind === 'place') {
 			mapView?.fitBounds(p.bounds);
 			return;
 		}
+		if (p.kind === 'point') {
+			// A place with no stores: drop in at town scale so the surrounding
+			// area, and anything just outside it, is visible.
+			mapView?.flyTo(p.center, 11);
+			return;
+		}
+		ui.select(p.id);
 		const c = locations.coordsOf(p.id);
 		if (c) mapView?.flyTo(c);
-		ui.select(p.id);
 	}
 
 	async function toggleLocate() {
@@ -59,7 +82,7 @@
 		Everything along the bottom stacks in one dock, so nothing above has to
 		hard-code the height of anything below it.
 	-->
-	<div class="bottom-dock">
+	<div class="bottom-dock" bind:this={dock}>
 		<div class="rail">
 			<SearchDock onpick={goTo} />
 			<div class="dock-right">
