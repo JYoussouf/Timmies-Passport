@@ -4,6 +4,7 @@
 	import { ui } from '$lib/stores/ui.svelte';
 	import { confettiBurst, haptic } from '$lib/effects';
 	import { locationLabel, locationPlace } from '$lib/location';
+	import { REPO_URL } from '$lib/brand';
 	import { env } from '$env/dynamic/public';
 
 	const loc = $derived(ui.selectedId ? locations.get(ui.selectedId) : undefined);
@@ -43,7 +44,7 @@
 			'What is wrong? (permanently closed / wrong location / something else)',
 			''
 		].join('\n');
-		return `https://github.com/JYoussouf/Timmies-Passport/issues/new?title=${encodeURIComponent(
+		return `${REPO_URL}/issues/new?title=${encodeURIComponent(
 			title
 		)}&body=${encodeURIComponent(body)}`;
 	});

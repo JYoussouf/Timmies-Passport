@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { APP_NAME, APP_NAME_OWNED } from '$lib/brand';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import CupIcon from '$lib/components/CupIcon.svelte';
@@ -44,8 +45,8 @@
 			countries,
 			'country',
 			'countries'
-		)} on Timmies Passport! ☕🇨🇦`;
-		if (navigator.share) navigator.share({ title: 'Timmies Passport', text }).catch(() => {});
+		)} on ${APP_NAME}! ☕🇨🇦`;
+		if (navigator.share) navigator.share({ title: APP_NAME, text }).catch(() => {});
 		else {
 			navigator.clipboard?.writeText(text);
 			ui.toast({ emoji: '📋', title: 'Copied!', body: 'Share text is on your clipboard.' });
@@ -61,10 +62,10 @@
 	}
 </script>
 
-<svelte:head><title>My Timmies Passport</title></svelte:head>
+<svelte:head><title>{APP_NAME_OWNED}</title></svelte:head>
 
 <div class="page">
-	<PageHeader title="My Timmies Passport" />
+	<PageHeader title={APP_NAME_OWNED} />
 
 	<div class="body">
 		<section class="score">

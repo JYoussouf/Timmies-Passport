@@ -7,6 +7,7 @@
 	 * stated properly rather than compressed into a footer.
 	 */
 	import PageHeader from '$lib/components/PageHeader.svelte';
+	import { APP_NAME, REPO_URL } from '$lib/brand';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 
 	const sources = [
@@ -43,7 +44,7 @@
 	];
 </script>
 
-<svelte:head><title>About - Timmies Passport</title></svelte:head>
+<svelte:head><title>About - {APP_NAME}</title></svelte:head>
 
 <div class="page">
 	<PageHeader title="About" />
@@ -91,7 +92,7 @@
 			<p class="note">
 				The code is MIT licensed and on
 				<a
-					href="https://github.com/JYoussouf/Timmies-Passport"
+					href={REPO_URL}
 					target="_blank"
 					rel="noopener noreferrer">GitHub</a
 				>. Found a store that has moved or closed? Use the Report link on its card.

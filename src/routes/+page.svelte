@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Cabinet from '$lib/components/Cabinet.svelte';
+	import { APP_NAME, TAGLINE } from '$lib/brand';
 	import MapView from '$lib/components/MapView.svelte';
 	import TopBar from '$lib/components/TopBar.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
@@ -52,7 +53,7 @@
 </script>
 
 <svelte:head>
-	<title>Timmies Passport - collect every Tim Hortons</title>
+	<title>{APP_NAME} - {TAGLINE}</title>
 </svelte:head>
 
 <Cabinet>

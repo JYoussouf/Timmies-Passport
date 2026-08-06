@@ -8,6 +8,7 @@
 	 * every pixel of vertical space goes to the map instead of to decoration.
 	 */
 	import type { Snippet } from 'svelte';
+	import { APP_NAME_OWNED } from '$lib/brand';
 	import CupIcon from './CupIcon.svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -20,7 +21,7 @@
 
 	<div class="title-plate" aria-hidden="true">
 		<CupIcon height={20} />
-		<span class="label pixel">My Timmies Passport</span>
+		<span class="label pixel">{APP_NAME_OWNED}</span>
 		<CupIcon height={20} />
 	</div>
 </div>

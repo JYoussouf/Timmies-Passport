@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { APP_NAME } from '$lib/brand';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import { fetchLeaderboard, type LeaderboardData } from '$lib/api';
@@ -19,7 +20,7 @@
 	const place = ['gold', 'silver', 'bronze'];
 </script>
 
-<svelte:head><title>Leaderboard - Timmies Passport</title></svelte:head>
+<svelte:head><title>Leaderboard - {APP_NAME}</title></svelte:head>
 
 <div class="page">
 	<PageHeader title="High Scores" />

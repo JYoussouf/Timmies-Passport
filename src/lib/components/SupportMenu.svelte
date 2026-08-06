@@ -4,7 +4,9 @@
 	 * report and an about link. Collapsed by default so it costs one control's
 	 * worth of screen, which is all a rarely-used utility should take.
 	 */
-	const BUG_URL = 'https://github.com/JYoussouf/Timmies-Passport/issues/new';
+	import { REPO_URL } from '$lib/brand';
+
+	const BUG_URL = `${REPO_URL}/issues/new`;
 	const ABOUT_URL = 'https://joseppy.ca';
 
 	let open = $state(false);

@@ -14,6 +14,7 @@
 	import { ui } from '$lib/stores/ui.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
 	import { haptic } from '$lib/effects';
+	import { DISCLAIMER } from '$lib/brand';
 
 	let { onmove }: { onmove?: (c: { lng: number; lat: number; zoom: number }) => void } = $props();
 
@@ -391,8 +392,7 @@
 			 */
 			attributionControl: {
 				compact: true,
-				customAttribution:
-					'Not affiliated with Tim Hortons or Restaurant Brands International'
+				customAttribution: DISCLAIMER
 			},
 			maxZoom: 18
 		});
