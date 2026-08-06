@@ -36,9 +36,8 @@
 				onclick={() => settings.toggleClosed()}
 			>
 				<span class="box" class:on={settings.showClosed} aria-hidden="true"></span>
-				Show closed
+				Show closed locations
 			</button>
-			<p class="hint">Greyed cups for stores that have shut. Ones you stamped always show.</p>
 		</div>
 	{/if}
 
