@@ -29,6 +29,13 @@ export const TAGLINE = 'collect every Tim Hortons';
 
 export const REPO_URL = 'https://github.com/JYoussouf/Timmies-Passport';
 
+/**
+ * The canonical home. Every page declares itself as living here, so the
+ * pages.dev address - which keeps working, and which people already have
+ * links to - is not indexed as a second copy of the same site.
+ */
+export const SITE_URL = 'https://mytimmiespassport.com';
+
 /** Shown in the map's attribution bar and, at length, on the About page. */
 export const DISCLAIMER =
 	'Not affiliated with Tim Hortons or Restaurant Brands International';

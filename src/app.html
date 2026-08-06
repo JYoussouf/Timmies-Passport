@@ -29,6 +29,26 @@
 		<!-- Fallback only; every route sets its own title from src/lib/brand.ts.
 		     This file cannot import, so it is the one other place a rename touches. -->
 		<title>Timmies Passport</title>
+
+		<!-- The share card. Absolute URLs, because a scraper resolves these
+		     against nothing. The canonical link is per-route, set in
+		     +layout.svelte, so it cannot live here. -->
+		<meta property="og:site_name" content="My Timmies Passport" />
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content="My Timmies Passport" />
+		<meta
+			property="og:description"
+			content="Collect every Tim Hortons in the world like passport stamps."
+		/>
+		<meta property="og:url" content="https://mytimmiespassport.com" />
+		<meta property="og:image" content="https://mytimmiespassport.com/og.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta
+			property="og:image:alt"
+			content="An arcade cabinet framing a map of Canada covered in coffee cup markers."
+		/>
+		<meta name="twitter:card" content="summary_large_image" />
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

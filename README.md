@@ -3,7 +3,7 @@
 Track every Tim Hortons in the world and collect the ones you've visited like
 passport stamps. Local-first, delightful, and mobile-first.
 
-**Live at [timmies-passport.pages.dev](https://timmies-passport.pages.dev)**
+**Live at [mytimmiespassport.com](https://mytimmiespassport.com)**
 
 > Not affiliated with, endorsed by, or sponsored by Tim Hortons or Restaurant
 > Brands International. "Tim Hortons" is their trademark, used here only to
@@ -16,7 +16,7 @@ passport stamps. Local-first, delightful, and mobile-first.
 - **Collect stamps** - tap a cup, check in with a pixel stamp animation, confetti, and haptics.
 - **Works with no account** - everything lives in `localStorage`. Signing up syncs your stamps across devices.
 - **Search cities or stores** - 1,300 cities rank above individual addresses; picking one frames every Timmies in it.
-- **Your passport** - progress against the worldwide total, countries and regions visited, recent stamps with private notes.
+- **Your passport** - progress against the worldwide total, countries visited, recent stamps with private notes.
 - **Leaderboard** - the API and schema exist; the screen is marked coming soon.
 
 ## Tech
@@ -89,14 +89,18 @@ button in the tab bar; one you have already stamped always shows, because it is
 part of a passport.
 
 A closure can also reverse itself - if OSM shows the store as active again the
-flag clears. Visitors can flag a store from its card ("Report"), which opens an
-issue with the id and coordinates filled in; OpenStreetMap lags reality, so a
-human is often the first signal that a location is gone or misplaced.
+flag clears. Visitors can flag a store from its card ("Report"), which files an
+issue from a text box with the id and coordinates already attached - no GitHub
+account needed. OpenStreetMap lags reality, so a human is often the first signal
+that a location is gone or misplaced.
 
 ## Deploy to Cloudflare
 
-Live at **https://timmies-passport.pages.dev** (Pages project `timmies-passport`,
-D1 database `timmies-passport-db`).
+Live at **https://mytimmiespassport.com**, and still on the original
+**https://timmies-passport.pages.dev** (Pages project `timmies-passport`, D1
+database `timmies-passport-db`).
+Both addresses serve, and every page declares the domain as canonical so search
+engines do not index them as two competing sites.
 
 ```bash
 npm run build

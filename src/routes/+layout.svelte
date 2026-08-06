@@ -7,8 +7,18 @@
 	import { passport } from '$lib/stores/passport.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
+	import { SITE_URL } from '$lib/brand';
+	import { page } from '$app/stores';
 
 	let { children } = $props();
+
+	/*
+	 * The site answers on both the domain and the pages.dev address, and will
+	 * keep doing so - links to the latter are already out there. Declaring one
+	 * canonical home stops search engines treating them as two sites competing
+	 * with each other.
+	 */
+	const canonical = $derived(`${SITE_URL}${$page.url.pathname}`.replace(/\/$/, '') || SITE_URL);
 
 	onMount(() => {
 		passport.hydrate();
@@ -37,6 +47,10 @@
 		};
 	});
 </script>
+
+<svelte:head>
+	<link rel="canonical" href={canonical} />
+</svelte:head>
 
 {@render children()}
 
