@@ -142,7 +142,7 @@
 	 */
 	.compass {
 		--dial: 104px;
-		--btn: 40px;
+		--btn: 36px;
 		position: relative;
 		flex: none;
 		width: calc(var(--dial) + var(--btn));
@@ -152,7 +152,7 @@
 	@media (min-width: 900px) {
 		.compass {
 			--dial: 124px;
-			--btn: 44px;
+			--btn: 40px;
 		}
 	}
 
