@@ -15,6 +15,9 @@ body {
 	margin: 0;
 	height: 100%;
 	overscroll-behavior: none;
+	/* No double-tap zoom, and no browser pinch on the chrome; the map canvas
+	   sets its own touch-action and keeps its gestures. */
+	touch-action: manipulation;
 }
 
 body {
