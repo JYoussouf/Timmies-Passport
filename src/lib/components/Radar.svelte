@@ -68,10 +68,6 @@
 
 	@media (min-width: 900px) {
 		.radar {
-			position: absolute;
-			right: 14px;
-			bottom: 46px;
-			z-index: 19;
 			display: block;
 			width: 132px;
 			padding: 4px;

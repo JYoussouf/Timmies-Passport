@@ -6,7 +6,6 @@
 	import LocationSheet from '$lib/components/LocationSheet.svelte';
 	import SearchDock from '$lib/components/SearchDock.svelte';
 	import MapControls from '$lib/components/MapControls.svelte';
-	import SupportMenu from '$lib/components/SupportMenu.svelte';
 	import Legend from '$lib/components/Legend.svelte';
 	import Radar from '$lib/components/Radar.svelte';
 	import Marquee from '$lib/components/Marquee.svelte';
@@ -57,15 +56,12 @@
 
 	<Legend />
 
-	<Radar {center} />
-
 	<!--
 		Everything along the bottom stacks in one dock, so nothing above has to
 		hard-code the height of anything below it. The side controls hang off the
 		dock's top edge, which keeps them clear however tall it grows.
 	-->
 	<div class="bottom-dock">
-		<div class="dock-left"><SupportMenu /></div>
 		<div class="dock-right">
 			<MapControls
 				{locating}
@@ -74,6 +70,7 @@
 				onzoomin={() => mapView?.zoomIn()}
 				onzoomout={() => mapView?.zoomOut()}
 			/>
+			<Radar {center} />
 		</div>
 		<Marquee />
 		<SearchDock onpick={goTo} />
@@ -90,34 +87,30 @@
 		right: 0;
 		bottom: 0;
 		z-index: 30;
+		display: flex;
+		flex-direction: column;
 		padding-bottom: var(--safe-bottom);
 	}
-	.dock-left,
 	.dock-right {
 		position: absolute;
 		bottom: calc(100% + 10px);
 		z-index: 22;
 	}
-	.dock-left {
-		left: 10px;
+	/* The pad and the radar travel together, so neither needs to know the
+	   other's height. */
+	.dock-right {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 10px;
 	}
 	.dock-right {
 		right: 10px;
 	}
 
 	@media (min-width: 900px) {
-		.dock-left {
-			left: 14px;
-		}
 		.dock-right {
 			right: 14px;
-			/* Clears the radar plate, which owns this corner. */
-			bottom: calc(100% + 165px);
-		}
-	}
-	@media (min-width: 900px) and (max-height: 620px) {
-		.dock-right {
-			bottom: calc(100% + 10px);
 		}
 	}
 </style>

@@ -234,8 +234,9 @@
 
 	@media (min-width: 900px) {
 		.dock {
+			order: 1;
 			width: 420px;
-			margin: 0 auto;
+			margin: 0 auto 8px;
 		}
 		.field {
 			border: 2px solid var(--cabinet-lo);

@@ -63,6 +63,7 @@
 
 	@media (min-width: 900px) {
 		.marquee {
+			order: 2;
 			height: 32px;
 		}
 		.track span {
