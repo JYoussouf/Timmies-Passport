@@ -1,6 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import { SESSION_COOKIE } from '$lib/server/auth';
 import { getDb } from '$lib/server/db';
+import { SITE_URL } from '$lib/brand';
 
 /** Resolve the signed-in user (if any) from the session cookie into locals. */
 export const handle: Handle = async ({ event, resolve }) => {
@@ -23,5 +24,25 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	return resolve(event);
+	const response = await resolve(event);
+
+	/*
+	 * Canonical URL, on the response itself.
+	 *
+	 * The app renders client-side, so the <link> in the layout only exists
+	 * once JavaScript has run - too late for a crawler that does not execute
+	 * it. static/_headers cannot do this either: Pages applies header rules to
+	 * static assets, and every page here is served by the worker.
+	 *
+	 * Emitted on the pages.dev host too, which is the whole point - both
+	 * addresses serve, and both should name the domain as the one true home.
+	 */
+	if (response.headers.get('content-type')?.startsWith('text/html')) {
+		response.headers.append(
+			'link',
+			`<${SITE_URL}${event.url.pathname.replace(/\/$/, '')}>; rel="canonical"`
+		);
+	}
+
+	return response;
 };
