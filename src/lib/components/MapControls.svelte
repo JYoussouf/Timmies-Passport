@@ -67,9 +67,13 @@
 		grid-template-columns: repeat(2, 44px);
 		gap: 6px;
 	}
+	/*
+	 * Zoom spans both columns but stays button-sized and centred, so the four
+	 * controls read as a cross rather than an L.
+	 */
 	.wide {
 		grid-column: 1 / -1;
-		width: 100%;
+		justify-self: center;
 	}
 	.ctl {
 		display: grid;
