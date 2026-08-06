@@ -45,6 +45,9 @@
 			>
 				Report a bug
 			</a>
+			<a class="item pixel" role="menuitem" href="/about" onclick={close}>
+				About &amp; credits
+			</a>
 			<a
 				class="item pixel"
 				role="menuitem"

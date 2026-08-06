@@ -5,6 +5,11 @@ passport stamps. Local-first, delightful, and mobile-first.
 
 **Live at [timmies-passport.pages.dev](https://timmies-passport.pages.dev)**
 
+> Not affiliated with, endorsed by, or sponsored by Tim Hortons or Restaurant
+> Brands International. "Tim Hortons" is their trademark, used here only to
+> refer to their restaurants. Licences and attribution:
+> [DATA-LICENSES.md](DATA-LICENSES.md).
+
 ![The map screen: a retro arcade cabinet framing a dark tracker map of Canada, cup markers clustered by count, with a compass dial of nearby locations](docs/screenshot.png)
 
 - **Map of every Timmies** - 4,200+ locations harvested from OpenStreetMap, deduplicated, and clustered on a hand-styled MapLibre map.
@@ -118,8 +123,9 @@ npx wrangler d1 create timmies-passport-db   # paste database_id into wrangler.t
 npx wrangler pages project create timmies-passport --production-branch=main
 ```
 
-Optionally add a Google key for live ratings/photos:
-`npx wrangler pages secret put GOOGLE_MAPS_API_KEY`.
+The in-app Street View panel needs a Maps Embed API key, set at build time as
+`PUBLIC_GOOGLE_MAPS_KEY`. Without one the panel is simply not offered - the
+"Open in Maps" link works regardless, since linking out needs no key.
 
 ## Project map
 

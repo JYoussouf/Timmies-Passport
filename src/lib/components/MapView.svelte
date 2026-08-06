@@ -383,7 +383,17 @@
 				[HOME_BOUNDS[2], HOME_BOUNDS[3]]
 			],
 			fitBoundsOptions: { padding: HOME_PADDING },
-			attributionControl: { compact: true },
+			/*
+			 * The attribution bar is the one piece of chrome that is always on
+			 * the main screen and already exists to carry credits, so the
+			 * affiliation disclaimer lives there rather than as a banner nobody
+			 * would keep.
+			 */
+			attributionControl: {
+				compact: true,
+				customAttribution:
+					'Not affiliated with Tim Hortons or Restaurant Brands International'
+			},
 			maxZoom: 18
 		});
 

@@ -4,6 +4,7 @@
 	import { ui } from '$lib/stores/ui.svelte';
 	import { confettiBurst, haptic } from '$lib/effects';
 	import { locationLabel, locationPlace } from '$lib/location';
+	import { env } from '$env/dynamic/public';
 
 	const loc = $derived(ui.selectedId ? locations.get(ui.selectedId) : undefined);
 	const visited = $derived(ui.selectedId ? passport.isVisited(ui.selectedId) : false);
@@ -13,13 +14,15 @@
 	let streetOpen = $state(false);
 
 	/**
-	 * Street View, embedded rather than linked out.
+	 * Street View, through the Maps Embed API.
 	 *
-	 * This keyless embed endpoint is what Google's own "share" dialog produces;
-	 * the supported alternative is the Maps Embed API, which needs a public API
-	 * key. If GOOGLE_MAPS_API_KEY is ever wired through to the client, switch to
-	 * https://www.google.com/maps/embed/v1/streetview.
+	 * This used to use the keyless `output=svembed` endpoint, which works but is
+	 * not a documented interface and sits outside Google's terms. The supported
+	 * one needs a public key, so without PUBLIC_GOOGLE_MAPS_KEY the panel simply
+	 * is not offered - better than shipping a call we are not entitled to make.
+	 * "Open in Maps" still works either way, since linking is always allowed.
 	 */
+	const mapsKey = env.PUBLIC_GOOGLE_MAPS_KEY ?? '';
 	const coords = $derived(ui.selectedId ? locations.coordsOf(ui.selectedId) : undefined);
 	const closed = $derived(!!loc?.closed);
 
@@ -46,8 +49,8 @@
 	});
 
 	const streetUrl = $derived(
-		coords
-			? `https://maps.google.com/maps?q=&layer=c&cbll=${coords[1]},${coords[0]}&cbp=11,0,0,0,0&output=svembed`
+		coords && mapsKey
+			? `https://www.google.com/maps/embed/v1/streetview?key=${mapsKey}&location=${coords[1]},${coords[0]}&heading=0&pitch=0&fov=90`
 			: ''
 	);
 
@@ -143,9 +146,15 @@
 			</header>
 
 			<div class="links">
-				<button class="link" aria-expanded={streetOpen} onclick={() => (streetOpen = !streetOpen)}>
-					{streetOpen ? 'Hide street view' : 'Street view'}
-				</button>
+				{#if streetUrl}
+					<button
+						class="link"
+						aria-expanded={streetOpen}
+						onclick={() => (streetOpen = !streetOpen)}
+					>
+						{streetOpen ? 'Hide street view' : 'Street view'}
+					</button>
+				{/if}
 				<a class="link" href={mapsUrl} target="_blank" rel="noopener noreferrer">
 					Open in Maps &#8599;
 				</a>
