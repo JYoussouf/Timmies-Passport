@@ -111,6 +111,16 @@ class Passport {
 		return m;
 	}
 
+	/** Canadian provinces and territories with at least one stamp in them. */
+	get provincesVisited(): Set<string> {
+		const s = new Set<string>();
+		for (const id of this.visitedIds) {
+			const loc = locations.get(id);
+			if (loc?.country === 'Canada' && loc.region) s.add(loc.region);
+		}
+		return s;
+	}
+
 
 	/** Most recent check-in timestamps, newest first. */
 	get timeline(): { id: string; visit: Visit }[] {

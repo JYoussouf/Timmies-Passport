@@ -37,6 +37,8 @@
 
 	const countries = $derived(passport.countriesVisited.size);
 	const countryTotal = $derived(locations.countryTotal);
+	const provinces = $derived(passport.provincesVisited.size);
+	const provinceTotal = $derived(locations.provinceTotal);
 	const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
 	function share() {
@@ -79,10 +81,22 @@
 				{/each}
 			</div>
 
-			<p class="line">
-				<strong>{pct}%</strong> of the world's Timmies, across
-				<strong>{countries}</strong> out of {countryTotal} countries.
-			</p>
+			<!--
+				Each line waits for its first fact, the same as the desktop
+				legend's chips: a brand new passport has 0% of nothing, and
+				"0 out of 13 provinces" reads as a stat rather than an invitation.
+			-->
+			{#if countries > 0}
+				<p class="line">
+					<strong>{pct}%</strong> of the world's Timmies, across
+					<strong>{countries}</strong> out of {countryTotal} countries.
+				</p>
+			{/if}
+			{#if provinces > 0}
+				<p class="line">
+					<strong>{provinces}</strong> out of {provinceTotal} provinces in Canada.
+				</p>
+			{/if}
 
 			<button class="pbtn pbtn-gold share" onclick={share}>Share my passport</button>
 		</section>

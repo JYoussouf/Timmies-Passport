@@ -12,6 +12,7 @@
 
 	const remaining = $derived(Math.max(0, locations.total - passport.count));
 	const countries = $derived(passport.countriesVisited.size);
+	const provinces = $derived(passport.provincesVisited.size);
 </script>
 
 <div class="legend">
@@ -19,10 +20,24 @@
 		<CupIcon height={14} />
 		To go <strong>{remaining.toLocaleString()}</strong>
 	</span>
-	<span class="chip">
-		<CupIcon height={14} collected />
-		Countries <strong>{countries}</strong>
-	</span>
+	<!--
+		Each chip waits for its first fact: Provinces for a Canadian stamp,
+		Countries for any stamp at all. "0 out of 13" reads as a stat before a
+		new passport has earned one - the chip appearing is itself the signal
+		that the category has started.
+	-->
+	{#if provinces > 0}
+		<span class="chip">
+			<CupIcon height={14} collected />
+			Provinces <strong>{provinces}</strong>
+		</span>
+	{/if}
+	{#if countries > 0}
+		<span class="chip">
+			<CupIcon height={14} collected />
+			Countries <strong>{countries}</strong>
+		</span>
+	{/if}
 </div>
 
 <style>

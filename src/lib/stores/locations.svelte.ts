@@ -28,6 +28,23 @@ class LocationStore {
 		return seen.size;
 	}
 
+	/**
+	 * How many of Canada's provinces and territories have a Timmies - the
+	 * denominator the passport counts Canadian coverage against. Territories
+	 * are counted alongside provinces rather than filtered out; a Timmies in
+	 * Whitehorse is exactly as much a fact about the country as one in
+	 * Toronto, and the harvest's `region` field draws no distinction anyway.
+	 */
+	get provinceTotal(): number {
+		const seen = new Set<string>();
+		for (const f of this.collection?.features ?? []) {
+			if (f.properties.country === 'Canada' && f.properties.region) {
+				seen.add(f.properties.region);
+			}
+		}
+		return seen.size;
+	}
+
 	async load() {
 		if (this.collection || this.loading) return;
 		this.loading = true;
