@@ -12,6 +12,7 @@
 	 */
 	import { locations } from '$lib/stores/locations.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
+	import { settings } from '$lib/stores/settings.svelte';
 
 	let {
 		center,
@@ -114,13 +115,22 @@
 		</svg>
 	</button>
 
+	<!--
+		Pulses until pressed once, then never again - a hint that has done its
+		job stops arguing. Marked on the click itself, not on whether the
+		browser's permission prompt says yes: declining is still finding it.
+	-->
 	<button
 		class="btn east"
 		class:on={locating}
+		class:pulse={!locating && !settings.locationTried}
 		aria-pressed={locating}
 		aria-label={locating ? 'Stop following my location' : 'Follow my location'}
 		title={locating ? 'Stop following my location' : 'Follow my location'}
-		onclick={onlocate}
+		onclick={() => {
+			settings.markLocationTried();
+			onlocate();
+		}}
 	>
 		<svg viewBox="0 0 24 24" aria-hidden="true">
 			<circle cx="12" cy="12" r="4" fill="currentColor" />
@@ -227,6 +237,43 @@
 			inset 0 2px 0 #7cf08d,
 			0 0 0 2px var(--green-deep),
 			0 3px 0 var(--green-deep);
+	}
+
+	/*
+	 * A slow green ring breathing around the button, pointing at the one
+	 * control that finds where you actually are. The base shadow is repeated
+	 * at each keyframe rather than left to `transition`, since animating a
+	 * multi-layer box-shadow needs every layer specified at every step or the
+	 * ones left out just snap.
+	 */
+	.btn.pulse {
+		animation: locate-pulse 2.6s ease-in-out infinite;
+	}
+	@keyframes locate-pulse {
+		0%,
+		100% {
+			box-shadow:
+				inset 0 2px 0 var(--cabinet-hi),
+				0 0 0 2px var(--cabinet-lo),
+				0 3px 0 var(--cabinet-lo),
+				0 0 0 0 rgba(62, 217, 87, 0.55);
+		}
+		50% {
+			box-shadow:
+				inset 0 2px 0 var(--cabinet-hi),
+				0 0 0 2px var(--green),
+				0 3px 0 var(--cabinet-lo),
+				0 0 0 5px rgba(62, 217, 87, 0);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.btn.pulse {
+			animation: none;
+			box-shadow:
+				inset 0 2px 0 var(--cabinet-hi),
+				0 0 0 2px var(--green),
+				0 3px 0 var(--cabinet-lo);
+		}
 	}
 
 	.up {
