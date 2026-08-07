@@ -57,7 +57,7 @@
 				About me
 			</a>
 			<a class="item pixel" role="menuitem" href="/about" onclick={close}>
-				Legal
+				Sources
 			</a>
 		</div>
 	{/if}

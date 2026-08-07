@@ -12,7 +12,6 @@
 	import { fade, scale } from 'svelte/transition';
 	import { report } from '$lib/stores/report.svelte';
 	import { REPO_URL } from '$lib/brand';
-	import { ui } from '$lib/stores/ui.svelte';
 
 	const MIN = 10;
 	const MAX = 4000;
@@ -32,7 +31,7 @@
 	const hint = $derived(
 		ctx?.kind === 'location'
 			? 'Permanently closed, wrong spot, wrong address - whatever you noticed.'
-			: 'What happened, and what were you doing at the time?'
+			: 'Please describe the problem.'
 	);
 
 	/** Prefilled tracker link, so a fallback does not mean retyping it all. */
@@ -70,14 +69,9 @@
 				})
 			});
 
+			/* Closing the dialog is the confirmation. */
 			if (res.ok) {
-				const { number } = (await res.json()) as { number: number };
 				dismiss();
-				ui.toast({
-					emoji: '📮',
-					title: 'Report sent',
-					body: `Thanks - it is issue #${number}.`
-				});
 				return;
 			}
 
@@ -112,7 +106,6 @@
 						bind:value={message}
 						rows="5"
 						maxlength={MAX}
-						placeholder="Tell me what you saw..."
 						autofocus
 						aria-label="Your report"
 					></textarea>
@@ -135,8 +128,6 @@
 						</button>
 					</div>
 				</form>
-
-				<p class="note">Sent anonymously. No account needed, nothing about you is attached.</p>
 			</div>
 		</div>
 	</div>
@@ -230,11 +221,5 @@
 	}
 	.err a {
 		color: #ff8f94;
-	}
-	.note {
-		margin: 1rem 0 0;
-		font-size: 0.78rem;
-		line-height: 1.45;
-		color: var(--cream-faint);
 	}
 </style>
