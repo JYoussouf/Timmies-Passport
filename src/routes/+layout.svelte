@@ -4,6 +4,7 @@
 	import Toaster from '$lib/components/Toaster.svelte';
 	import AuthModal from '$lib/components/AuthModal.svelte';
 	import ReportDialog from '$lib/components/ReportDialog.svelte';
+	import SharePreview from '$lib/components/SharePreview.svelte';
 	import DevBadge from '$lib/components/DevBadge.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -44,4 +45,5 @@
 <Toaster />
 <AuthModal />
 <ReportDialog />
+<SharePreview />
 <DevBadge />

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { APP_NAME, APP_NAME_OWNED } from '$lib/brand';
+	import { APP_NAME_OWNED } from '$lib/brand';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import CupIcon from '$lib/components/CupIcon.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { locations } from '$lib/stores/locations.svelte';
-	import { ui } from '$lib/stores/ui.svelte';
+	import { shareModal } from '$lib/stores/shareModal.svelte';
 	import { locationLabel, locationPlace } from '$lib/location';
 
 	onMount(() => {
@@ -28,23 +28,9 @@
 	const countryTotal = $derived(locations.countryTotal);
 	const provinces = $derived(passport.provincesVisited.size);
 	const provinceTotal = $derived(locations.provinceTotal);
-	const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
 	/** Width for a fill bar - never past 100%, never negative on a zero total. */
 	const barPct = (n: number, total: number) => (total > 0 ? Math.min(100, (n / total) * 100) : 0);
-
-	function share() {
-		const text = `I've collected ${passport.count} Tim Hortons across ${plural(
-			countries,
-			'country',
-			'countries'
-		)} on ${APP_NAME}! ☕🇨🇦`;
-		if (navigator.share) navigator.share({ title: APP_NAME, text }).catch(() => {});
-		else {
-			navigator.clipboard?.writeText(text);
-			ui.toast({ emoji: '📋', title: 'Copied!', body: 'Share text is on your clipboard.' });
-		}
-	}
 
 	function fmt(iso: string) {
 		return new Date(iso).toLocaleDateString(undefined, {
@@ -110,7 +96,9 @@
 				{/if}
 			</div>
 
-			<button class="pbtn pbtn-gold share" onclick={share}>Share my passport</button>
+			<button class="pbtn pbtn-gold share" onclick={() => shareModal.start()}>
+				Share my passport
+			</button>
 		</section>
 
 		<section>
@@ -124,7 +112,7 @@
 					{#each passport.timeline as item (item.id)}
 						<li>
 							<div class="row">
-								<CupIcon height={20} collected />
+								<CupIcon height={20} />
 								<div class="info">
 									<strong>{locationLabel(locations.get(item.id))}</strong>
 									<small>{locationPlace(locations.get(item.id))}</small>
