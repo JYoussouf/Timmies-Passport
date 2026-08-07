@@ -100,7 +100,7 @@
 	});
 </script>
 
-{#if here}
+{#if here && !ui.cardExpanded && !ui.stamping}
 	<div class="stepper" aria-label="Jump to the nearest store in a direction">
 		<div class="ring">
 			{#each DIRECTIONS as d (d.key)}

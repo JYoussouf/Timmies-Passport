@@ -60,6 +60,14 @@
 		streetOpen = false;
 	});
 
+	/* The stepper needs to know when something is sitting over its arrows. */
+	$effect(() => {
+		ui.cardExpanded = streetOpen;
+	});
+	$effect(() => {
+		ui.stamping = stamping;
+	});
+
 	function close() {
 		ui.select(null);
 	}
@@ -108,6 +116,17 @@
 </script>
 
 {#if loc}
+	<!--
+		The stamp is a screen overlay, not part of the card. Anchored to the
+		check-in button it sat inside the card's scroll box, and `overflow-y:
+		auto` clips both axes - so the opening frames, which start at two and a
+		half times size, were sliced off at the card's edge. Out here it has the
+		whole screen to land on, and lands in the middle of it.
+	-->
+	{#if stamping}
+		<span class="stamp pixel" aria-hidden="true">VISITED</span>
+	{/if}
+
 	<!--
 		No full-screen backdrop. It was only ever a dismiss target, and being
 		full-screen it also swallowed every click on the map underneath -
@@ -174,7 +193,6 @@
 				</div>
 			{/if}
 
-			<div class="checkin-wrap">
 				<button
 					bind:this={btnEl}
 					class="pbtn {visited ? 'pbtn-green' : 'pbtn-gold'} checkin"
@@ -198,10 +216,6 @@
 						Stamp it
 					{/if}
 				</button>
-				{#if stamping}
-					<span class="stamp pixel" aria-hidden="true">VISITED</span>
-				{/if}
-			</div>
 
 
 		</div>
@@ -341,9 +355,6 @@
 		border: 0;
 	}
 
-	.checkin-wrap {
-		position: relative;
-	}
 	.checkin {
 		width: 100%;
 		font-size: 0.62rem;
@@ -374,17 +385,18 @@
 		flex: none;
 	}
 
-	/* Six-frame pixel thunk. */
+	/* Six-frame pixel thunk, dead centre of the screen. */
 	.stamp {
-		position: absolute;
-		inset: 0;
-		display: grid;
-		place-items: center;
+		position: fixed;
+		left: 50%;
+		top: 50%;
+		z-index: 60;
+		padding: 0.7rem 1.4rem;
 		font-size: 1.05rem;
+		white-space: nowrap;
 		color: var(--tim-red);
 		border: 4px solid var(--tim-red);
-		background: rgba(21, 13, 10, 0.35);
-		transform: rotate(-8deg) scale(2.4);
+		background: rgba(21, 13, 10, 0.55);
 		opacity: 0;
 		pointer-events: none;
 		animation: slam 1.9s steps(8, end) forwards;
@@ -407,23 +419,23 @@
 	@keyframes slam {
 		0% {
 			opacity: 0;
-			transform: rotate(-8deg) scale(2.6);
+			transform: translate(-50%, -50%) rotate(-8deg) scale(2.6);
 		}
 		18% {
 			opacity: 1;
-			transform: rotate(-8deg) scale(0.9);
+			transform: translate(-50%, -50%) rotate(-8deg) scale(0.9);
 		}
 		26% {
 			opacity: 1;
-			transform: rotate(-8deg) scale(1.06);
+			transform: translate(-50%, -50%) rotate(-8deg) scale(1.06);
 		}
 		80% {
 			opacity: 1;
-			transform: rotate(-8deg) scale(1);
+			transform: translate(-50%, -50%) rotate(-8deg) scale(1);
 		}
 		100% {
 			opacity: 0;
-			transform: rotate(-8deg) scale(1);
+			transform: translate(-50%, -50%) rotate(-8deg) scale(1);
 		}
 	}
 </style>
