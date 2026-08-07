@@ -33,23 +33,17 @@
 				<rect x="7" y="2.5" width="10" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="2" />
 				<line x1="12" y1="6.5" x2="12" y2="10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 			</svg>
-			<!-- Two fingers, mid-pinch. -->
+			<!--
+				The standard pinch/expand mark: a diagonal double arrow. A drawn
+				hand is unreadable at this size - it collapses to a blob - and
+				this is the shape every map and photo viewer already uses.
+			-->
 			<svg class="glyph pinch" viewBox="0 0 24 24">
-				<path
-					d="M9 13V4.6a1.6 1.6 0 013.2 0V11"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-				/>
-				<path
-					d="M12.2 11.4l3.1-3.1a1.6 1.6 0 012.3 2.3l-3.4 3.6c0 3-1.6 5.7-4.6 5.7S5 17.6 5 14.8l1.7-2.6"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				/>
+				<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M6.5 17.5L17.5 6.5" />
+					<path d="M13 6.5h4.5V11" />
+					<path d="M11 17.5H6.5V13" />
+				</g>
 			</svg>
 		</div>
 		<span class="text pixel">Scroll or pinch to zoom</span>
@@ -61,7 +55,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.45rem;
-		padding: 0.4rem 0.6rem;
+		padding: 0.55rem 0.75rem;
 		/* Never a click target: it describes the map, it does not sit on it. */
 		pointer-events: none;
 		color: var(--cream-dim);
@@ -73,8 +67,8 @@
 	.glyphs {
 		position: relative;
 		flex: none;
-		width: 18px;
-		height: 18px;
+		width: 22px;
+		height: 22px;
 		color: var(--gold);
 	}
 	.glyph {
