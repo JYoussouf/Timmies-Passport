@@ -258,7 +258,14 @@ async function fillMissingAddresses(locs: Loc[]) {
 		/* first run */
 	}
 
-	const todo = locs.filter((l) => !l.address && !cache[l.id]);
+	/*
+	 * A record needs the geocoder if either field is blank, not only the
+	 * address. Stores that arrived from OSM with a street tag but no city tag
+	 * used to skip this queue entirely, which left 525 of them reading like
+	 * "9 Maidstone Avenue, Ontario" - a road and a province with a whole town
+	 * missing between them.
+	 */
+	const todo = locs.filter((l) => (!l.address || !l.city) && !cache[l.id]);
 	const apply = (l: Loc, fix: Fix) => {
 		if (!l.address) l.address = [fix.house, fix.road].filter(Boolean).join(' ') || fix.road || '';
 		if (!l.city) l.city = fix.city ?? '';
@@ -693,8 +700,16 @@ async function mergeWithShipped(fresh: Loc[], dropped: Set<string>): Promise<Loc
 		 * Stores that came from the brand locator have no OSM object behind
 		 * them, so their absence from an OSM harvest means nothing. Carry them
 		 * through untouched and let the locator decide their fate below.
+		 *
+		 * Recognised by the shape of the id (th…), not by the osm_id field:
+		 * the shipped GeoJSON never carries osm_id, so testing it here made
+		 * every record look brand-sourced - which quietly turned this merge
+		 * into "shipped always wins". Freshly geocoded cities were computed
+		 * and then thrown away, and a store vanishing from OSM could never be
+		 * tombstoned again, because its stale shipped copy always took the
+		 * slot before either check was reached.
 		 */
-		if (!old.osm_id) {
+		if (!/^[nwr]\d+$/.test(old.id)) {
 			byId.set(old.id, old);
 			continue;
 		}
