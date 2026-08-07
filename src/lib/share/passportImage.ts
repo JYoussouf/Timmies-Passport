@@ -3,29 +3,18 @@ import { trackerStyle } from '$lib/map/style';
 import { registerSprites } from '$lib/map/sprites';
 import { locations } from '$lib/stores/locations.svelte';
 import { passport } from '$lib/stores/passport.svelte';
-import { APP_NAME_OWNED, DISCLAIMER, SITE_URL } from '$lib/brand';
 
 /**
- * Renders the passport as one shareable image: two small maps of the
- * visitor's own stamps - western hemisphere, then eastern - and the same
- * three progress bars the passport page shows, redrawn in a plain sans-serif
- * rather than the pixel font, because ten stamps' worth of numbers need to
- * read clearly at export size, not look like the arcade cabinet's chrome.
+ * Two small maps of the visitor's own stamps - western hemisphere, then
+ * eastern - composited side by side into one plain image with no text of
+ * its own. The share preview draws whatever branding, stats or decoration
+ * belongs on top of it; this only has to get the cartography right.
  *
  * Built with two throwaway MapLibre instances rather than a second copy of
  * the basemap logic: the live map already knows how to draw this style and
  * cluster these markers, and reusing it means a change to either only ever
  * has to be made once.
  */
-
-const CANVAS_W = 1200;
-const CANVAS_H = 900;
-const PANEL_W = 552;
-const PANEL_H = 460;
-const PANEL_Y = 190;
-const PANEL_GAP = 24;
-const PANEL_L_X = (CANVAS_W - PANEL_W * 2 - PANEL_GAP) / 2;
-const PANEL_R_X = PANEL_L_X + PANEL_W + PANEL_GAP;
 
 /** Wide defaults for a hemisphere with nothing stamped in it yet. */
 const DEFAULT_WEST: [number, number, number, number] = [-170, 5, -30, 72];
@@ -156,40 +145,15 @@ export function passportStats(): PassportImageStats {
 	};
 }
 
-function drawBar(
-	ctx: CanvasRenderingContext2D,
-	x: number,
-	y: number,
-	w: number,
-	label: string,
-	valueText: string,
-	pct: number,
-	color: string
-) {
-	ctx.textBaseline = 'alphabetic';
-	ctx.fillStyle = 'rgba(247, 239, 227, 0.75)';
-	ctx.font = '600 17px Inter, sans-serif';
-	ctx.textAlign = 'left';
-	ctx.fillText(label, x, y);
-	ctx.fillStyle = '#f7efe3';
-	ctx.textAlign = 'right';
-	ctx.fillText(valueText, x + w, y);
-
-	const trackY = y + 14;
-	const trackH = 12;
-	ctx.fillStyle = 'rgba(247, 239, 227, 0.12)';
-	ctx.fillRect(x, trackY, w, trackH);
-	ctx.fillStyle = color;
-	ctx.fillRect(x, trackY, Math.max(4, w * Math.min(1, pct)), trackH);
-}
-
 /**
- * The full render. Returns null rather than throwing when the browser cannot
- * produce it (no WebGL, an ad blocker eating the canvas, whatever else) -
- * the share button falls back to a text-only share in that case rather than
- * leaving the visitor stuck on a spinner.
+ * Renders just the cartography: two panels side by side, sized to fill
+ * `width` Γ— `height` exactly, so a caller compositing this into a fixed slot
+ * (an SVG frame, say) never has to stretch it. Returns null rather than
+ * throwing when the browser cannot produce it - no WebGL, an ad blocker
+ * eating the canvas, whatever else - so the share button can fall back to a
+ * text-only share instead of leaving the visitor stuck on a spinner.
  */
-export async function renderPassportImage(stats: PassportImageStats): Promise<Blob | null> {
+export async function renderStampMosaic(width = 1290, height = 510): Promise<Blob | null> {
 	if (typeof document === 'undefined') return null;
 
 	const west: [number, number][] = [];
@@ -200,16 +164,17 @@ export async function renderPassportImage(stats: PassportImageStats): Promise<Bl
 		(c[0] < 0 ? west : east).push(c);
 	}
 
+	const gap = Math.round(width * 0.018);
+	const panelW = Math.round((width - gap) / 2);
+	const panelH = height;
+
 	// Off-screen but still laid out - a display:none container never gets a
 	// WebGL context sized correctly, or sometimes any context at all.
 	const stage = document.createElement('div');
-	stage.style.cssText = `position:fixed;left:-10000px;top:0;width:${PANEL_W}px;height:${PANEL_H}px;`;
+	stage.style.cssText = `position:fixed;left:-10000px;top:0;width:${panelW}px;height:${panelH}px;`;
 	document.body.appendChild(stage);
 
 	try {
-		await document.fonts.load('700 22px Inter');
-		await document.fonts.load('600 17px Inter');
-
 		const [westUrl, eastUrl] = await Promise.all([
 			renderPanel(stage, west, DEFAULT_WEST),
 			renderPanel(stage, east, DEFAULT_EAST)
@@ -217,75 +182,13 @@ export async function renderPassportImage(stats: PassportImageStats): Promise<Bl
 		const [westImg, eastImg] = await Promise.all([loadImage(westUrl), loadImage(eastUrl)]);
 
 		const canvas = document.createElement('canvas');
-		canvas.width = CANVAS_W;
-		canvas.height = CANVAS_H;
+		canvas.width = width;
+		canvas.height = height;
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return null;
 
-		// Cabinet background.
-		ctx.fillStyle = '#2b1a14';
-		ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-		// Branding, top left.
-		ctx.fillStyle = '#f2b134';
-		ctx.font = '700 30px Inter, sans-serif';
-		ctx.textAlign = 'left';
-		ctx.textBaseline = 'alphabetic';
-		ctx.fillText('☕ ' + APP_NAME_OWNED, 40, 62);
-		ctx.fillStyle = 'rgba(247, 239, 227, 0.6)';
-		ctx.font = '400 16px Inter, sans-serif';
-		ctx.fillText(SITE_URL.replace('https://', ''), 40, 90);
-
-		// Disclaimer, top right corner - small, out of the way of the numbers.
-		ctx.textAlign = 'right';
-		ctx.font = '400 12px Inter, sans-serif';
-		ctx.fillStyle = 'rgba(247, 239, 227, 0.45)';
-		wrapRight(ctx, DISCLAIMER, CANVAS_W - 40, 52, 340, 15);
-
-		// The two panels, each in its own bevelled frame.
-		for (const [img, x] of [
-			[westImg, PANEL_L_X],
-			[eastImg, PANEL_R_X]
-		] as const) {
-			ctx.drawImage(img, x, PANEL_Y, PANEL_W, PANEL_H);
-			ctx.strokeStyle = 'rgba(247, 239, 227, 0.18)';
-			ctx.lineWidth = 2;
-			ctx.strokeRect(x + 1, PANEL_Y + 1, PANEL_W - 2, PANEL_H - 2);
-		}
-
-		// Three bars, side by side beneath the maps.
-		const barsY = PANEL_Y + PANEL_H + 70;
-		const barW = (CANVAS_W - 80 - PANEL_GAP * 2) / 3;
-		drawBar(
-			ctx,
-			40,
-			barsY,
-			barW,
-			'TIMMIES',
-			`${stats.count.toLocaleString()} / ${stats.total.toLocaleString()}`,
-			stats.total ? stats.count / stats.total : 0,
-			'#d8232a'
-		);
-		drawBar(
-			ctx,
-			40 + barW + PANEL_GAP,
-			barsY,
-			barW,
-			'COUNTRIES',
-			`${stats.countries} / ${stats.countryTotal}`,
-			stats.countryTotal ? stats.countries / stats.countryTotal : 0,
-			'#3ed957'
-		);
-		drawBar(
-			ctx,
-			40 + (barW + PANEL_GAP) * 2,
-			barsY,
-			barW,
-			'PROVINCES',
-			`${stats.provinces} / ${stats.provinceTotal}`,
-			stats.provinceTotal ? stats.provinces / stats.provinceTotal : 0,
-			'#f2b134'
-		);
+		ctx.drawImage(westImg, 0, 0, panelW, panelH);
+		ctx.drawImage(eastImg, panelW + gap, 0, width - panelW - gap, panelH);
 
 		return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
 	} catch {
@@ -293,29 +196,4 @@ export async function renderPassportImage(stats: PassportImageStats): Promise<Bl
 	} finally {
 		stage.remove();
 	}
-}
-
-/** Right-aligned word wrap - canvas has no built-in version of this. */
-function wrapRight(
-	ctx: CanvasRenderingContext2D,
-	text: string,
-	rightX: number,
-	y: number,
-	maxWidth: number,
-	lineHeight: number
-) {
-	const words = text.split(' ');
-	let line = '';
-	const lines: string[] = [];
-	for (const w of words) {
-		const test = line ? `${line} ${w}` : w;
-		if (ctx.measureText(test).width > maxWidth && line) {
-			lines.push(line);
-			line = w;
-		} else {
-			line = test;
-		}
-	}
-	if (line) lines.push(line);
-	lines.forEach((l, i) => ctx.fillText(l, rightX, y + i * lineHeight));
 }
