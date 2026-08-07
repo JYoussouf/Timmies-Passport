@@ -1,7 +1,7 @@
 # ☕ My Timmies Passport!
 
-Track every Tim Hortons in the world and collect the ones you've visited like
-passport stamps. Local-first, delightful, and mobile-first.
+A passport for coffee.
+Tap a Tim Hortons on the map to stamp it, and watch your collection grow toward every location on Earth.
 
 **Live at [mytimmiespassport.com](https://mytimmiespassport.com)**
 
@@ -18,21 +18,42 @@ https://github.com/user-attachments/assets/0837c37c-d428-432e-9ff9-6d50a84ed065
 
 <img width="1722" height="943" alt="image" src="https://github.com/user-attachments/assets/a0e0163f-9848-4906-a924-fb21f32a62db" />
 
+## What it's for
 
-- **Map of every Timmies** - 4,200+ locations harvested from OpenStreetMap, deduplicated, and clustered on a hand-styled MapLibre map.
-- **Collect stamps** - tap a cup, check in with a pixel stamp animation, confetti, and haptics.
-- **Works with no account** - everything lives in `localStorage`. Signing up syncs your stamps across devices.
-- **Search cities or stores** - 1,300 cities rank above individual addresses; picking one frames every Timmies in it.
-- **Your passport** - progress against the worldwide total, countries visited, recent stamps with private notes.
-- **Leaderboard** - the API and schema exist; the screen is marked coming soon.
+Every Tim Hortons on the map is a coffee cup.
+Tap one you've visited and it fills in green, joins your passport, and counts toward how much of the world you've covered.
+Cities cluster into a single cup with a running count, so a whole country's worth of Timmies never overwhelms the screen - zoom in and it breaks apart into individual stores as you get close.
 
-## Tech
+No account is needed to start.
+Every stamp lives in your browser the moment you tap it, and stays there for as long as you want it to.
+Sign in only if you want your passport to follow you to another device - it's optional, not a requirement to play.
+
+## Using it
+
+- **Find a Timmies** - search a city, an address, or even a street with no Tim Hortons on it, and the map flies there. Or just look: the compass in the corner shows what's nearby without you having to zoom out.
+- **Stamp it** - tap a cup, then "Stamp it." A pixel stamp animation confirms it, and the cup turns green for good.
+- **Check your passport** - see your percentage of the world's Timmies, how many countries and Canadian provinces you've reached, and a running list of everywhere you've been, each with a private note if you want to remember something about it.
+- **Street View, right there** - open a store's card and look at the storefront without leaving the app.
+- **Something wrong?** - a closed store, a pin in the wrong spot, whatever you noticed - report it from the card in a sentence, no GitHub account needed.
+- **Leaderboard** - coming soon.
+
+Your data is yours.
+Nothing you stamp is shared with anyone unless you create an account to sync across your own devices, and even then it's just your own passport, not a public record.
+
+---
+
+## Under the hood
+
+The rest of this file is for anyone poking at the code - contributors,
+the curious, or future me.
+
+### Tech
 
 SvelteKit (Svelte 5 runes) · MapLibre GL · Cloudflare Pages/Workers · D1 (SQLite).
 The app is a client-rendered SPA; the Cloudflare adapter also serves the API
 routes (`src/routes/api/**`) and the optional cloud backend.
 
-## Develop
+### Develop
 
 ```bash
 npm install
@@ -45,10 +66,11 @@ npm run dev          # http://localhost:5173
 ```
 
 Local dev uses `platformProxy`, so the D1 binding from `wrangler.toml` is
-available to the API routes. Without D1 the app still runs fully local-first  - 
-accounts/leaderboards just stay empty.
+available to the API routes.
+Without D1 the app still runs fully local-first - accounts/leaderboards just
+stay empty.
 
-## Keeping the map current
+### Keeping the map current
 
 ```bash
 npm run update:restaurants   # rebuild locations + gazetteer from both sources
@@ -65,30 +87,33 @@ refreshes weekly.
 Run it early from the Actions tab; the `allow_shrink` input is the
 `ALLOW_SHRINK=1` escape hatch for when a genuinely smaller harvest is correct.
 
-Two sources, each doing what it is good at. **OpenStreetMap** says where stores
-are and gives every record its stable id. **Tim Hortons' own store locator**,
-via [All The Places](https://www.alltheplaces.xyz/) (CC0, rebuilt weekly), says
-which ones exist: anything the chain no longer lists is closed, anything it
-lists that we lack is added. OSM lags reality by months, which is why a store
-that had quietly moved still showed as open.
+Two sources, each doing what it is good at.
+**OpenStreetMap** says where stores are and gives every record its stable id.
+**Tim Hortons' own store locator**, via [All The Places](https://www.alltheplaces.xyz/)
+(CC0, rebuilt weekly), says which ones exist: anything the chain no longer
+lists is closed, anything it lists that we lack is added.
+OSM lags reality by months, which is why a store that had quietly moved still
+showed as open.
 
 Google Places was considered and rejected: it costs per request, and its terms
-forbid persisting their content in a file like `static/locations.json`. The
-brand's own list is free, storable, and more authoritative besides.
+forbid persisting their content in a file like `static/locations.json`.
+The brand's own list is free, storable, and more authoritative besides.
 
 The locator only covers Canada, the US and the UK, so its silence is only
 evidence there - a store in Jiangsu is not closed because a North American
 locator has never heard of it.
 
-`scripts/overrides.json` is the last word when both sources are wrong. Keep it
-empty when they are not.
+`scripts/overrides.json` is the last word when both sources are wrong.
+Keep it empty when they are not.
 
-Safe to run ad-hoc or on a schedule. **The harvest never removes a location.**
-Stamps live in each visitor's own browser keyed on the location id, so deleting
-a row would quietly empty part of somebody's passport. A store that has
-disappeared from OpenStreetMap, or been retagged `disused:`/`was:`, is kept and
-marked `closed` instead: it still renders, greyed out, labelled "Permanently
-closed", and anyone who collected it keeps it.
+Safe to run ad-hoc or on a schedule.
+**The harvest never removes a location.**
+Stamps live in each visitor's own browser keyed on the location id, so
+deleting a row would quietly empty part of somebody's passport.
+A store that has disappeared from OpenStreetMap, or been retagged
+`disused:`/`was:`, is kept and marked `closed` instead: it still renders,
+greyed out, labelled "Permanently closed", and anyone who collected it keeps
+it.
 
 Each run reports what changed:
 
@@ -97,16 +122,18 @@ Each run reports what changed:
 ```
 
 Closed stores are hidden on the map by default and enabled from the settings
-button in the tab bar; one you have already stamped always shows, because it is
-part of a passport.
+button in the tab bar; one you have already stamped always shows, because it
+is part of a passport.
 
 A closure can also reverse itself - if OSM shows the store as active again the
-flag clears. Visitors can flag a store from its card ("Report"), which files an
-issue from a text box with the id and coordinates already attached - no GitHub
-account needed. OpenStreetMap lags reality, so a human is often the first signal
-that a location is gone or misplaced.
+flag clears.
+Visitors can flag a store from its card ("Report"), which files an issue from
+a text box with the id and coordinates already attached - no GitHub account
+needed.
+OpenStreetMap lags reality, so a human is often the first signal that a
+location is gone or misplaced.
 
-## CI
+### CI
 
 Two workflows, both needing the same pair of repository secrets
 (**Settings -> Secrets and variables -> Actions**):
@@ -121,18 +148,18 @@ Two workflows, both needing the same pair of repository secrets
 
 The refresh calls the deploy workflow rather than relying on its own commit to
 set one off: a push made with `GITHUB_TOKEN` deliberately does not trigger
-further workflows, which is what stops a workflow that commits from triggering
-itself forever.
+further workflows, which is what stops a workflow that commits from
+triggering itself forever.
 
 Deploying by hand still works and is unchanged:
 
-## Deploy to Cloudflare
+### Deploy to Cloudflare
 
 Live at **https://mytimmiespassport.com**, and still on the original
 **https://timmies-passport.pages.dev** (Pages project `timmies-passport`, D1
 database `timmies-passport-db`).
-Both addresses serve, and every page declares the domain as canonical so search
-engines do not index them as two competing sites.
+Both addresses serve, and every page declares the domain as canonical so
+search engines do not index them as two competing sites.
 
 ```bash
 npm run build
@@ -140,7 +167,8 @@ npx wrangler pages deploy .svelte-kit/cloudflare --project-name=timmies-passport
 ```
 
 The D1 binding comes from `wrangler.toml`, so deployments pick it up
-automatically. After re-harvesting locations, push them to the remote DB:
+automatically.
+After re-harvesting locations, push them to the remote DB:
 
 ```bash
 npm run db:migrate   # only when migrations/ changes
@@ -148,8 +176,9 @@ npm run db:seed      # reload the locations table
 ```
 
 Note that `static/locations.json` is what the map reads, and Pages serves it
-straight from the CDN. D1 is only needed for accounts, cloud sync and global
-check-in counts - the app is local-first and works without it.
+straight from the CDN.
+D1 is only needed for accounts, cloud sync and global check-in counts - the
+app is local-first and works without it.
 
 First-time setup in a fresh account:
 
@@ -159,16 +188,16 @@ npx wrangler d1 create timmies-passport-db   # paste database_id into wrangler.t
 npx wrangler pages project create timmies-passport --production-branch=main
 ```
 
-### In-app reporting
+#### In-app reporting
 
 The report form files a GitHub issue directly, so a reporter never needs an
 account.
 Every issue is opened by the token's owner and the body is marked as filed
-anonymously through the app - nothing about the reporter is attached beyond the
-browser string, which is what makes a rendering bug reproducible.
+anonymously through the app - nothing about the reporter is attached beyond
+the browser string, which is what makes a rendering bug reproducible.
 
-Create a **fine-grained personal access token** scoped to this repository only,
-with the single permission **Issues: read and write**.
+Create a **fine-grained personal access token** scoped to this repository
+only, with the single permission **Issues: read and write**.
 Nothing else - if it leaks, the worst it can do is open issues.
 
 ```bash
@@ -176,20 +205,21 @@ npx wrangler pages secret put GITHUB_TOKEN   # the token
 npx wrangler pages secret put GITHUB_REPO    # JYoussouf/Timmies-Passport
 ```
 
-Reports are capped at five per IP per hour, tracked in the `reports` table as a
-salted hash and a timestamp - no addresses and no report text, since the
+Reports are capped at five per IP per hour, tracked in the `reports` table as
+a salted hash and a timestamp - no addresses and no report text, since the
 reports themselves live in GitHub.
 Run `npm run db:migrate` once to create it.
 
 Without the secrets the endpoint answers 503 and the form offers a prefilled
 link to the issue tracker instead, so a report always has somewhere to go.
 
-### Street View
+#### Street View
 
 The card's Street View panel uses Google's **Maps Embed API**, which is the
-supported way to embed it. Street View is one of the Embed API's free modes, so
-this is a key rather than a bill - but confirm on Google's pricing page and set
-a budget alert anyway, since only they get to change that.
+supported way to embed it.
+Street View is one of the Embed API's free modes, so this is a key rather
+than a bill - but confirm on Google's pricing page and set a budget alert
+anyway, since only they get to change that.
 
 1. In the Google Cloud console, create a project and **enable the Maps Embed
    API**.
@@ -206,10 +236,10 @@ npx wrangler pages secret put PUBLIC_GOOGLE_MAPS_KEY  # deployed
 
 Without a key the panel is not offered at all, rather than falling back to
 Google's undocumented keyless embed endpoint, which works but sits outside
-their terms. "Open in Maps" is unaffected either way - linking out needs no
-key.
+their terms.
+"Open in Maps" is unaffected either way - linking out needs no key.
 
-## Project map
+### Project map
 
 | Path | What |
 | --- | --- |
@@ -224,13 +254,13 @@ key.
 | `src/routes/api/**` | locations, visits, auth, leaderboard endpoints |
 | `migrations/0001_init.sql` | D1 schema |
 
-## Design notes
+### Design notes
 
 The UI is a retro arcade cabinet: dark-only, zero border-radius, depth from
 stepped unblurred shadows rather than blur.
-`Press Start 2P` (self-hosted, no CDN) is used for chrome only - HUD, headings,
-nav, buttons - while Inter carries every piece of body copy, because pixel type
-is unreadable at paragraph length.
+`Press Start 2P` (self-hosted, no CDN) is used for chrome only - HUD,
+headings, nav, buttons - while Inter carries every piece of body copy,
+because pixel type is unreadable at paragraph length.
 
 - The cabinet frame **dissolves rather than shrinks** below 900px.
   Chrome that costs vertical space is dropped on mobile, not miniaturised: the
