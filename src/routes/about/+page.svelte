@@ -51,11 +51,8 @@
 
 	<div class="body">
 		<section>
-			<p class="lead">
-				MyTimmiesPassport is a fanmade hobby project for tracking Tim Hortons locations visited across the world! Everything
-				lives on your device until you sign up.
-			</p>
 			<p class="disclaim">
+				MyTimmiesPassport is a fanmade hobby project for tracking Tim Hortons locations visited across the world!
 				Not affiliated with, endorsed by, or sponsored by Tim Hortons or Restaurant
 				Brands International. "Tim Hortons" is their trademark, used here only to
 				refer to their restaurants.
@@ -73,10 +70,10 @@
 					</li>
 				{/each}
 			</ul>
-			<h2 class="section-title">Type and art</h2>
 			<p class="note">
-				Press Start 2P by CodeMan38 and Inter by Rasmus Andersson, both under the SIL
-				Open Font License. The coffee cup was drawn for this project.
+				Font: Press Start 2P by CodeMan38 and Inter by Rasmus Andersson, both under the SIL
+				Open Font License. 
+				All other pixel art created by Joseppy in Aseprite.
 			</p>
 		</section>
 	</div>
@@ -104,12 +101,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 2rem;
-	}
-	.lead {
-		margin: 0 0 1rem;
-		font-size: 1rem;
-		line-height: 1.55;
-		color: var(--cream);
 	}
 	/* The point of the page: set apart so it cannot be skimmed past. */
 	.disclaim {
