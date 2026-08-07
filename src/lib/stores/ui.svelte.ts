@@ -18,16 +18,18 @@ class UI {
 	private nextId = 1;
 	nudged = $state(false);
 
-	/*
-	 * True while the store card has its street view open, which makes the card
-	 * cover the middle of the map. The stepper's arrows ring that middle and
-	 * would otherwise be drawn across the imagery, so they stand down.
-	 */
-	cardExpanded = $state(false);
 
 	/* True while the VISITED stamp is playing, which owns the middle of the
 	   screen for its second and a bit. */
 	stamping = $state(false);
+
+	/*
+	 * True while the card is showing street view, which makes it tall enough
+	 * to reach the band the stepper's arrows occupy. On a phone the two
+	 * cannot both have that space, so the arrows yield - the imagery is what
+	 * was asked for, and closing it brings them straight back.
+	 */
+	cardExpanded = $state(false);
 
 	select(id: string | null) {
 		this.selectedId = id;

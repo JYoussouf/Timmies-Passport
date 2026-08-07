@@ -54,18 +54,24 @@
 		coords ? `https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[0]}` : '#'
 	);
 
-	// A new selection should not inherit the previous card's open panel.
+	/*
+	 * Open on arrival. Seeing the storefront is most of why you opened the
+	 * card, and the Embed API bills nothing for it - Google's own terms put
+	 * the Maps Embed API at no charge with unlimited requests - so there is
+	 * nothing to save by making people ask twice.
+	 */
 	$effect(() => {
 		void ui.selectedId;
-		streetOpen = false;
+		streetOpen = !!streetUrl;
 	});
 
-	/* The stepper needs to know when something is sitting over its arrows. */
-	$effect(() => {
-		ui.cardExpanded = streetOpen;
-	});
 	$effect(() => {
 		ui.stamping = stamping;
+	});
+
+	/* The arrows ring the cup, and an open street view reaches that band. */
+	$effect(() => {
+		ui.cardExpanded = streetOpen;
 	});
 
 	function close() {
@@ -137,8 +143,7 @@
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<section
 		class="sheet"
-		class:expanded={streetOpen}
-		style="transform: translate(-50%, {streetOpen ? `calc(-50% + ${dragY}px)` : `${dragY}px`})"
+		style="transform: translate(-50%, {dragY}px)"
 		role="dialog"
 		aria-modal="true"
 		aria-label={loc.name}
@@ -242,7 +247,13 @@
 		transform: translateX(-50%);
 		z-index: 41;
 		width: min(360px, calc(100vw - 28px));
-		max-height: calc(50dvh - 2rem);
+		/*
+		 * Stops short of the cup rather than at some fraction of the window.
+		 * --map-cy is the map's real centre, which is where a selected store
+		 * sits; the 52px keeps clear of the cup and its reticle. Falls back to
+		 * half the viewport for the instant before the map has measured.
+		 */
+		max-height: calc(var(--map-cy, 50dvh) - var(--safe-top) - 66px - 52px);
 		overflow-y: auto;
 		transition: max-height 0.2s linear;
 		/* Translucent so the street underneath stays readable. */
@@ -259,17 +270,6 @@
 	.inner {
 		padding: 0 0.9rem 0.95rem;
 	}
-	/*
-	 * With street view open the card is taller than the space above the marker,
-	 * so it centres instead of growing off the top of the screen. Covering the
-	 * cup is fine at that point - the panel is the thing being looked at.
-	 */
-	.sheet.expanded {
-		top: 50%;
-		bottom: auto;
-		max-height: calc(100dvh - 2rem);
-	}
-
 	.grab {
 		display: flex;
 		justify-content: center;
@@ -341,7 +341,7 @@
 	/* Recessed like a screen set into the cartridge. */
 	.street-view {
 		margin-bottom: 0.75rem;
-		height: 190px;
+		height: 150px;
 		background: var(--screen-deep);
 		border-top: 2px solid var(--cabinet-lo);
 		border-left: 2px solid var(--cabinet-lo);

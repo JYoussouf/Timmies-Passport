@@ -100,7 +100,7 @@
 	});
 </script>
 
-{#if here && !ui.cardExpanded && !ui.stamping}
+{#if here && !ui.stamping && !ui.cardExpanded}
 	<div class="stepper" aria-label="Jump to the nearest store in a direction">
 		<div class="ring">
 			{#each DIRECTIONS as d (d.key)}
@@ -141,11 +141,15 @@
 		z-index: 42;
 		pointer-events: none;
 	}
-	/* A zero-sized anchor at the map's centre; the buttons hang off it. */
+	/*
+	 * A zero-sized anchor on the cup. The map's centre is not the cabinet's -
+	 * the frame and the bottom dock take uneven bites out of it - so this uses
+	 * the measured value MapView publishes rather than 50%.
+	 */
 	.ring {
 		position: absolute;
-		left: 50%;
-		top: 50%;
+		left: var(--map-cx, 50%);
+		top: var(--map-cy, 50%);
 		width: 0;
 		height: 0;
 	}
