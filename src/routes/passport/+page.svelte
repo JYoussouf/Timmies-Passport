@@ -18,17 +18,6 @@
 		locations.total ? ((passport.count / locations.total) * 100).toFixed(2) : '0'
 	);
 
-	/** A segmented meter reads as a score bar; a smooth one reads as a loader. */
-	const SEGMENTS = 20;
-	const segs = Array.from({ length: SEGMENTS }, (_, i) => i);
-	const lit = $derived(Math.ceil((Number(pct) / 100) * SEGMENTS));
-
-	/** Recent stamps show a short preview until the user asks for the rest. */
-	const PREVIEW = 5;
-	let showAll = $state(false);
-	const shown = $derived(showAll ? passport.timeline : passport.timeline.slice(0, PREVIEW));
-	const hidden = $derived(Math.max(0, passport.timeline.length - PREVIEW));
-
 	/** Notes live here rather than on the map, where they interrupted a check-in. */
 	let editing = $state<string | null>(null);
 	function toggleNote(id: string) {
@@ -40,6 +29,9 @@
 	const provinces = $derived(passport.provincesVisited.size);
 	const provinceTotal = $derived(locations.provinceTotal);
 	const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+
+	/** Width for a fill bar - never past 100%, never negative on a zero total. */
+	const barPct = (n: number, total: number) => (total > 0 ? Math.min(100, (n / total) * 100) : 0);
 
 	function share() {
 		const text = `I've collected ${passport.count} Tim Hortons across ${plural(
@@ -75,28 +67,48 @@
 				<span class="of pixel">of {locations.total.toLocaleString()}</span>
 			</p>
 
-			<div class="meter" aria-hidden="true">
-				{#each segs as i (i)}
-					<i class:on={i < lit}></i>
-				{/each}
-			</div>
-
 			<!--
-				Each line waits for its first fact, the same as the desktop
-				legend's chips: a brand new passport has 0% of nothing, and
-				"0 out of 13 provinces" reads as a stat rather than an invitation.
+				Three bars instead of one meter, so a glance answers three
+				different questions rather than one. Each waits for its own
+				first fact, the same as the desktop legend's chips: a brand new
+				passport has 0% of nothing, and a countries bar sitting at zero
+				reads as a stat rather than an invitation. The Timmies bar is
+				the one exception - it is the headline number's own bar, so it
+				stays even at zero.
 			-->
-			{#if countries > 0}
-				<p class="line">
-					<strong>{pct}%</strong> of the world's Timmies, across
-					<strong>{countries}</strong> out of {countryTotal} countries.
-				</p>
-			{/if}
-			{#if provinces > 0}
-				<p class="line">
-					<strong>{provinces}</strong> out of {provinceTotal} provinces in Canada.
-				</p>
-			{/if}
+			<div class="bars">
+				<div class="bar-row">
+					<div class="bar-label">
+						<span>Timmies</span>
+						<span class="bar-count">{pct}%</span>
+					</div>
+					<div class="bar-track">
+						<div class="bar-fill timmies" style="width: {barPct(passport.count, locations.total)}%"></div>
+					</div>
+				</div>
+				{#if countries > 0}
+					<div class="bar-row">
+						<div class="bar-label">
+							<span>Countries</span>
+							<span class="bar-count">{countries} / {countryTotal}</span>
+						</div>
+						<div class="bar-track">
+							<div class="bar-fill countries" style="width: {barPct(countries, countryTotal)}%"></div>
+						</div>
+					</div>
+				{/if}
+				{#if provinces > 0}
+					<div class="bar-row">
+						<div class="bar-label">
+							<span>Provinces</span>
+							<span class="bar-count">{provinces} / {provinceTotal}</span>
+						</div>
+						<div class="bar-track">
+							<div class="bar-fill provinces" style="width: {barPct(provinces, provinceTotal)}%"></div>
+						</div>
+					</div>
+				{/if}
+			</div>
 
 			<button class="pbtn pbtn-gold share" onclick={share}>Share my passport</button>
 		</section>
@@ -109,7 +121,7 @@
 				<a class="pbtn pbtn-primary" href="/">Go to map</a>
 			{:else}
 				<ul class="stamps">
-					{#each shown as item (item.id)}
+					{#each passport.timeline as item (item.id)}
 						<li>
 							<div class="row">
 								<CupIcon height={20} collected />
@@ -143,12 +155,6 @@
 						</li>
 					{/each}
 				</ul>
-
-				{#if hidden > 0}
-					<button class="more pixel" onclick={() => (showAll = !showAll)}>
-						{showAll ? 'Show fewer' : `View all ${passport.timeline.length}`}
-					</button>
-				{/if}
 			{/if}
 		</section>
 	</div>
@@ -201,27 +207,48 @@
 		font-size: 0.5rem;
 		color: var(--cream-dim);
 	}
-	.meter {
+	.bars {
 		display: flex;
-		gap: 3px;
+		flex-direction: column;
+		gap: 0.65rem;
 	}
-	.meter i {
-		flex: 1;
+	.bar-row {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+	}
+	.bar-label {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		font-size: 0.78rem;
+		color: var(--cream-dim);
+	}
+	.bar-count {
+		color: var(--cream);
+		font-variant-numeric: tabular-nums;
+	}
+	.bar-track {
 		height: 10px;
 		background: rgba(247, 239, 227, 0.1);
 	}
-	.meter i.on {
+	.bar-fill {
+		height: 100%;
+		/* A bar that has to snap into place on every check-in reads as jumpy;
+		   this is the one motion on the page slow enough to actually see. */
+		transition: width 0.5s var(--ease-out);
+	}
+	.bar-fill.timmies {
 		background: var(--tim-red);
 		box-shadow: inset 0 2px 0 #f0555b;
 	}
-	.line {
-		margin: 0;
-		font-size: 0.95rem;
-		line-height: 1.5;
-		color: var(--cream-dim);
+	.bar-fill.countries {
+		background: var(--green);
+		box-shadow: inset 0 2px 0 #7cf08d;
 	}
-	.line strong {
-		color: var(--cream);
+	.bar-fill.provinces {
+		background: var(--gold);
+		box-shadow: inset 0 2px 0 #ffd479;
 	}
 	.share {
 		align-self: flex-start;
@@ -233,13 +260,22 @@
 		margin: 0 0 1rem;
 	}
 
+	/*
+	 * Scrolls rather than paginating behind a "view all" - a list worth having
+	 * is a list you can scroll, and a click that only ever reveals more of the
+	 * same page never needed to be a click. Capped at roughly five rows before
+	 * it scrolls, tight enough that recent stamps read as a list, not a slide
+	 * show one row per screen.
+	 */
 	.stamps {
 		list-style: none;
 		margin: 0;
 		padding: 0;
+		max-height: 320px;
+		overflow-y: auto;
 	}
 	.stamps li {
-		padding: 0.75rem 0;
+		padding: 0.45rem 0;
 		border-bottom: 1px solid rgba(247, 239, 227, 0.1);
 	}
 	.row {
@@ -313,17 +349,6 @@
 	}
 	.stamps textarea:focus {
 		outline: 3px solid var(--gold);
-	}
-
-	.more {
-		margin-top: 1rem;
-		padding: 0.5rem 0;
-		font-size: 0.5rem;
-		color: var(--gold);
-		border-bottom: 2px solid rgba(242, 177, 52, 0.35);
-	}
-	.more:hover {
-		border-bottom-color: var(--gold);
 	}
 
 	.empty {
