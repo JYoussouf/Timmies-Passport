@@ -593,6 +593,15 @@ export function buildSeedSql(locs: Loc[]): string {
 			`INSERT INTO locations (id, osm_id, name, lat, lng, address, city, region, country, country_code, closed) VALUES\n${rows};`
 		);
 	}
+	/*
+	 * The DELETE above wiped check_in_count back to its default, and this
+	 * seed runs monthly from CI - without this line, every harvest would
+	 * silently zero "N people have stamped here" across the whole map. The
+	 * visits table is the source of truth, so the tallies come back from it.
+	 */
+	lines.push(
+		`UPDATE locations SET check_in_count = (SELECT COUNT(*) FROM visits WHERE visits.location_id = locations.id);`
+	);
 	return lines.join('\n') + '\n';
 }
 

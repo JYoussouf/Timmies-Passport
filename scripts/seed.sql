@@ -5218,3 +5218,4 @@ INSERT INTO locations (id, osm_id, name, lat, lng, address, city, region, countr
 ('w997076497','way/997076497','Tim Hortons',50.463162,-104.645044,'4400 4th Avenue','Regina','Saskatchewan','Canada','CA',0),
 ('w997463452','way/997463452','Tim Hortons',55.122424,-6.673349,'Riverside Retail Park','Coleraine','Coleraine','United Kingdom','GB',0),
 ('w998229075','way/998229075','Tim Hortons',54.271208,-110.722184,'54 Avenue','Town of Bonnyville','Alberta','Canada','CA',0);
+UPDATE locations SET check_in_count = (SELECT COUNT(*) FROM visits WHERE visits.location_id = locations.id);
