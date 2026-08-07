@@ -12,9 +12,8 @@
 			icon: 'M5 4h11a3 3 0 013 3v10a3 3 0 01-3 3H5a1 1 0 01-1-1V5a1 1 0 011-1zm3 6h7M8 14h5'
 		},
 		{
-			href: null,
+			href: '/leaderboard',
 			label: 'Leaderboard',
-			note: 'coming soon!',
 			icon: 'M8 21h8M12 17v4M5 4h14v4a5 5 0 01-5 5h-4a5 5 0 01-5-5V4zM5 6H3v2a3 3 0 003 3M19 6h2v2a3 3 0 01-3 3'
 		}
 	];
@@ -45,7 +44,6 @@
 				/>
 			</svg>
 			<span class="label pixel">{t.label}</span>
-			{#if t.note}<span class="note pixel">{t.note}</span>{/if}
 		</svelte:element>
 	{/each}
 </nav>
@@ -110,13 +108,6 @@
 		font-size: 0.45rem;
 		line-height: 1;
 		text-align: center;
-	}
-	.note {
-		font-size: 0.34rem;
-		color: var(--cream-faint);
-	}
-	.active .note {
-		color: rgba(255, 255, 255, 0.75);
 	}
 	a:hover {
 		color: var(--cream);

@@ -5,6 +5,8 @@
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import { fetchLeaderboard, type LeaderboardData } from '$lib/api';
 	import { locations } from '$lib/stores/locations.svelte';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { ui } from '$lib/stores/ui.svelte';
 
 	let data = $state<LeaderboardData | null>(null);
 	let loaded = $state(false);
@@ -18,6 +20,24 @@
 	const hasData = $derived(!!data && (data.topLocations.length > 0 || data.totalCheckIns > 0));
 	/** Plate colour for the top three, arcade high-score style. */
 	const place = ['gold', 'silver', 'bronze'];
+
+	/*
+	 * Five shown, plus - if the visitor is signed in and ranked lower than
+	 * that - one more row pinned after a break, so "where do I stand" never
+	 * means scrolling a list that stops at the top five. Someone already
+	 * inside the top five is highlighted in place instead of getting a second,
+	 * redundant row.
+	 */
+	const PLAYER_TOP = 5;
+	const shownPlayers = $derived(data?.topPlayers.slice(0, PLAYER_TOP) ?? []);
+	/*
+	 * Whether the visitor's own row already appears above, checked by id
+	 * rather than by comparing rank to PLAYER_TOP - a tie can put someone's
+	 * numeric rank at exactly 5 while the five-item slice, which only has
+	 * room for one of the tied names, does not happen to include them.
+	 */
+	const meShown = $derived(!!auth.user && shownPlayers.some((p) => p.id === auth.user!.id));
+	const meRankedLower = $derived(!!data?.me && !meShown);
 </script>
 
 <svelte:head><title>Leaderboard - {APP_NAME}</title></svelte:head>
@@ -37,6 +57,59 @@
 					<small>Passport holders</small>
 				</div>
 			</section>
+
+			<h2 class="section-title">Top players</h2>
+			{#if shownPlayers.length}
+				<ul class="rank">
+					{#each shownPlayers as p, i (p.id)}
+						<li class="{place[i] ?? ''}" class:me={auth.user?.id === p.id}>
+							<span class="pos pixel">
+								{#if i < 3}
+									<!-- A medal, not a number, for the three that get one -->
+									<svg class="medal" viewBox="0 0 24 24" aria-hidden="true">
+										<circle cx="12" cy="14" r="7" fill="currentColor" />
+										<path
+											d="M9 3l3 5 3-5"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2"
+											stroke-linecap="square"
+											stroke-linejoin="round"
+										/>
+									</svg>
+								{:else}
+									{String(i + 1).padStart(2, '0')}
+								{/if}
+							</span>
+							<div class="info">
+								<strong>{p.display_name}</strong>
+								{#if auth.user?.id === p.id}<small>That's you!</small>{/if}
+							</div>
+							<span class="count pixel">{p.count.toLocaleString()}</span>
+						</li>
+					{/each}
+
+					{#if meRankedLower && data?.me}
+						<li class="me gap">
+							<span class="pos pixel">{String(data.me.rank).padStart(2, '0')}</span>
+							<div class="info">
+								<strong>{data.me.displayName}</strong>
+								<small>That's you!</small>
+							</div>
+							<span class="count pixel">{data.me.count.toLocaleString()}</span>
+						</li>
+					{/if}
+				</ul>
+			{:else}
+				<p class="empty-inline">
+					No passport holders have checked in yet - be the first name on the board.
+				</p>
+			{/if}
+			{#if !auth.signedIn}
+				<button class="signin-hint" onclick={() => ui.openAuth('signup')}>
+					Sign in to put your own name on this board &rsaquo;
+				</button>
+			{/if}
 
 			<h2 class="section-title">Most-stamped Timmies</h2>
 			<ul class="rank">
@@ -179,6 +252,52 @@
 	.rank li.silver .pos,
 	.rank li.bronze .pos {
 		color: var(--plate);
+	}
+	.medal {
+		width: 20px;
+		height: 20px;
+	}
+
+	/*
+	 * The signed-in visitor's own row, wherever it lands - inside the top
+	 * five, highlighted in place, or pinned after a gap when it does not
+	 * reach that far. Same green the rest of the app already uses for "this
+	 * one is yours": a collected cup, a completed cluster.
+	 */
+	.rank li.me {
+		background: rgba(62, 217, 87, 0.1);
+		box-shadow: inset 3px 0 0 var(--green);
+	}
+	.rank li.me .info small {
+		color: var(--green);
+	}
+	/* A visible break, not just a border, so "pinned after a gap" reads as
+	   intentional rather than as a row that scrolled loose from the list. */
+	.rank li.gap {
+		margin-top: 0.6rem;
+		border-top: 2px dashed rgba(247, 239, 227, 0.2);
+	}
+
+	.empty-inline {
+		padding: 1.2rem 0.9rem;
+		text-align: center;
+		font-size: 0.88rem;
+		color: var(--cream-dim);
+		background: var(--cabinet);
+		border: 2px solid var(--cabinet-lo);
+	}
+
+	.signin-hint {
+		display: block;
+		width: 100%;
+		margin-top: 0.6rem;
+		padding: 0.6rem 0;
+		text-align: center;
+		font-size: 0.8rem;
+		color: var(--gold);
+	}
+	.signin-hint:hover {
+		color: #ffc450;
 	}
 
 	.cc {
