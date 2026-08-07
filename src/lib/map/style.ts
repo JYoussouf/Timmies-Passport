@@ -37,8 +37,8 @@ const LABEL_FONT = ['Montserrat Medium', 'Open Sans Bold'];
 const BOLD_FONT = ['Montserrat Bold', 'Open Sans Bold'];
 
 /**
- * The opening view: every Canadian Tim Hortons, from Vancouver Island to
- * Newfoundland and up to Whitehorse.
+ * The opening view on a phone: every Canadian Tim Hortons, from Vancouver
+ * Island to Newfoundland and up to Whitehorse.
  *
  * Framed as bounds rather than a centre and a zoom because a fixed zoom means
  * a different amount of world on every screen - 3.2 filled a desktop window
@@ -46,10 +46,28 @@ const BOLD_FONT = ['Montserrat Bold', 'Open Sans Bold'];
  */
 export const HOME_BOUNDS: [number, number, number, number] = [-135.5, 41.5, -52.0, 64.0];
 
+/**
+ * The opening view on a wider screen: the settled corridor from BC to the
+ * Maritimes, dipping into the northern US, rather than the whole country out
+ * to the empty Arctic. A desktop window has the pixels to spare, so it starts
+ * closer in, on the part of the map that is actually full of cups.
+ */
+export const HOME_BOUNDS_DESKTOP: [number, number, number, number] = [-121.0, 42.0, -63.0, 57.0];
+
 /** Padding around the home view, leaving room for the app's own chrome. */
 export const HOME_PADDING = { top: 70, bottom: 160, left: 24, right: 24 };
 
-/** Centre of the home view, for anything that needs a point before the map moves. */
+/**
+ * Bounds for the current screen - matches the 900px breakpoint everything
+ * else in the layout switches on. Read fresh rather than cached, since the
+ * one thing that can change it (a window resize) can happen mid-session.
+ */
+export function homeBounds(): [number, number, number, number] {
+	if (typeof window !== 'undefined' && window.innerWidth >= 900) return HOME_BOUNDS_DESKTOP;
+	return HOME_BOUNDS;
+}
+
+/** Centre of the mobile home view, for anything that needs a point before the map moves. */
 export const HOME_CENTER: [number, number] = [
 	(HOME_BOUNDS[0] + HOME_BOUNDS[2]) / 2,
 	(HOME_BOUNDS[1] + HOME_BOUNDS[3]) / 2

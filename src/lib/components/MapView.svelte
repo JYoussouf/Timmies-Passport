@@ -4,8 +4,8 @@
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import {
 		trackerStyle,
-		HOME_BOUNDS,
 		HOME_PADDING,
+		homeBounds,
 		MAP_COLORS
 	} from '$lib/map/style';
 	import { registerSprites } from '$lib/map/sprites';
@@ -406,7 +406,7 @@
 	 * window and the Great Lakes on a phone.
 	 */
 	export function resetView() {
-		fitBounds(HOME_BOUNDS, HOME_PADDING, 900);
+		fitBounds(homeBounds(), HOME_PADDING, 900);
 	}
 
 	// --- The user's own position ------------------------------------------
@@ -465,10 +465,13 @@
 			container,
 			style: trackerStyle(),
 			// Framed from the first paint, so no jump once the data lands.
-			bounds: [
-				[HOME_BOUNDS[0], HOME_BOUNDS[1]],
-				[HOME_BOUNDS[2], HOME_BOUNDS[3]]
-			],
+			bounds: (() => {
+				const b = homeBounds();
+				return [
+					[b[0], b[1]],
+					[b[2], b[3]]
+				] as [[number, number], [number, number]];
+			})(),
 			fitBoundsOptions: { padding: HOME_PADDING },
 			/*
 			 * The attribution bar is the one piece of chrome that is always on
