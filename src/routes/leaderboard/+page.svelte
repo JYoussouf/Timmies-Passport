@@ -62,6 +62,29 @@
 	};
 	const provinceCode = (region: string) =>
 		PROVINCE_CODES[region] ?? region.slice(0, 2).toUpperCase();
+
+	/**
+	 * What tells two stores on the same road apart. Half the dataset's
+	 * addresses are a street name with no house number, so "Tecumseh Road
+	 * East, Windsor" can mean either of two rows on this very board. The
+	 * locations index is already loaded for the map, so each row can be
+	 * joined back to its record by id: a venue when the store has one (an
+	 * airport terminal beats any coordinate), otherwise a compact position in
+	 * the same N/W style the compass dial already uses, plus a maps link as
+	 * the ground truth.
+	 */
+	function whereExactly(id: string): { hint: string; mapsUrl: string } | null {
+		const c = locations.coordsOf(id);
+		if (!c) return null;
+		const venue = locations.get(id)?.venue;
+		const hint =
+			venue ??
+			`${Math.abs(c[1]).toFixed(2)}${c[1] >= 0 ? 'N' : 'S'} ${Math.abs(c[0]).toFixed(2)}${c[0] >= 0 ? 'E' : 'W'}`;
+		return {
+			hint,
+			mapsUrl: `https://www.google.com/maps/search/?api=1&query=${c[1]},${c[0]}`
+		};
+	}
 </script>
 
 <svelte:head><title>Leaderboard - {APP_NAME}</title></svelte:head>
@@ -136,11 +159,25 @@
 			<h2 class="section-title">Most-stamped Timmies</h2>
 			<ul class="rank">
 				{#each data.topLocations as l, i (l.id)}
+					{@const where = whereExactly(l.id)}
 					<li class={place[i] ?? ''}>
 						<span class="pos pixel">{String(i + 1).padStart(2, '0')}</span>
 						<div class="info">
 							<strong>{l.address || l.city || l.name}</strong>
-							<small>{[l.city, l.region].filter(Boolean).join(', ') || ' - '}</small>
+							<small>
+								{[l.city, l.region].filter(Boolean).join(', ') || ' - '}
+								{#if where}
+									<span class="dot" aria-hidden="true">·</span>
+									<span class="coord">{where.hint}</span>
+									<span class="dot" aria-hidden="true">·</span>
+									<a
+										class="maplink"
+										href={where.mapsUrl}
+										target="_blank"
+										rel="noopener noreferrer">Map &#8599;</a
+									>
+								{/if}
+							</small>
 						</div>
 						<span class="count pixel">{l.count.toLocaleString()}</span>
 					</li>
@@ -374,6 +411,21 @@
 	.info small {
 		color: var(--cream-dim);
 		font-size: 0.78rem;
+	}
+	.dot {
+		color: var(--cream-faint);
+	}
+	.coord {
+		font-variant-numeric: tabular-nums;
+	}
+	.maplink {
+		color: var(--gold);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		white-space: nowrap;
+	}
+	.maplink:hover {
+		color: #ffc450;
 	}
 	/*
 	 * An empty track has to read as empty. A pale full-width bar looks like a
