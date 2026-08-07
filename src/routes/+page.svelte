@@ -9,7 +9,6 @@
 	import StoreStepper from '$lib/components/StoreStepper.svelte';
 	import Compass from '$lib/components/Compass.svelte';
 	import Legend from '$lib/components/Legend.svelte';
-	import Marquee from '$lib/components/Marquee.svelte';
 	import ZoomHint from '$lib/components/ZoomHint.svelte';
 	import { locations } from '$lib/stores/locations.svelte';
 	import { HOME_CENTER } from '$lib/map/style';
@@ -61,8 +60,6 @@
 </svelte:head>
 
 <Cabinet>
-	<Marquee />
-
 	<MapView
 		bind:this={mapView}
 		onmove={(c) => (center = c)}
