@@ -12,6 +12,9 @@ passport stamps. Local-first, delightful, and mobile-first.
 
 ![The map screen: a retro arcade cabinet framing a dark tracker map of Canada, cup markers clustered by count, with a compass dial of nearby locations](docs/screenshot.png)
 
+<img width="1722" height="943" alt="image" src="https://github.com/user-attachments/assets/a0e0163f-9848-4906-a924-fb21f32a62db" />
+
+
 - **Map of every Timmies** - 4,200+ locations harvested from OpenStreetMap, deduplicated, and clustered on a hand-styled MapLibre map.
 - **Collect stamps** - tap a cup, check in with a pixel stamp animation, confetti, and haptics.
 - **Works with no account** - everything lives in `localStorage`. Signing up syncs your stamps across devices.
