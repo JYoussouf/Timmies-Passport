@@ -20,8 +20,13 @@
 
 	/** Notes live here rather than on the map, where they interrupted a check-in. */
 	let editing = $state<string | null>(null);
+	let noteEl = $state<HTMLTextAreaElement>();
 	function toggleNote(id: string) {
 		editing = editing === id ? null : id;
+	}
+	function saveNote(id: string) {
+		if (noteEl) passport.setNote(id, noteEl.value);
+		editing = null;
 	}
 
 	const countries = $derived(passport.countriesVisited.size);
@@ -48,11 +53,6 @@
 
 	<div class="body">
 		<section class="score">
-			<p class="count">
-				<span class="num pixel">{passport.count.toLocaleString()}</span>
-				<span class="of pixel">of {locations.total.toLocaleString()}</span>
-			</p>
-
 			<!--
 				Three bars instead of one meter, so a glance answers three
 				different questions rather than one. Each waits for its own
@@ -66,7 +66,10 @@
 				<div class="bar-row">
 					<div class="bar-label">
 						<span>Timmies</span>
-						<span class="bar-count">{pct}%</span>
+						<span class="bar-count">
+							{passport.count.toLocaleString()} / {locations.total.toLocaleString()}
+							<span class="bar-pct">· {pct}%</span>
+						</span>
 					</div>
 					<div class="bar-track">
 						<div class="bar-fill timmies" style="width: {barPct(passport.count, locations.total)}%"></div>
@@ -121,16 +124,35 @@
 							</div>
 
 							{#if editing === item.id}
-								<textarea
-									rows="2"
-									placeholder="Apple fritter and a double-double!"
-									value={passport.getNote(item.id)}
-									onblur={(e) => {
-										passport.setNote(item.id, e.currentTarget.value);
-										editing = null;
-									}}
-									{@attach (el) => el.focus()}
-								></textarea>
+								<div class="note-edit">
+									<textarea
+										bind:this={noteEl}
+										rows="2"
+										placeholder="Apple fritter and a double-double!"
+										value={passport.getNote(item.id)}
+										onkeydown={(e) => {
+											if (e.key === 'Enter' && !e.shiftKey) {
+												e.preventDefault();
+												saveNote(item.id);
+											}
+										}}
+										onblur={(e) => {
+											passport.setNote(item.id, e.currentTarget.value);
+											editing = null;
+										}}
+										{@attach (el) => el.focus()}
+									></textarea>
+									<!-- pointerdown is swallowed so the textarea's blur - which
+									     also saves - cannot close the editor before this click
+									     lands; the button then does the save deterministically. -->
+									<button
+										class="pbtn pbtn-gold note-save"
+										onpointerdown={(e) => e.preventDefault()}
+										onclick={() => saveNote(item.id)}
+									>
+										Save note
+									</button>
+								</div>
 							{:else if passport.getNote(item.id)}
 								<button class="note" onclick={() => toggleNote(item.id)}>
 									{passport.getNote(item.id)}
@@ -178,23 +200,6 @@
 		flex-direction: column;
 		gap: 1rem;
 	}
-	.count {
-		display: flex;
-		align-items: baseline;
-		gap: 0.7rem;
-		flex-wrap: wrap;
-		margin: 0;
-	}
-	.num {
-		font-size: 2.4rem;
-		line-height: 1;
-		color: var(--gold);
-		text-shadow: 3px 3px 0 var(--cabinet-lo);
-	}
-	.of {
-		font-size: 0.5rem;
-		color: var(--cream-dim);
-	}
 	.bars {
 		display: flex;
 		flex-direction: column;
@@ -215,6 +220,9 @@
 	.bar-count {
 		color: var(--cream);
 		font-variant-numeric: tabular-nums;
+	}
+	.bar-pct {
+		color: var(--cream-dim);
 	}
 	.bar-track {
 		height: 10px;
@@ -321,9 +329,16 @@
 	.note:hover {
 		color: var(--cream);
 	}
-	.stamps textarea {
-		width: calc(100% - 2.05rem);
+	/* The editor: box on top, its confirm sitting bottom-right beneath it. */
+	.note-edit {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.45rem;
 		margin: 0.5rem 0 0 2.05rem;
+	}
+	.stamps textarea {
+		width: 100%;
 		padding: 0.6rem;
 		font-family: var(--font-sans);
 		font-size: 0.9rem;
@@ -337,6 +352,12 @@
 	}
 	.stamps textarea:focus {
 		outline: 3px solid var(--gold);
+	}
+	/* A quieter cousin of the full-size pbtn - a note is not a check-in. */
+	.note-save {
+		min-height: 34px;
+		padding: 0.45rem 0.85rem;
+		font-size: 0.45rem;
 	}
 
 	.empty {
