@@ -55,12 +55,14 @@
 	/*
 	 * Safe-area-aware insets ----------------------------------
 	 *
-	 * --dev-badge-h is set by DevBadge when it is showing, so the strip along
-	 * the top pushes the layout down instead of covering the stamp counter.
-	 * Zero everywhere else, which is every real visit.
+	 * Two strips can sit above the app's own chrome, and each reserves its own
+	 * height here rather than covering what is underneath. --dev-badge-h is set
+	 * by DevBadge, which shows only off the real domain; --ticker-h by the
+	 * marquee, which only exists on the map screen. Both are zero otherwise.
 	 */
 	--dev-badge-h: 0px;
-	--safe-top: calc(env(safe-area-inset-top, 0px) + var(--dev-badge-h));
+	--ticker-h: 0px;
+	--safe-top: calc(env(safe-area-inset-top, 0px) + var(--dev-badge-h) + var(--ticker-h));
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
 
 	/* Cabinet frame thickness - collapses on mobile ----------- */

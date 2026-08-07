@@ -61,6 +61,8 @@
 </svelte:head>
 
 <Cabinet>
+	<Marquee />
+
 	<MapView
 		bind:this={mapView}
 		onmove={(c) => (center = c)}
@@ -126,7 +128,6 @@
 				/>
 			</div>
 		</div>
-		<Marquee />
 		<BottomNav />
 	</div>
 </Cabinet>

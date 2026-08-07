@@ -31,9 +31,15 @@
 	}
 
 	@media (min-width: 900px) {
+		/*
+		 * Below the top bar, which starts at --safe-top. Measuring from the
+		 * viewport instead only worked while that inset was zero: anything
+		 * pinned above the app - the ticker, the dev badge - pushed the bar
+		 * down onto a legend that had stayed put.
+		 */
 		.legend {
 			position: absolute;
-			top: 74px;
+			top: calc(var(--safe-top) + 74px);
 			left: 14px;
 			z-index: 19;
 			display: flex;

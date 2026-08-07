@@ -1,5 +1,12 @@
 <script lang="ts">
-	/** Bottom ticker. Recent stamps, or a prompt when the passport is empty. */
+	/**
+	 * Ticker across the top. Recent stamps, or a prompt when the passport is
+	 * empty.
+	 *
+	 * It reserves its own height at the root rather than covering the chrome
+	 * below it, so the top bar and the store card shift down by exactly as much
+	 * as it takes - measured, since the strip is a different height on desktop.
+	 */
 	import { passport } from '$lib/stores/passport.svelte';
 	import { locations } from '$lib/stores/locations.svelte';
 	import { locationLabel, locationPlace } from '$lib/location';
@@ -33,6 +40,7 @@
 	const SPEED = 18;
 
 	let track = $state<HTMLDivElement>();
+	let host = $state<HTMLDivElement>();
 	let duration = $state(90);
 
 	$effect(() => {
@@ -47,9 +55,23 @@
 		return () => ro.disconnect();
 	});
 
+	/* Reserve the strip's height for everything below it. */
+	$effect(() => {
+		if (!host) return;
+		const root = document.documentElement;
+		const sync = () => root.style.setProperty('--ticker-h', `${host!.offsetHeight}px`);
+		sync();
+		const ro = new ResizeObserver(sync);
+		ro.observe(host);
+		return () => {
+			ro.disconnect();
+			root.style.removeProperty('--ticker-h');
+		};
+	});
+
 </script>
 
-<div class="marquee" aria-hidden="true">
+<div class="marquee" aria-hidden="true" bind:this={host}>
 	<div class="track" bind:this={track} style="animation-duration: {duration}s">
 		<span class="pixel">{text}</span>
 		<span class="pixel">{text}</span>
@@ -57,15 +79,20 @@
 </div>
 
 <style>
+	/* Pinned to the top, under the dev badge when that is showing. */
 	.marquee {
-		order: 2;
+		position: fixed;
+		top: calc(env(safe-area-inset-top, 0px) + var(--dev-badge-h));
+		left: 0;
+		right: 0;
+		z-index: 29;
 		height: 28px;
 		display: flex;
 		align-items: center;
 		overflow: hidden;
 		background: var(--screen-deep);
-		border-top: 2px solid var(--cabinet-lo);
-		box-shadow: inset 0 2px 0 rgba(247, 239, 227, 0.06);
+		border-bottom: 2px solid var(--cabinet-lo);
+		box-shadow: inset 0 -2px 0 rgba(247, 239, 227, 0.06);
 	}
 	.track {
 		display: flex;
@@ -90,7 +117,6 @@
 
 	@media (min-width: 900px) {
 		.marquee {
-			order: 3;
 			height: 32px;
 		}
 		.track span {
