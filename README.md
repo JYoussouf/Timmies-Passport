@@ -10,6 +10,10 @@ passport stamps. Local-first, delightful, and mobile-first.
 > refer to their restaurants. Licences and attribution:
 > [DATA-LICENSES.md](DATA-LICENSES.md).
 
+
+https://github.com/user-attachments/assets/0837c37c-d428-432e-9ff9-6d50a84ed065
+
+
 ![The map screen: a retro arcade cabinet framing a dark tracker map of Canada, cup markers clustered by count, with a compass dial of nearby locations](docs/screenshot.png)
 
 <img width="1722" height="943" alt="image" src="https://github.com/user-attachments/assets/a0e0163f-9848-4906-a924-fb21f32a62db" />
