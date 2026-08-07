@@ -14,6 +14,7 @@
 	import CupIcon from './CupIcon.svelte';
 	import { gazetteer } from '$lib/stores/gazetteer.svelte';
 	import type { Place } from '$lib/types';
+	import { isTyping } from '$lib/keys';
 
 	export type Pick =
 		| { kind: 'store'; id: string }
@@ -27,6 +28,14 @@
 	let q = $state('');
 	let focused = $state(false);
 	let input = $state<HTMLInputElement>();
+
+	/* Shown on the shortcut hint. Mac says Cmd, everything else says Ctrl. */
+	let shortcutLabel = $state('Ctrl K');
+	$effect(() => {
+		if (navigator.platform?.startsWith('Mac') || /Mac/i.test(navigator.userAgent)) {
+			shortcutLabel = '\u2318 K';
+		}
+	});
 
 	const term = $derived(q.trim().toLowerCase());
 
@@ -86,6 +95,25 @@
 		q = '';
 		input?.blur();
 	}
+
+	/*
+	 * Cmd-K, or Ctrl-K away from a Mac. The convention people already have for
+	 * "search this app", and it costs a keystroke instead of a reach for the
+	 * pointer. Ignored while typing somewhere else, since a text field may
+	 * have its own use for it, and the browser's own Ctrl-K is superseded on
+	 * purpose - this page has a search box of its own.
+	 */
+	$effect(() => {
+		const onShortcut = (e: KeyboardEvent) => {
+			if (e.key !== 'k' || !(e.metaKey || e.ctrlKey) || e.altKey) return;
+			if (isTyping(e.target) && e.target !== input) return;
+			e.preventDefault();
+			input?.focus();
+			input?.select();
+		};
+		window.addEventListener('keydown', onShortcut);
+		return () => window.removeEventListener('keydown', onShortcut);
+	});
 
 	function onKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
@@ -193,6 +221,11 @@
 		{#if q}
 			<button class="clear" aria-label="Clear search" onclick={() => (q = '')}>×</button>
 		{:else}
+			<!-- A shortcut nobody knows about does not get used. Pointer devices
+			     only: there is no such key on a phone. -->
+			{#if !focused}
+				<kbd class="kbd pixel" aria-hidden="true">{shortcutLabel}</kbd>
+			{/if}
 			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
 				<path
 					d="M21 21l-4.3-4.3M11 19a8 8 0 110-16 8 8 0 010 16z"
@@ -207,6 +240,24 @@
 </div>
 
 <style>
+	/* Hidden wherever there is no keyboard to press it with. */
+	.kbd {
+		display: none;
+	}
+	@media (pointer: fine) {
+		.kbd {
+			display: inline-block;
+			flex: none;
+			margin-right: 0.5rem;
+			padding: 0.25rem 0.4rem;
+			font-size: 0.34rem;
+			line-height: 1;
+			color: var(--cream-faint);
+			background: rgba(247, 239, 227, 0.06);
+			border: 1px solid rgba(247, 239, 227, 0.14);
+		}
+	}
+
 	.dock {
 		order: 3;
 		position: relative;
