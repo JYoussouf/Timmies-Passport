@@ -34,29 +34,12 @@
 				<line x1="12" y1="6.5" x2="12" y2="10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 			</svg>
 			<!--
-				The pinching hand, filled rather than outlined. An outlined hand
-				turns to mush once it is small; a silhouette keeps its shape,
-				which is why every gesture icon set draws it this way. The two
-				discs are the contact points, held clear of the fingertips so
-				they read as taps rather than as part of the hand.
+				Joe's own drawing, recoloured to gold and keyed off its darkness
+				so the white fill and the checkerboard it was drawn on both drop
+				out. Line art rather than a silhouette, which is why it survives
+				at this size where an outlined hand of my own did not.
 			-->
-			<svg class="glyph pinch" viewBox="0 0 24 24" fill="currentColor">
-				<circle cx="10.6" cy="3" r="2.4" />
-				<circle cx="3.2" cy="9.1" r="2.4" />
-				<!-- Index, then two fingers behind it, then the palm they join. -->
-				<rect x="9.1" y="6.4" width="3" height="10" rx="1.5" />
-				<rect x="12.4" y="9" width="2.8" height="7.4" rx="1.4" />
-				<rect x="15.5" y="10.4" width="2.8" height="6" rx="1.4" />
-				<path d="M9.6 16.4h8.7v2.6a3.6 3.6 0 0 1-3.6 3.6h-3.2a5 5 0 0 1-3.5-1.5l-3.1-3.1a1.7 1.7 0 0 1 2.4-2.4z" />
-				<!-- The thumb, reaching its own contact point. -->
-				<path
-					d="M8.9 16.6L4.6 11.4"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="3.2"
-					stroke-linecap="round"
-				/>
-			</svg>
+			<img class="glyph pinch" src="/art/pinch-gesture.png" alt="" />
 		</div>
 		<span class="text pixel">Scroll or pinch to zoom</span>
 	</div>
@@ -88,6 +71,8 @@
 		inset: 0;
 		width: 100%;
 		height: 100%;
+		/* The hand is taller than it is wide; letterbox rather than squash. */
+		object-fit: contain;
 	}
 	.mouse {
 		animation: swap 4s ease-in-out infinite;
