@@ -13,6 +13,7 @@ export const GET: RequestHandler = async (event) => {
 	const empty = {
 		topLocations: [],
 		topCountries: [],
+		topProvinces: [],
 		topPlayers: [],
 		me: null,
 		totalCheckIns: 0,
@@ -22,7 +23,7 @@ export const GET: RequestHandler = async (event) => {
 
 	const user = event.locals.user;
 
-	const [topLoc, topCty, topPly, totals, collectors, myCount] = await db.batch([
+	const [topLoc, topCty, topProv, topPly, totals, collectors, myCount] = await db.batch([
 		db.prepare(
 			// Every store is named "Tim Hortons", so the address is what makes a
 			// leaderboard row identifiable.
@@ -30,13 +31,28 @@ export const GET: RequestHandler = async (event) => {
 			 FROM locations WHERE check_in_count > 0
 			 ORDER BY check_in_count DESC LIMIT 5`
 		),
+		/*
+		 * LEFT JOIN from locations rather than starting at visits, so a country
+		 * nobody has stamped yet still gets its row - a zero bar is an
+		 * invitation, an absent one looks like the country does not count.
+		 */
 		db.prepare(
 			`SELECT l.country_code, MAX(l.country) AS country,
-			        COUNT(DISTINCT v.location_id) AS visited,
-			        (SELECT COUNT(*) FROM locations l2 WHERE l2.country_code = l.country_code) AS total
-			 FROM visits v JOIN locations l ON l.id = v.location_id
+			        COUNT(DISTINCT l.id) AS total,
+			        COUNT(DISTINCT v.location_id) AS visited
+			 FROM locations l LEFT JOIN visits v ON v.location_id = l.id
 			 WHERE l.country_code != ''
-			 GROUP BY l.country_code ORDER BY visited DESC LIMIT 10`
+			 GROUP BY l.country_code
+			 ORDER BY visited DESC, total DESC`
+		),
+		db.prepare(
+			`SELECT l.region,
+			        COUNT(DISTINCT l.id) AS total,
+			        COUNT(DISTINCT v.location_id) AS visited
+			 FROM locations l LEFT JOIN visits v ON v.location_id = l.id
+			 WHERE l.country = 'Canada' AND l.region != ''
+			 GROUP BY l.region
+			 ORDER BY visited DESC, total DESC`
 		),
 		db.prepare(
 			`SELECT u.id, u.display_name, COUNT(*) AS count
@@ -85,6 +101,7 @@ export const GET: RequestHandler = async (event) => {
 	return json({
 		topLocations: topLoc.results ?? [],
 		topCountries: topCty.results ?? [],
+		topProvinces: topProv.results ?? [],
 		topPlayers,
 		me,
 		totalCheckIns: (totals.results?.[0] as { n: number })?.n ?? 0,

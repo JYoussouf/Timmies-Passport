@@ -38,6 +38,30 @@
 	 */
 	const meShown = $derived(!!auth.user && shownPlayers.some((p) => p.id === auth.user!.id));
 	const meRankedLower = $derived(!!data?.me && !meShown);
+
+	/**
+	 * Standard postal abbreviations, for the same little plate the country
+	 * rows put their ISO code on. The fallback trims to two letters so an
+	 * unexpected region name degrades to something plausible rather than
+	 * overflowing the plate.
+	 */
+	const PROVINCE_CODES: Record<string, string> = {
+		Alberta: 'AB',
+		'British Columbia': 'BC',
+		Manitoba: 'MB',
+		'New Brunswick': 'NB',
+		'Newfoundland and Labrador': 'NL',
+		'Northwest Territories': 'NT',
+		'Nova Scotia': 'NS',
+		Nunavut: 'NU',
+		Ontario: 'ON',
+		'Prince Edward Island': 'PE',
+		'Québec': 'QC',
+		Saskatchewan: 'SK',
+		Yukon: 'YT'
+	};
+	const provinceCode = (region: string) =>
+		PROVINCE_CODES[region] ?? region.slice(0, 2).toUpperCase();
 </script>
 
 <svelte:head><title>Leaderboard - {APP_NAME}</title></svelte:head>
@@ -50,7 +74,7 @@
 			<section class="totals">
 				<div class="stat">
 					<span class="n pixel">{data.totalCheckIns.toLocaleString()}</span>
-					<small>Total check-ins</small>
+					<small>Total stamps</small>
 				</div>
 				<div class="stat">
 					<span class="n pixel">{data.totalCollectors.toLocaleString()}</span>
@@ -83,7 +107,6 @@
 							</span>
 							<div class="info">
 								<strong>{p.display_name}</strong>
-								{#if auth.user?.id === p.id}<small>That's you!</small>{/if}
 							</div>
 							<span class="count pixel">{p.count.toLocaleString()}</span>
 						</li>
@@ -94,7 +117,6 @@
 							<span class="pos pixel">{String(data.me.rank).padStart(2, '0')}</span>
 							<div class="info">
 								<strong>{data.me.displayName}</strong>
-								<small>That's you!</small>
 							</div>
 							<span class="count pixel">{data.me.count.toLocaleString()}</span>
 						</li>
@@ -125,7 +147,7 @@
 				{/each}
 			</ul>
 
-			<h2 class="section-title">Country completion</h2>
+			<h2 class="section-title">Community progress</h2>
 			<ul class="rank">
 				{#each data.topCountries as c (c.country_code)}
 					<li class="country">
@@ -134,11 +156,31 @@
 							<strong>{c.country || c.country_code}</strong>
 							<div class="cbar" aria-hidden="true">
 								<span
+									class:zero={c.visited === 0}
 									style="width: {Math.min(100, (c.visited / Math.max(1, c.total)) * 100)}%"
 								></span>
 							</div>
 						</div>
 						<span class="count pixel">{c.visited}<small>/{c.total}</small></span>
+					</li>
+				{/each}
+			</ul>
+
+			<h3 class="section-sub">Canadian provinces</h3>
+			<ul class="rank">
+				{#each data.topProvinces as pr (pr.region)}
+					<li class="country">
+						<span class="cc pixel">{provinceCode(pr.region)}</span>
+						<div class="info">
+							<strong>{pr.region}</strong>
+							<div class="cbar" aria-hidden="true">
+								<span
+									class:zero={pr.visited === 0}
+									style="width: {Math.min(100, (pr.visited / Math.max(1, pr.total)) * 100)}%"
+								></span>
+							</div>
+						</div>
+						<span class="count pixel">{pr.visited}<small>/{pr.total}</small></span>
 					</li>
 				{/each}
 			</ul>
@@ -213,6 +255,15 @@
 		color: var(--gold);
 		margin: 0.4rem 0 -0.2rem;
 	}
+	/* A sub-heading inside Community progress, quieter than a section. */
+	.section-sub {
+		font-size: 0.45rem;
+		font-family: var(--font-pixel);
+		text-transform: uppercase;
+		letter-spacing: 0.02em;
+		color: var(--cream-dim);
+		margin: 0 0 -0.2rem;
+	}
 
 	.rank {
 		list-style: none;
@@ -266,10 +317,6 @@
 	 */
 	.rank li.me {
 		background: rgba(62, 217, 87, 0.1);
-		box-shadow: inset 3px 0 0 var(--green);
-	}
-	.rank li.me .info small {
-		color: var(--green);
 	}
 	/* A visible break, not just a border, so "pinned after a gap" reads as
 	   intentional rather than as a row that scrolled loose from the list. */
@@ -345,6 +392,12 @@
 		min-width: 3px;
 		background: var(--tim-red);
 		box-shadow: inset 0 2px 0 #f0555b;
+	}
+	/* The floor exists so a nonzero count is never invisible; zero must stay
+	   actually invisible, or every untouched country reads as started. */
+	.cbar span.zero {
+		min-width: 0;
+		box-shadow: none;
 	}
 	.count {
 		flex: none;
