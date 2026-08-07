@@ -138,8 +138,10 @@
 	 * for the cup underneath, so it should not claim ground the cup does not.
 	 * Above the card (41) and below the stepper's arrows (42), which ring it.
 	 */
+	/* Fixed for the same reason as the stepper's ring: --map-cx/cy are
+	   viewport coordinates. */
 	.closer {
-		position: absolute;
+		position: fixed;
 		left: var(--map-cx, 50%);
 		top: var(--map-cy, 50%);
 		width: 44px;

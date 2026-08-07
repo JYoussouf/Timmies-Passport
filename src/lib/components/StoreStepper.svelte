@@ -145,9 +145,13 @@
 	 * A zero-sized anchor on the cup. The map's centre is not the cabinet's -
 	 * the frame and the bottom dock take uneven bites out of it - so this uses
 	 * the measured value MapView publishes rather than 50%.
+	 *
+	 * Fixed, not absolute: those values are viewport coordinates, and an
+	 * absolute box inside the cabinet would resolve them against its padding
+	 * box instead, landing a frame's width off.
 	 */
 	.ring {
-		position: absolute;
+		position: fixed;
 		left: var(--map-cx, 50%);
 		top: var(--map-cy, 50%);
 		width: 0;
