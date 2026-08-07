@@ -1,0 +1,49 @@
+# Build and publish to Cloudflare Pages.
+#
+# Also callable from another workflow, which is how the monthly data refresh
+# ships its result: a push made with GITHUB_TOKEN deliberately does not trigger
+# further workflows, so the refresh has to ask for the deploy itself rather
+# than rely on its own commit setting one off.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    # Nothing here changes what is served.
+    paths-ignore:
+      - '**/*.md'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+  workflow_dispatch:
+  workflow_call:
+
+# A superseded deploy is wasted work, but never interrupt one mid-publish.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Cheap, and it means a type error fails here rather than in the browser.
+      - run: npm run check
+
+      - run: npm run build
+
+      - name: Publish
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy .svelte-kit/cloudflare --project-name=timmies-passport --branch=main

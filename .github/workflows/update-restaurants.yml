@@ -1,0 +1,82 @@
+# Monthly harvest: prune closures, add new stores, ship the result.
+#
+# The updater never deletes a location - a store that has gone is marked
+# closed, because stamps are keyed on the location id and deleting a row would
+# quietly empty part of somebody's passport. See update-restaurants.ts.
+name: Update restaurants
+
+on:
+  schedule:
+    # 07:00 UTC on the 1st. The brand's own locator refreshes weekly, so
+    # monthly is as fresh as the upstream data ever gets.
+    - cron: '0 7 1 * *'
+  workflow_dispatch:
+    inputs:
+      allow_shrink:
+        description: 'Accept a harvest more than 3% smaller than last time'
+        type: boolean
+        default: false
+
+concurrency:
+  group: update-restaurants
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    # Overpass is slow and the geocoder is deliberately rate-limited.
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # The updater is TypeScript run through --experimental-strip-types.
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Harvest
+        env:
+          # A big drop usually means a truncated Overpass response rather than
+          # 200 closures, so the script refuses it unless told otherwise.
+          ALLOW_SHRINK: ${{ inputs.allow_shrink && '1' || '' }}
+        run: npm run update:restaurants
+
+      - name: Commit the result
+        id: commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          # scripts/.geocache.json is committed on purpose: it is what keeps
+          # the next run from re-asking Nominatim about 5,000 addresses.
+          git add static/locations.json static/cities.json scripts/seed.sql scripts/.geocache.json
+          if git diff --cached --quiet; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'Nothing moved this month.'
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+            git commit -m 'chore(data): monthly harvest'
+            git push
+          fi
+
+      - name: Reload the remote locations table
+        if: steps.commit.outputs.changed == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 execute timmies-passport-db --remote --file=./scripts/seed.sql
+
+  # The push above is made with GITHUB_TOKEN, which by design does not trigger
+  # the deploy workflow, so ask for it directly.
+  deploy:
+    needs: harvest
+    if: needs.harvest.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

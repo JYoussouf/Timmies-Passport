@@ -51,7 +51,12 @@ npm run db:seed              # push the result to the remote D1
 The updater is [`update-restaurants.ts`](update-restaurants.ts), at the repo
 root because it is the one script you run by hand.
 
-Monthly is about right - the brand locator behind it refreshes weekly.
+It also runs itself: **Update restaurants** fires at 07:00 UTC on the 1st of
+each month, commits whatever moved, reloads the remote D1 table and redeploys.
+Monthly is as fresh as the upstream ever gets - the brand locator behind it
+refreshes weekly.
+Run it early from the Actions tab; the `allow_shrink` input is the
+`ALLOW_SHRINK=1` escape hatch for when a genuinely smaller harvest is correct.
 
 Two sources, each doing what it is good at. **OpenStreetMap** says where stores
 are and gives every record its stable id. **Tim Hortons' own store locator**,
@@ -93,6 +98,26 @@ flag clears. Visitors can flag a store from its card ("Report"), which files an
 issue from a text box with the id and coordinates already attached - no GitHub
 account needed. OpenStreetMap lags reality, so a human is often the first signal
 that a location is gone or misplaced.
+
+## CI
+
+Two workflows, both needing the same pair of repository secrets
+(**Settings -> Secrets and variables -> Actions**):
+
+| Secret | Where it comes from |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard -> My Profile -> API Tokens, template **Edit Cloudflare Workers**, scoped to this account |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard sidebar, or `npx wrangler whoami` |
+
+**Deploy** type-checks, builds and publishes on every push to `main`.
+**Update restaurants** does the monthly harvest described above.
+
+The refresh calls the deploy workflow rather than relying on its own commit to
+set one off: a push made with `GITHUB_TOKEN` deliberately does not trigger
+further workflows, which is what stops a workflow that commits from triggering
+itself forever.
+
+Deploying by hand still works and is unchanged:
 
 ## Deploy to Cloudflare
 
