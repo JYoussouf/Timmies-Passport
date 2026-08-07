@@ -29,12 +29,17 @@
 	let focused = $state(false);
 	let input = $state<HTMLInputElement>();
 
-	/* Shown on the shortcut hint. Mac says Cmd, everything else says Ctrl. */
-	let shortcutLabel = $state('Ctrl K');
+	/*
+	 * Shown on the shortcut hint. Mac says Cmd, everything else says Ctrl.
+	 *
+	 * Kept as its own span because the pixel font has no U+2318: the glyph
+	 * falls back to whatever the system has, at that font's idea of the size,
+	 * and lands noticeably smaller than the K beside it. Styling it separately
+	 * is the only way to match them.
+	 */
+	let isMac = $state(false);
 	$effect(() => {
-		if (navigator.platform?.startsWith('Mac') || /Mac/i.test(navigator.userAgent)) {
-			shortcutLabel = '\u2318 K';
-		}
+		isMac = navigator.platform?.startsWith('Mac') || /Mac/i.test(navigator.userAgent);
 	});
 
 	const term = $derived(q.trim().toLowerCase());
@@ -224,7 +229,9 @@
 			<!-- A shortcut nobody knows about does not get used. Pointer devices
 			     only: there is no such key on a phone. -->
 			{#if !focused}
-				<kbd class="kbd pixel" aria-hidden="true">{shortcutLabel}</kbd>
+				<kbd class="kbd pixel" aria-hidden="true">
+					<span class:sym={isMac}>{isMac ? '\u2318' : 'Ctrl'}</span>K
+				</kbd>
 			{/if}
 			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
 				<path
@@ -246,15 +253,29 @@
 	}
 	@media (pointer: fine) {
 		.kbd {
-			display: inline-block;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.4em;
 			flex: none;
 			margin-right: 0.5rem;
-			padding: 0.25rem 0.4rem;
-			font-size: 0.34rem;
+			padding: 0.38rem 0.6rem;
+			/* 1.5x the original 0.34rem. */
+			font-size: 0.51rem;
 			line-height: 1;
 			color: var(--cream-faint);
 			background: rgba(247, 239, 227, 0.06);
 			border: 1px solid rgba(247, 239, 227, 0.14);
+		}
+		/*
+		 * The command glyph, drawn by the system font. Scaled up and nudged so
+		 * its loops match the pixel K's cap height rather than sitting small
+		 * and low beside it.
+		 */
+		.sym {
+			font-family: var(--font-sans);
+			font-size: 1.45em;
+			line-height: 1;
+			transform: translateY(0.06em);
 		}
 	}
 
