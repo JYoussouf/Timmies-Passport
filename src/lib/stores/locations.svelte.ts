@@ -15,6 +15,19 @@ class LocationStore {
 		return this.collection?.features.length ?? 0;
 	}
 
+	/**
+	 * How many countries have a Timmies at all - the denominator the passport
+	 * counts against. Derived from the shipped data rather than hardcoded, so
+	 * it follows the monthly harvest into and out of new markets.
+	 */
+	get countryTotal(): number {
+		const seen = new Set<string>();
+		for (const f of this.collection?.features ?? []) {
+			if (f.properties.country) seen.add(f.properties.country);
+		}
+		return seen.size;
+	}
+
 	async load() {
 		if (this.collection || this.loading) return;
 		this.loading = true;

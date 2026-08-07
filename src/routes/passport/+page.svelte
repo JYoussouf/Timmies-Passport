@@ -36,6 +36,7 @@
 	}
 
 	const countries = $derived(passport.countriesVisited.size);
+	const countryTotal = $derived(locations.countryTotal);
 	const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
 	function share() {
@@ -80,7 +81,7 @@
 
 			<p class="line">
 				<strong>{pct}%</strong> of the world's Timmies, across
-				{plural(countries, 'country', 'countries')}.
+				<strong>{countries}</strong> out of {countryTotal} countries.
 			</p>
 
 			<button class="pbtn pbtn-gold share" onclick={share}>Share my passport</button>
