@@ -113,7 +113,7 @@
 		<div class="dock-left"><ZoomHint done={hasZoomed} /></div>
 
 		<div class="rail">
-			<SearchDock onpick={goTo} />
+			<SearchDock onpick={goTo} {center} />
 			<div class="dock-right">
 				<Compass
 					{center}

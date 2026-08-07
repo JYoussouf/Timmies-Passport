@@ -4,16 +4,21 @@
 	 *
 	 * It is a real input rather than a button that launches an overlay: focus
 	 * pops the dock open, suggestions grow above it as you type, and picking one
-	 * collapses it. Capping at three keeps the map visible - the point is to
-	 * jump somewhere, not to browse a directory.
+	 * collapses it. The list shows three rows and scrolls to the rest - up to
+	 * ten - rather than growing tall enough to bury the map.
+	 *
+	 * Four tiers, tried in order, each one only consulted when the ones before
+	 * it found nothing: a city with stores, a store itself, a city with none
+	 * (the gazetteer), then a street name with neither. Only when all four
+	 * come up empty does it say so.
 	 */
 	import { locations } from '$lib/stores/locations.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
 	import { locationLabel, locationPlace } from '$lib/location';
 	import CupIcon from './CupIcon.svelte';
-	import { gazetteer } from '$lib/stores/gazetteer.svelte';
-	import type { Place } from '$lib/types';
+	import { gazetteer, type GazetteerPlace } from '$lib/stores/gazetteer.svelte';
+	import type { LocationProps, Place } from '$lib/types';
 	import { isTyping } from '$lib/keys';
 
 	export type Pick =
@@ -21,13 +26,27 @@
 		| { kind: 'place'; bounds: [number, number, number, number] }
 		| { kind: 'point'; center: [number, number] };
 
-	let { onpick }: { onpick: (p: Pick) => void } = $props();
+	interface StreetHit {
+		name: string;
+		context: string;
+		bounds: [number, number, number, number];
+	}
 
-	const LIMIT = 3;
+	let {
+		onpick,
+		center
+	}: { onpick: (p: Pick) => void; center?: { lng: number; lat: number } } = $props();
+
+	/* Total suggestions kept for scrolling; the box itself shows about three. */
+	const LIMIT = 10;
+	/* Cities crowd out stores past this - "Toronto" should not fill the list
+	   with every city that has the word in it before a single store appears. */
+	const PLACE_CAP = 4;
 
 	let q = $state('');
 	let focused = $state(false);
 	let input = $state<HTMLInputElement>();
+	let listEl = $state<HTMLUListElement>();
 
 	/*
 	 * Shown on the shortcut hint. Mac says Cmd, everything else says Ctrl.
@@ -61,19 +80,20 @@
 				const sb = b.name.toLowerCase().startsWith(term) ? 0 : 1;
 				return sa - sb || b.count - a.count;
 			})
-			.slice(0, 2);
+			.slice(0, PLACE_CAP);
 	});
 
 	const storeHits = $derived.by(() => {
 		if (term.length < 2) return [];
 		const room = LIMIT - placeHits.length;
 		if (room <= 0) return [];
-		const out = [];
+		const out: LocationProps[] = [];
 		for (const p of locations.all()) {
 			// Match the map: a hidden closure should not be reachable from search
 			// either, or you land on a card with no cup under it.
 			if (p.closed && !settings.showClosed && !passport.isVisited(p.id)) continue;
-			const hay = `${p.name} ${p.address} ${p.venue ?? ''} ${p.city} ${p.region} ${p.country}`.toLowerCase();
+			const hay =
+				`${p.name} ${p.address} ${p.venue ?? ''} ${p.city} ${p.region} ${p.country}`.toLowerCase();
 			if (hay.includes(term)) {
 				out.push(p);
 				if (out.length >= room) break;
@@ -82,11 +102,6 @@
 		return out;
 	});
 
-	/**
-	 * Only consulted when nothing in the dataset matched. A place with stores is
-	 * always the better answer; this is the difference between "no results" and
-	 * "here is Pittsburgh, see for yourself".
-	 */
 	/**
 	 * Every word, anywhere, in any order - tried only when the phrase itself
 	 * matched nothing.
@@ -97,22 +112,26 @@
 	 * outrank an exact phrase, so it stays a fallback.
 	 */
 	const looseHits = $derived.by(() => {
-		if (placeHits.length + storeHits.length > 0) return { places: [] as Place[], stores: [] };
+		if (placeHits.length + storeHits.length > 0) return { places: [] as Place[], stores: [] as LocationProps[] };
 		const words = term.split(/\s+/).filter((w) => w.length >= 2);
-		if (words.length < 2) return { places: [] as Place[], stores: [] };
+		if (words.length < 2) return { places: [] as Place[], stores: [] as LocationProps[] };
 		const hit = (hay: string) => words.every((w) => hay.includes(w));
 
 		const places = locations.places
 			.filter((p) => hit(`${p.name} ${p.context}`.toLowerCase()))
 			.sort((a, b) => b.count - a.count)
-			.slice(0, 2);
+			.slice(0, PLACE_CAP);
 
-		const stores = [];
+		const stores: LocationProps[] = [];
 		const room = LIMIT - places.length;
 		if (room > 0) {
 			for (const p of locations.all()) {
 				if (p.closed && !settings.showClosed && !passport.isVisited(p.id)) continue;
-				if (hit(`${p.name} ${p.address} ${p.venue ?? ''} ${p.city} ${p.region} ${p.country}`.toLowerCase())) {
+				if (
+					hit(
+						`${p.name} ${p.address} ${p.venue ?? ''} ${p.city} ${p.region} ${p.country}`.toLowerCase()
+					)
+				) {
 					stores.push(p);
 					if (stores.length >= room) break;
 				}
@@ -125,13 +144,116 @@
 	const shownPlaces = $derived(placeHits.length ? placeHits : looseHits.places);
 	const shownStores = $derived(storeHits.length ? storeHits : looseHits.stores);
 
+	/**
+	 * Cities with no Timmies of their own - Pittsburgh, whose nearest stores
+	 * are in the suburbs. Tried only once the dataset itself has nothing,
+	 * because a place that actually holds a store is always the better answer.
+	 */
 	const gazetteerHits = $derived(
-		shownPlaces.length + shownStores.length > 0 ? [] : gazetteer.search(term)
+		shownPlaces.length + shownStores.length > 0 ? [] : gazetteer.search(term, LIMIT)
 	);
 
-	const hasResults = $derived(shownPlaces.length + shownStores.length + gazetteerHits.length > 0);
+	/**
+	 * A street name, fetched from the proxy - the last tier, and the only one
+	 * that leaves the browser. Only asked for once nothing else has matched,
+	 * only after typing has paused, and only for a term long enough to be a
+	 * real query: Nominatim's usage policy asks for exactly this restraint,
+	 * not a request fired on every keystroke.
+	 */
+	let streetHits = $state<StreetHit[]>([]);
+	let streetPending = $state(false);
+	/**
+	 * The term a street fetch last actually finished for - as opposed to
+	 * merely qualifying for one. `wantsStreet` alone stays true for as long as
+	 * the term qualifies, request or no, so using it directly in `settling`
+	 * left the box saying "Looking for…" forever once a search came back
+	 * empty. Comparing against this instead means settling ends exactly when
+	 * this term's attempt does, one way or the other.
+	 */
+	let streetDoneFor = $state<string | null>(null);
+	const wantsStreet = $derived(
+		shownPlaces.length + shownStores.length + gazetteerHits.length === 0 && term.length >= 4
+	);
 
+	$effect(() => {
+		if (!wantsStreet) {
+			streetHits = [];
+			streetPending = false;
+			return;
+		}
+		const query = term;
+		streetPending = false; // still waiting out the debounce, not yet in flight
+		const controller = new AbortController();
+		const timer = setTimeout(async () => {
+			streetPending = true;
+			try {
+				const near = center ? `&near=${center.lng},${center.lat}` : '';
+				const res = await fetch(
+					`/api/geocode?q=${encodeURIComponent(query)}${near}`,
+					{ signal: controller.signal }
+				);
+				const data = res.ok ? ((await res.json()) as { hits: StreetHit[] }) : { hits: [] };
+				if (query === term) {
+					streetHits = data.hits;
+					streetDoneFor = query;
+				}
+			} catch (err) {
+				/* An abort means a newer query is already taking over - that one
+				   marks itself done, not this one. Anything else (offline, a
+				   proxy error) is a real end for this term: say so, so the box
+				   does not sit on "Looking for…" forever. */
+				if ((err as Error).name !== 'AbortError' && query === term) streetDoneFor = query;
+			} finally {
+				if (query === term) streetPending = false;
+			}
+		}, 500);
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
+	});
+
+	/**
+	 * One flat list, in tier order, for the box to render and the keyboard to
+	 * walk. Each entry keeps enough of its source to be chosen from either.
+	 */
+	type Hit =
+		| { kind: 'place'; key: string; place: Place }
+		| { kind: 'store'; key: string; store: LocationProps }
+		| { kind: 'gazetteer'; key: string; place: GazetteerPlace }
+		| { kind: 'street'; key: string; street: StreetHit };
+
+	const allHits = $derived<Hit[]>([
+		...shownPlaces.map((place): Hit => ({ kind: 'place', key: `p:${place.key}`, place })),
+		...shownStores.map((store): Hit => ({ kind: 'store', key: `s:${store.id}`, store })),
+		...gazetteerHits.map(
+			(place): Hit => ({ kind: 'gazetteer', key: `g:${place.name}:${place.context}`, place })
+		),
+		...streetHits.map(
+			(street): Hit => ({ kind: 'street', key: `r:${street.name}:${street.context}`, street })
+		)
+	]);
+
+	const hasResults = $derived(allHits.length > 0);
 	const open = $derived(focused && term.length >= 2);
+	/* True while the box is showing a tier that might still fill in. */
+	const settling = $derived(!hasResults && wantsStreet && streetDoneFor !== term);
+
+	let activeIndex = $state(0);
+	/* A fresh result set starts highlighted at the top, every time. */
+	$effect(() => {
+		void allHits;
+		activeIndex = 0;
+	});
+
+	function pickOf(hit: Hit): Pick {
+		if (hit.kind === 'place') return { kind: 'place', bounds: hit.place.bounds };
+		if (hit.kind === 'store') return { kind: 'store', id: hit.store.id };
+		if (hit.kind === 'gazetteer') return { kind: 'point', center: [hit.place.lng, hit.place.lat] };
+		// A street's bounding box covers its full mapped length, same as a
+		// city's does over its stores - fitBounds already knows how to frame it.
+		return { kind: 'place', bounds: hit.street.bounds };
+	}
 
 	function choose(p: Pick) {
 		onpick(p);
@@ -158,91 +280,113 @@
 		return () => window.removeEventListener('keydown', onShortcut);
 	});
 
+	/* Keeps the highlighted row on screen as the arrows move past row three. */
+	$effect(() => {
+		const i = activeIndex;
+		listEl
+			?.querySelector<HTMLElement>(`[data-index="${i}"]`)
+			?.scrollIntoView({ block: 'nearest' });
+	});
+
 	function onKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
 			q = '';
 			input?.blur();
+			return;
+		}
+		if (!open || !allHits.length) return;
+
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			activeIndex = (activeIndex + 1) % allHits.length;
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			activeIndex = (activeIndex - 1 + allHits.length) % allHits.length;
 		} else if (e.key === 'Enter') {
-			// Enter takes the top suggestion, which is the city when one matched.
-			if (shownPlaces.length) choose({ kind: 'place', bounds: shownPlaces[0].bounds });
-			else if (shownStores.length) choose({ kind: 'store', id: shownStores[0].id });
+			e.preventDefault();
+			choose(pickOf(allHits[activeIndex] ?? allHits[0]));
 		}
 	}
 </script>
 
 <div class="dock">
 	{#if open}
-		<ul class="suggestions">
-			{#each shownPlaces as p (p.key)}
-				<li>
+		<ul class="suggestions" id="search-suggestions" bind:this={listEl} role="listbox">
+			{#each allHits as hit, i (hit.key)}
+				<li role="option" aria-selected={i === activeIndex}>
 					<!-- pointerdown is swallowed so the input never loses focus
 					     before the click lands. -->
 					<button
+						class:active={i === activeIndex}
+						data-index={i}
 						onpointerdown={(e) => e.preventDefault()}
-						onclick={() => choose({ kind: 'place', bounds: p.bounds })}
+						onpointerenter={() => (activeIndex = i)}
+						onclick={() => choose(pickOf(hit))}
 					>
-						<svg class="place" viewBox="0 0 24 24" aria-hidden="true">
-							<path
-								d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
+						{#if hit.kind === 'place'}
+							<svg class="place" viewBox="0 0 24 24" aria-hidden="true">
+								<path
+									d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								/>
+								<circle cx="12" cy="10" r="2.4" fill="currentColor" />
+							</svg>
+							<span class="info">
+								<strong>{hit.place.name}</strong>
+								<small>{hit.place.context}</small>
+							</span>
+							<span class="count pixel">{hit.place.count}</span>
+						{:else if hit.kind === 'store'}
+							<CupIcon
+								height={26}
+								collected={passport.isVisited(hit.store.id)}
+								closed={!!hit.store.closed}
 							/>
-							<circle cx="12" cy="10" r="2.4" fill="currentColor" />
-						</svg>
-						<span class="info">
-							<strong>{p.name}</strong>
-							<small>{p.context}</small>
-						</span>
-						<span class="count pixel">{p.count}</span>
-					</button>
-				</li>
-			{/each}
-
-			{#each shownStores as r (r.id)}
-				<li>
-					<button
-						onpointerdown={(e) => e.preventDefault()}
-						onclick={() => choose({ kind: 'store', id: r.id })}
-					>
-						<CupIcon
-							height={26}
-							collected={passport.isVisited(r.id)}
-							closed={!!r.closed}
-						/>
-						<span class="info">
-							<strong>{locationLabel(r)}</strong>
-							<small>{locationPlace(r) || r.name}</small>
-						</span>
-					</button>
-				</li>
-			{/each}
-
-			{#each gazetteerHits as g (g.name + g.context)}
-				<li>
-					<button
-						onpointerdown={(e) => e.preventDefault()}
-						onclick={() => choose({ kind: 'point', center: [g.lng, g.lat] })}
-					>
-						<svg class="place faint" viewBox="0 0 24 24" aria-hidden="true">
-							<path
-								d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-							/>
-						</svg>
-						<span class="info">
-							<strong>{g.name}</strong>
-							<small>{g.context}</small>
-						</span>
-						<span class="count pixel">no timmies</span>
+							<span class="info">
+								<strong>{locationLabel(hit.store)}</strong>
+								<small>{locationPlace(hit.store) || hit.store.name}</small>
+							</span>
+						{:else if hit.kind === 'gazetteer'}
+							<svg class="place faint" viewBox="0 0 24 24" aria-hidden="true">
+								<path
+									d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								/>
+							</svg>
+							<span class="info">
+								<strong>{hit.place.name}</strong>
+								<small>{hit.place.context}</small>
+							</span>
+							<span class="count pixel">no timmies</span>
+						{:else}
+							<svg class="place faint" viewBox="0 0 24 24" aria-hidden="true">
+								<path
+									d="M4 19h16M6 19V9l6-5 6 5v10M10 19v-6h4v6"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="square"
+									stroke-linejoin="round"
+								/>
+							</svg>
+							<span class="info">
+								<strong>{hit.street.name}</strong>
+								<small>{hit.street.context}</small>
+							</span>
+							<span class="count pixel">street</span>
+						{/if}
 					</button>
 				</li>
 			{/each}
 
 			{#if !hasResults}
-				<li class="none">Nothing matches “{q}”.</li>
+				<li class="none">
+					{settling ? `Looking for “${q}”…` : `Nothing matches “${q}”.`}
+				</li>
 			{/if}
 		</ul>
 	{/if}
@@ -252,7 +396,7 @@
 		<input
 			bind:this={input}
 			bind:value={q}
-				onfocus={() => {
+			onfocus={() => {
 				focused = true;
 				gazetteer.load();
 			}}
@@ -260,6 +404,10 @@
 			onkeydown={onKeydown}
 			placeholder="Search {locations.total ? locations.total.toLocaleString() : ''} Timmies"
 			aria-label="Search Tim Hortons locations"
+			role="combobox"
+			aria-expanded={open}
+			aria-controls="search-suggestions"
+			aria-autocomplete="list"
 		/>
 		{#if q}
 			<button class="clear" aria-label="Clear search" onclick={() => (q = '')}>×</button>
@@ -268,7 +416,7 @@
 			     only: there is no such key on a phone. -->
 			{#if !focused}
 				<kbd class="kbd pixel" aria-hidden="true">
-					<span class:sym={isMac}>{isMac ? '\u2318' : 'Ctrl'}</span>K
+					<span class:sym={isMac}>{isMac ? '⌘' : 'Ctrl'}</span>K
 				</kbd>
 			{/if}
 			<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -383,12 +531,19 @@
 		color: var(--cream);
 	}
 
-	/* Grows upward out of the stack rather than pushing the bar down. */
+	/*
+	 * Grows upward out of the stack rather than pushing the bar down. Capped at
+	 * roughly three rows and scrollable past that - ten results is a list
+	 * worth having, but not one that should stand between the search box and
+	 * the map behind it.
+	 */
 	.suggestions {
 		position: absolute;
 		bottom: 100%;
 		left: 0;
 		right: 0;
+		max-height: 172px;
+		overflow-y: auto;
 		list-style: none;
 		margin: 0;
 		padding: 0;
@@ -417,7 +572,8 @@
 	.suggestions li:last-child button {
 		border-bottom: none;
 	}
-	.suggestions li button:hover {
+	.suggestions li button:hover,
+	.suggestions li button.active {
 		background: var(--cabinet-hi);
 	}
 	.place {

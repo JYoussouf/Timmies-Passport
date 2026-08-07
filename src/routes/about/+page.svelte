@@ -32,7 +32,7 @@
 		{
 			name: 'Nominatim',
 			href: 'https://nominatim.org/',
-			used: 'addresses missing from OSM',
+			used: 'addresses missing from OSM, and street search',
 			licence: 'ODbL 1.0'
 		},
 		{
