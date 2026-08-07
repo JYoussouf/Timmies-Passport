@@ -28,10 +28,18 @@
 {#if ready && !done}
 	<div class="hint" role="status" transition:fade={{ duration: 260 }}>
 		<div class="glyphs" aria-hidden="true">
-			<!-- A mouse, wheel picked out in the middle. -->
+			<!--
+				A mouse, wheel picked out in the middle. Its stroke is set to
+				land at the same width on screen as the drawn hand's - 0.84 in
+				a 24-unit box against the hand's 0.98 css px in a 28px one. The
+				hand is fine line art and cannot be thickened to meet a chunky
+				outline without its fingers merging, so the outline came down
+				to meet it instead. Both scale with the glyph box, so they stay
+				matched at the smaller desktop size too.
+			-->
 			<svg class="glyph mouse" viewBox="0 0 24 24">
-				<rect x="7" y="2.5" width="10" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="2" />
-				<line x1="12" y1="6.5" x2="12" y2="10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+				<rect x="7" y="2.5" width="10" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="0.84" />
+				<line x1="12" y1="6.5" x2="12" y2="10.5" stroke="currentColor" stroke-width="0.84" stroke-linecap="round" />
 			</svg>
 			<!--
 				Joe's own drawing, recoloured to gold and keyed off its darkness
