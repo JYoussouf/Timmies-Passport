@@ -164,6 +164,9 @@
 				<div class="titles">
 					<h2 class="pixel">{locationLabel(loc)}</h2>
 					<p class="addr">{locationPlace(loc) || loc.name}</p>
+					{#if loc.venue}
+						<p class="venue">{loc.venue}</p>
+					{/if}
 					{#if closed}
 						<p class="closed pixel">Permanently closed</p>
 					{/if}
@@ -331,6 +334,11 @@
 		color: var(--cream);
 	}
 
+	.venue {
+		margin: 0.2rem 0 0;
+		font-size: 0.85rem;
+		color: var(--gold);
+	}
 	.closed {
 		margin: 0.45rem 0 0;
 		font-size: 0.42rem;

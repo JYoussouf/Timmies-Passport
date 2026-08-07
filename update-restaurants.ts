@@ -54,6 +54,9 @@ type OverpassElement = {
 	lon?: number;
 	center?: { lat: number; lon: number };
 	tags?: Record<string, string>;
+	/* Present only on `out geom` responses, which the airport query uses. */
+	geometry?: { lat: number; lon: number }[];
+	members?: { role?: string; geometry?: { lat: number; lon: number }[] }[];
 };
 
 type Loc = {
@@ -73,6 +76,15 @@ type Loc = {
 	 * world changed.
 	 */
 	closed: boolean;
+	/**
+	 * The airport this store stands inside, when it stands inside one.
+	 *
+	 * Terminal stores carry addresses like "Terminal 1 Departures" in whatever
+	 * municipality the runway happens to sit in - Pearson's are filed under
+	 * Mississauga - so neither the airport's name nor its city appears
+	 * anywhere in the record. Searching for one is hopeless without this.
+	 */
+	venue?: string;
 };
 
 // --- Offline reverse-geocoding via Natural Earth boundaries ----------------
@@ -282,6 +294,87 @@ async function fillMissingAddresses(locs: Loc[]) {
  * coordinates we already have.
  */
 const OVERPASS_CACHE = resolve(SCRIPTS, '.overpass.json');
+const AIRPORT_CACHE = resolve(SCRIPTS, '.airports.json');
+
+/**
+ * Airports, so a store inside one can say so.
+ *
+ * Only aerodromes carrying an IATA code: that is the difference between the
+ * few thousand airports a person might fly through and the twenty thousand
+ * airstrips they would not, and it keeps the download to something a monthly
+ * job can justify.
+ */
+type AirportRing = { name: string; box: [number, number, number, number]; ring: Ring };
+
+async function fetchAirportRings(): Promise<AirportRing[]> {
+	try {
+		return JSON.parse(await readFile(AIRPORT_CACHE, 'utf-8')) as AirportRing[];
+	} catch {
+		/* not cached yet */
+	}
+
+	const query = `[out:json][timeout:180];(way["aeroway"="aerodrome"]["iata"]["name"];relation["aeroway"="aerodrome"]["iata"]["name"];);out geom;`;
+	/* Same form encoding the harvest uses; a raw body earns a 406. */
+	const res = await fetch(ENDPOINTS[0], {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+			Accept: 'application/json',
+			'User-Agent': 'TimmiesPassport/0.1 (location harvester; contact: dev@timmiespassport.app)'
+		},
+		body: 'data=' + encodeURIComponent(query)
+	});
+	if (!res.ok) throw new Error(`Overpass ${res.status}`);
+	const data = (await res.json()) as { elements: OverpassElement[] };
+
+	const rings: AirportRing[] = [];
+	for (const el of data.elements) {
+		const name = el.tags?.name;
+		if (!name) continue;
+		/* A way is one ring; a relation is its outer ways, each taken alone. */
+		const parts =
+			el.type === 'way'
+				? [el.geometry]
+				: (el.members ?? [])
+						.filter((m) => m.role === 'outer' || m.role === '')
+						.map((m) => m.geometry);
+		for (const part of parts) {
+			if (!part || part.length < 4) continue;
+			const ring = part.map((pt) => [pt.lon, pt.lat] as [number, number]) as Ring;
+			const xs = ring.map((r) => r[0]);
+			const ys = ring.map((r) => r[1]);
+			rings.push({
+				name,
+				box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)],
+				ring
+			});
+		}
+	}
+	await writeFile(AIRPORT_CACHE, JSON.stringify(rings), 'utf-8');
+	return rings;
+}
+
+async function applyAirports(locs: Loc[]): Promise<void> {
+	let rings: AirportRing[];
+	try {
+		rings = await fetchAirportRings();
+	} catch (err) {
+		console.warn(`! airports skipped (${(err as Error).message})`);
+		return;
+	}
+
+	let tagged = 0;
+	for (const l of locs) {
+		for (const a of rings) {
+			if (l.lng < a.box[0] || l.lng > a.box[2] || l.lat < a.box[1] || l.lat > a.box[3]) continue;
+			if (!pointInRing(l.lng, l.lat, a.ring)) continue;
+			l.venue = a.name;
+			tagged++;
+			break;
+		}
+	}
+	console.log(`✓ ${tagged} stores sit inside an airport`);
+}
 
 async function readOverpassCache(): Promise<OverpassElement[] | null> {
 	try {
@@ -861,6 +954,7 @@ async function main() {
 
 	// Last, so a hand correction survives deduping and the brand check.
 	await applyOverrides(locs);
+	await applyAirports(locs);
 
 	// GeoJSON for the map
 	const geojson = {
@@ -878,7 +972,8 @@ async function main() {
 				region: l.region,
 				country: l.country,
 				country_code: l.country_code,
-				// Omitted when false, which keeps the payload small.
+				// Both omitted when empty, which keeps the payload small.
+				...(l.venue ? { venue: l.venue } : {}),
 				...(l.closed ? { closed: true } : {})
 			}
 		}))

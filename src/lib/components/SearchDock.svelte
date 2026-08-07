@@ -73,7 +73,7 @@
 			// Match the map: a hidden closure should not be reachable from search
 			// either, or you land on a card with no cup under it.
 			if (p.closed && !settings.showClosed && !passport.isVisited(p.id)) continue;
-			const hay = `${p.name} ${p.address} ${p.city} ${p.region} ${p.country}`.toLowerCase();
+			const hay = `${p.name} ${p.address} ${p.venue ?? ''} ${p.city} ${p.region} ${p.country}`.toLowerCase();
 			if (hay.includes(term)) {
 				out.push(p);
 				if (out.length >= room) break;
@@ -112,7 +112,7 @@
 		if (room > 0) {
 			for (const p of locations.all()) {
 				if (p.closed && !settings.showClosed && !passport.isVisited(p.id)) continue;
-				if (hit(`${p.name} ${p.address} ${p.city} ${p.region} ${p.country}`.toLowerCase())) {
+				if (hit(`${p.name} ${p.address} ${p.venue ?? ''} ${p.city} ${p.region} ${p.country}`.toLowerCase())) {
 					stores.push(p);
 					if (stores.length >= room) break;
 				}

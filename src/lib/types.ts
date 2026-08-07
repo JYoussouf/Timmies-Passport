@@ -8,6 +8,13 @@ export interface LocationProps {
 	country_code: string;
 	/** Tombstoned: gone from OSM or retagged as disused. Never deleted. */
 	closed?: boolean;
+	/**
+	 * The airport this store stands inside, when it stands inside one. A
+	 * terminal store's address says "Terminal 1 Departures" in whichever
+	 * municipality the runway sits in, so this is the only thing that connects
+	 * it to the airport people would search for.
+	 */
+	venue?: string;
 }
 
 /** A searchable place - a city or a region - aggregated from its locations. */
