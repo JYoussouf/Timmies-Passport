@@ -90,21 +90,33 @@
 		/* The hand is taller than it is wide; letterbox rather than squash. */
 		object-fit: contain;
 	}
+	/*
+	 * Both glyphs run the same animation, offset by half its period, so each
+	 * one's fade-out lands exactly on the other's fade-in. The earlier version
+	 * played one copy in reverse instead, which mirrored the keyframes' one
+	 * flaw: they faded 1 to 0 mid-cycle but jumped from 0 back to 1 at the
+	 * loop boundary, so the mouse-to-pinch handoff cross-faded while the
+	 * pinch-to-mouse one snapped. These keyframes fade in both directions and
+	 * end where they begin, so there is no boundary left to jump at.
+	 */
 	.mouse {
 		animation: swap 4s ease-in-out infinite;
 	}
 	.pinch {
-		animation: swap 4s ease-in-out infinite reverse;
+		animation: swap 4s ease-in-out infinite;
+		animation-delay: -2s;
 	}
-	/* Each is opaque for its half of the cycle, with a short cross-fade. */
 	@keyframes swap {
 		0%,
-		42% {
+		38% {
 			opacity: 1;
 		}
-		58%,
-		100% {
+		50%,
+		88% {
 			opacity: 0;
+		}
+		100% {
+			opacity: 1;
 		}
 	}
 
@@ -126,10 +138,12 @@
 		}
 	}
 
+	/* No swap at all: a static mouse icon. `animation: none` rather than a
+	   zero duration, which interacts badly with the pinch's negative delay. */
 	@media (prefers-reduced-motion: reduce) {
 		.mouse,
 		.pinch {
-			animation-duration: 0s;
+			animation: none;
 		}
 		.pinch {
 			opacity: 0;
