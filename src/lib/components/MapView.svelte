@@ -84,7 +84,15 @@
 			// A tighter radius and a lower ceiling mean individual cups appear
 			// much earlier: past zoom 9 you are looking at stores, not tallies.
 			clusterRadius: 38,
-			clusterMaxZoom: 9
+			clusterMaxZoom: 9,
+			/*
+			 * How many of the stores under a cluster are already collected.
+			 * `visited` is 0 or 1 per feature, so the sum is the count, and
+			 * comparing it to point_count tells the cluster whether it is
+			 * finished. Recomputed by MapLibre whenever the data is set, which
+			 * is what a check-in does.
+			 */
+			clusterProperties: { visited: ['+', ['get', 'visited']] }
 		});
 
 		// Clusters are the same cup, scaled up with the count printed on the
@@ -96,7 +104,17 @@
 			source: SRC,
 			filter: ['has', 'point_count'],
 			layout: {
-				'icon-image': 'pin-unstamped',
+				/*
+				 * Green only when every store beneath it is collected. Anything
+				 * left to do reads as red, so a cluster never suggests an area
+				 * is finished while one cup is still outstanding.
+				 */
+				'icon-image': [
+					'case',
+					['==', ['get', 'visited'], ['get', 'point_count']],
+					'pin-stamped',
+					'pin-unstamped'
+				],
 				// The body is half the sprite's width, so the cup has to be scaled
 				// generously for a four-character count like "1.8k" to fit inside it.
 				'icon-size': ['step', ['get', 'point_count'], 0.9, 25, 1.3, 150, 1.8],
