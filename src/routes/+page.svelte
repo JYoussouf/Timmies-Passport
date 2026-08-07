@@ -119,7 +119,10 @@
 					{center}
 					{locating}
 					onlocate={toggleLocate}
-					onglobal={() => mapView?.resetView()}
+					onglobal={() => {
+				ui.select(null);
+				mapView?.resetView();
+			}}
 					onzoomin={() => mapView?.zoomIn()}
 					onzoomout={() => mapView?.zoomOut()}
 				/>
@@ -137,8 +140,8 @@
 	 */
 	.closer {
 		position: absolute;
-		left: 50%;
-		top: 50%;
+		left: var(--map-cx, 50%);
+		top: var(--map-cy, 50%);
 		width: 44px;
 		height: 44px;
 		margin: -22px;

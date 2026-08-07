@@ -140,6 +140,34 @@ class LocationStore {
 	 * is worth this far from the equator; over the distance between two stores
 	 * that is accurate enough to rank them.
 	 */
+	/**
+	 * The closest store to a point, in any direction. Longitude is scaled by
+	 * the latitude's cosine so "closest" means closest on the ground rather
+	 * than closest in degrees, which would skew badly this far north.
+	 */
+	nearestTo(
+		from: [number, number],
+		allow: (p: LocationProps) => boolean = () => true
+	): string | undefined {
+		void this.collection;
+		const [lng, lat] = from;
+		const kx = Math.cos((lat * Math.PI) / 180);
+		let best: string | undefined;
+		let bestDist = Infinity;
+
+		for (const [id, [x, y]] of this.coords) {
+			const dx = (x - lng) * kx;
+			const dy = y - lat;
+			const dist = dx * dx + dy * dy;
+			if (dist >= bestDist) continue;
+			const props = this.index.get(id);
+			if (!props || !allow(props)) continue;
+			best = id;
+			bestDist = dist;
+		}
+		return best;
+	}
+
 	nearestToward(
 		from: [number, number],
 		heading: number,

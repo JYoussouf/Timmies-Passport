@@ -542,14 +542,69 @@
 		});
 
 		const releaseKeys = bindArrowPanning(map);
+		const releaseCentre = publishMapCentre(map);
 
 		return () => {
 			clearInterval(blinkTimer);
 			stopLocating();
 			releaseKeys();
+			releaseCentre();
 			map?.remove();
 		};
 	});
+
+	/**
+	 * Select whatever store is closest to the middle of the screen and centre
+	 * it, keeping the zoom you were browsing at. A hidden closure is skipped,
+	 * for the same reason the arrows skip it: landing on a card with no cup
+	 * under it explains nothing.
+	 */
+	function snapToNearest() {
+		if (!map) return;
+		const c = map.getCenter();
+		const id = locations.nearestTo(
+			[c.lng, c.lat],
+			(p) => !p.closed || settings.showClosed || passport.isVisited(p.id)
+		);
+		if (!id) return;
+		const coords = locations.coordsOf(id);
+		if (!coords) return;
+		haptic(8);
+		ui.select(id);
+		stepTo(coords);
+	}
+
+	/**
+	 * Publish where the map's centre actually is, in viewport pixels.
+	 *
+	 * A selected store sits there, so everything that has to line up with it -
+	 * the stepper's arrows, the zoom-closer hotspot, the ceiling on how tall
+	 * the card may grow before it would cover the cup - needs the number.
+	 *
+	 * It is not the middle of the window, and it is not the middle of the
+	 * cabinet either: the frame and the bottom dock take their own bites, and
+	 * they differ between phone and desktop. Measuring the canvas is the only
+	 * way to be right on both.
+	 */
+	function publishMapCentre(m: maplibregl.Map): () => void {
+		const root = document.documentElement;
+		const canvas = m.getCanvas();
+		const sync = () => {
+			const r = canvas.getBoundingClientRect();
+			root.style.setProperty('--map-cx', `${Math.round(r.left + r.width / 2)}px`);
+			root.style.setProperty('--map-cy', `${Math.round(r.top + r.height / 2)}px`);
+		};
+		sync();
+		const ro = new ResizeObserver(sync);
+		ro.observe(canvas);
+		window.addEventListener('resize', sync);
+		return () => {
+			ro.disconnect();
+			window.removeEventListener('resize', sync);
+			root.style.removeProperty('--map-cx');
+			root.style.removeProperty('--map-cy');
+		};
+	}
 
 	/**
 	 * Hold an arrow key to glide across the map.
@@ -563,6 +618,10 @@
 	 * Arrows belong to whatever is most specific: a text field first, then a
 	 * selected store, where they step to the neighbouring one. The map only
 	 * takes them when nothing else wants them.
+	 *
+	 * Escape drops the selection, and space snaps to whichever store is
+	 * nearest the middle of the screen - the one you were already looking at,
+	 * at whatever zoom you happen to be at.
 	 */
 	function bindArrowPanning(m: maplibregl.Map): () => void {
 		const KEYS: Record<string, [number, number]> = {
@@ -590,8 +649,23 @@
 		};
 
 		const onDown = (e: KeyboardEvent) => {
-			if (!(e.key in KEYS) || !isPlainKey(e)) return;
-			if (isTyping(e.target) || ui.selectedId) return;
+			if (!isPlainKey(e) || isTyping(e.target)) return;
+
+			if (e.key === 'Escape') {
+				if (!ui.selectedId) return;
+				e.preventDefault();
+				ui.select(null);
+				return;
+			}
+
+			/* Space is a page-scroll by default, so it has to be claimed. */
+			if (e.key === ' ' || e.code === 'Space') {
+				e.preventDefault();
+				snapToNearest();
+				return;
+			}
+
+			if (!(e.key in KEYS) || ui.selectedId) return;
 			e.preventDefault();
 			held.add(e.key);
 			if (frame === undefined) frame = requestAnimationFrame(step);
