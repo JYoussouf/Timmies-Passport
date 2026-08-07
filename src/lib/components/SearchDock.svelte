@@ -87,11 +87,49 @@
 	 * always the better answer; this is the difference between "no results" and
 	 * "here is Pittsburgh, see for yourself".
 	 */
+	/**
+	 * Every word, anywhere, in any order - tried only when the phrase itself
+	 * matched nothing.
+	 *
+	 * "airport saskatoon" is two facts about one store rather than a string
+	 * any record contains, and a plain substring test cannot see it. Running
+	 * this first would be worse, though: it would let a loose scatter of words
+	 * outrank an exact phrase, so it stays a fallback.
+	 */
+	const looseHits = $derived.by(() => {
+		if (placeHits.length + storeHits.length > 0) return { places: [] as Place[], stores: [] };
+		const words = term.split(/\s+/).filter((w) => w.length >= 2);
+		if (words.length < 2) return { places: [] as Place[], stores: [] };
+		const hit = (hay: string) => words.every((w) => hay.includes(w));
+
+		const places = locations.places
+			.filter((p) => hit(`${p.name} ${p.context}`.toLowerCase()))
+			.sort((a, b) => b.count - a.count)
+			.slice(0, 2);
+
+		const stores = [];
+		const room = LIMIT - places.length;
+		if (room > 0) {
+			for (const p of locations.all()) {
+				if (p.closed && !settings.showClosed && !passport.isVisited(p.id)) continue;
+				if (hit(`${p.name} ${p.address} ${p.city} ${p.region} ${p.country}`.toLowerCase())) {
+					stores.push(p);
+					if (stores.length >= room) break;
+				}
+			}
+		}
+		return { places, stores };
+	});
+
+	/* What the list actually renders: the phrase match, or the loose one. */
+	const shownPlaces = $derived(placeHits.length ? placeHits : looseHits.places);
+	const shownStores = $derived(storeHits.length ? storeHits : looseHits.stores);
+
 	const gazetteerHits = $derived(
-		placeHits.length + storeHits.length > 0 ? [] : gazetteer.search(term)
+		shownPlaces.length + shownStores.length > 0 ? [] : gazetteer.search(term)
 	);
 
-	const hasResults = $derived(placeHits.length + storeHits.length + gazetteerHits.length > 0);
+	const hasResults = $derived(shownPlaces.length + shownStores.length + gazetteerHits.length > 0);
 
 	const open = $derived(focused && term.length >= 2);
 
@@ -126,8 +164,8 @@
 			input?.blur();
 		} else if (e.key === 'Enter') {
 			// Enter takes the top suggestion, which is the city when one matched.
-			if (placeHits.length) choose({ kind: 'place', bounds: placeHits[0].bounds });
-			else if (storeHits.length) choose({ kind: 'store', id: storeHits[0].id });
+			if (shownPlaces.length) choose({ kind: 'place', bounds: shownPlaces[0].bounds });
+			else if (shownStores.length) choose({ kind: 'store', id: shownStores[0].id });
 		}
 	}
 </script>
@@ -135,7 +173,7 @@
 <div class="dock">
 	{#if open}
 		<ul class="suggestions">
-			{#each placeHits as p (p.key)}
+			{#each shownPlaces as p (p.key)}
 				<li>
 					<!-- pointerdown is swallowed so the input never loses focus
 					     before the click lands. -->
@@ -161,7 +199,7 @@
 				</li>
 			{/each}
 
-			{#each storeHits as r (r.id)}
+			{#each shownStores as r (r.id)}
 				<li>
 					<button
 						onpointerdown={(e) => e.preventDefault()}
