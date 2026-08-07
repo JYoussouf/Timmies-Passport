@@ -5,6 +5,7 @@
 	import { confettiBurst, haptic } from '$lib/effects';
 	import { locationLabel, locationPlace } from '$lib/location';
 	import { report } from '$lib/stores/report.svelte';
+	import { fetchLocationStats } from '$lib/api';
 	import { env } from '$env/dynamic/public';
 
 	const loc = $derived(ui.selectedId ? locations.get(ui.selectedId) : undefined);
@@ -13,6 +14,24 @@
 	let stamping = $state(false);
 	let btnEl = $state<HTMLButtonElement>();
 	let streetOpen = $state(false);
+
+	/**
+	 * How many other passports have this one - a global, authenticated count,
+	 * fetched fresh per store since it changes as other people check in and is
+	 * cheap enough not to bother caching. Zero and "cloud backend not
+	 * configured" look identical from here, which is correct: neither is
+	 * something worth telling a visitor about, so the line just does not
+	 * appear.
+	 */
+	let checkInCount = $state(0);
+	$effect(() => {
+		const id = ui.selectedId;
+		checkInCount = 0;
+		if (!id) return;
+		fetchLocationStats(id).then((stats) => {
+			if (ui.selectedId === id) checkInCount = stats?.checkInCount ?? 0;
+		});
+	});
 
 	/**
 	 * Street View, through the Maps Embed API.
@@ -81,6 +100,12 @@
 	function onCheckIn() {
 		if (!ui.selectedId) return;
 		const becameVisited = passport.toggle(ui.selectedId);
+		/*
+		 * Only when signed in: an anonymous check-in never reaches the global
+		 * count on the server either, so bumping it here would make this card
+		 * claim something the next visitor's card would quietly contradict.
+		 */
+		if (passport.cloud) checkInCount = Math.max(0, checkInCount + (becameVisited ? 1 : -1));
 		if (becameVisited) {
 			stamping = true;
 			haptic([12, 30, 60]);
@@ -169,6 +194,11 @@
 					{/if}
 					{#if closed}
 						<p class="closed pixel">Permanently closed</p>
+					{:else if checkInCount > 0}
+						<p class="stamped-by">
+							{checkInCount.toLocaleString()}
+							{checkInCount === 1 ? 'person has' : 'people have'} stamped here
+						</p>
 					{/if}
 				</div>
 			</header>
@@ -338,6 +368,11 @@
 		margin: 0.2rem 0 0;
 		font-size: 0.85rem;
 		color: var(--gold);
+	}
+	.stamped-by {
+		margin: 0.35rem 0 0;
+		font-size: 0.78rem;
+		color: var(--cream-dim);
 	}
 	.closed {
 		margin: 0.45rem 0 0;

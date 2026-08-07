@@ -33,6 +33,9 @@ export interface LeaderboardData {
 		count: number;
 	}[];
 	topCountries: { country_code: string; country: string; visited: number; total: number }[];
+	topPlayers: { id: string; display_name: string; count: number }[];
+	/** The signed-in visitor's own standing, even when it falls outside topPlayers. */
+	me: { rank: number; count: number; displayName: string } | null;
 	totalCheckIns: number;
 	totalCollectors: number;
 }
