@@ -30,22 +30,23 @@
 		<div class="glyphs" aria-hidden="true">
 			<!--
 				A mouse, wheel picked out in the middle. Its stroke is set to
-				land at the same width on screen as the drawn hand's - 0.84 in
-				a 24-unit box against the hand's 0.98 css px in a 28px one. The
-				hand is fine line art and cannot be thickened to meet a chunky
-				outline without its fingers merging, so the outline came down
-				to meet it instead. Both scale with the glyph box, so they stay
-				matched at the smaller desktop size too.
+				land at the same width on screen as the drawn hand's - 1.35 in
+				a 24-unit box against the hand's measured 2.25 css px in a 40px
+				one. Both scale with the glyph box, so they stay matched at the
+				smaller desktop size too.
 			-->
 			<svg class="glyph mouse" viewBox="0 0 24 24">
-				<rect x="7" y="2.5" width="10" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="0.84" />
-				<line x1="12" y1="6.5" x2="12" y2="10.5" stroke="currentColor" stroke-width="0.84" stroke-linecap="round" />
+				<rect x="7" y="2.5" width="10" height="19" rx="5" fill="none" stroke="currentColor" stroke-width="1.35" />
+				<line x1="12" y1="6.5" x2="12" y2="10.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" />
 			</svg>
 			<!--
 				Joe's own drawing, recoloured to gold and keyed off its darkness
 				so the white fill and the checkerboard it was drawn on both drop
 				out. Line art rather than a silhouette, which is why it survives
-				at this size where an outlined hand of my own did not.
+				shrunk down - but the two touch rings are each a tight double
+				curve, and that detail needs real screen space to stay two
+				circles rather than blur into one. The glyph box is sized for
+				that, not just for legibility of the hand as a whole.
 			-->
 			<img class="glyph pinch" src="/art/pinch-gesture.png" alt="" />
 		</div>
@@ -66,12 +67,19 @@
 		border: 2px solid rgba(247, 239, 227, 0.14);
 	}
 
-	/* One box, two glyphs stacked in it, so the swap does not shift the text. */
+	/*
+	 * One box, two glyphs stacked in it, so the swap does not shift the text.
+	 * Sized for the hand, not the mouse: the drawing's two touch rings are
+	 * each a tight nested curve, and at the old 28px they blurred into one -
+	 * the mistake that prompted this. Verified at true device pixel density,
+	 * not a magnified screenshot, which is what hid the problem the first
+	 * time.
+	 */
 	.glyphs {
 		position: relative;
 		flex: none;
-		width: 28px;
-		height: 28px;
+		width: 40px;
+		height: 40px;
 		color: var(--gold);
 	}
 	.glyph {
@@ -101,9 +109,21 @@
 	}
 
 	.text {
-		font-size: 0.34rem;
+		font-size: 0.4rem;
 		line-height: 1.6;
 		white-space: nowrap;
+	}
+
+	/* Desktop sits further from the eye but on a sharper display; the rings
+	   hold up at a smaller box there than they do on a typical phone. */
+	@media (min-width: 900px) {
+		.glyphs {
+			width: 30px;
+			height: 30px;
+		}
+		.text {
+			font-size: 0.32rem;
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
