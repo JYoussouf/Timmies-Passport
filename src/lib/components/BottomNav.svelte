@@ -62,8 +62,12 @@
 		display: flex;
 		justify-content: center;
 		/* Symmetric gutters: the left one holds support, the right keeps the
-		   tabs centred against it. */
-		padding: 0 52px;
+		   tabs centred against it. The bottom inset lives HERE, inside the
+		   painted bar, not on the transparent dock that wraps it: a
+		   home-screen launch runs standalone with a 34px home-indicator
+		   inset, and padding on the see-through dock opened a strip of bare
+		   map under a floating footer. */
+		padding: 0 52px var(--safe-bottom);
 		background: var(--cabinet);
 		border-top: 3px solid var(--cabinet-hi);
 		box-shadow: 0 -3px 0 var(--cabinet-lo);

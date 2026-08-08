@@ -250,7 +250,6 @@
 		right: 0;
 		bottom: 0;
 		z-index: 35;
-		padding-bottom: var(--safe-bottom);
 	}
 	.body {
 		max-width: 620px;

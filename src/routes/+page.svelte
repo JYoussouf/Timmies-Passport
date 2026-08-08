@@ -169,7 +169,6 @@
 		z-index: 30;
 		display: flex;
 		flex-direction: column;
-		padding-bottom: var(--safe-bottom);
 	}
 
 	/*
