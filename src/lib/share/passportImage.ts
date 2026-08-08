@@ -97,8 +97,15 @@ async function renderPanel(
 			layout: {
 				'icon-image': 'pin-unstamped',
 				'icon-size': 1.15,
-				'icon-allow-overlap': true
-			}
+				'icon-allow-overlap': true,
+				// A lone stamp is a count of one, and wears it like the clusters do.
+				'text-field': '1',
+				'text-font': ['Montserrat Bold', 'Open Sans Bold'],
+				'text-size': 13,
+				'text-offset': [0, 0.3],
+				'text-allow-overlap': true
+			},
+			paint: { 'text-color': '#150d0a' }
 		});
 
 		// fitBounds at construction can settle before every tile has painted.
