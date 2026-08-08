@@ -419,10 +419,18 @@ export async function shareTo(network: ShareNetwork, blob: Blob | null): Promise
 			return true;
 		} catch (err) {
 			// Backing out of the sheet is not a failure.
-			if ((err as Error)?.name !== 'AbortError') {
-				ui.toast({ emoji: '⚠️', title: 'Could not share', body: 'Try again in a moment.' });
-			}
-			return false;
+			if ((err as Error)?.name === 'AbortError') return false;
+			/*
+			 * The sheet refused - some iOS versions do this in situations the
+			 * capability checks cannot see. Say which error it was (a toast a
+			 * screenshot can carry to a bug report), then fall through to the
+			 * download path below so the tap still produces the image.
+			 */
+			ui.toast({
+				emoji: '⚠️',
+				title: 'Share sheet failed',
+				body: `${(err as Error)?.name || 'Unknown error'} - saving the image instead.`
+			});
 		}
 	}
 
