@@ -10,6 +10,15 @@ function hasHouseNumber(address: string): boolean {
 }
 
 /**
+ * OSM occasionally records the store's own name as its street ("Tim
+ * Horton's"), and passing that through produced "Tim Hortons on Tim
+ * Horton's". An address that is just the brand name is no address.
+ */
+function isBrandEcho(s: string): boolean {
+	return /^tim\s*horton'?s?$/i.test(s.trim());
+}
+
+/**
  * How a Tim Hortons is named in a list.
  *
  * Every store shares the name "Tim Hortons", so the name alone produces a wall
@@ -20,8 +29,9 @@ function hasHouseNumber(address: string): boolean {
 export function locationLabel(p: LocationProps | undefined): string {
 	if (!p) return 'Tim Hortons';
 	const name = p.name || 'Tim Hortons';
-	if (p.address && hasHouseNumber(p.address)) return p.address;
-	if (p.address) return `${name} on ${p.address}`;
+	const address = p.address && !isBrandEcho(p.address) ? p.address : '';
+	if (address && hasHouseNumber(address)) return address;
+	if (address) return `${name} on ${address}`;
 	if (p.city) return `${name}, ${p.city}`;
 	return name;
 }

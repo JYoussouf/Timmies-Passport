@@ -468,7 +468,7 @@ function normalize(el: OverpassElement): Loc | null {
 	// fall through progressively coarser tags rather than giving up: a branch
 	// name ("Yonge & Eglinton") still tells a human which store this is.
 	const street = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
-	const address =
+	const rawAddress =
 		street ||
 		t['addr:full'] ||
 		t['addr:street'] ||
@@ -476,6 +476,10 @@ function normalize(el: OverpassElement): Loc | null {
 		t['branch'] ||
 		t['addr:neighbourhood'] ||
 		'';
+	// Some mappers put the store's own name in the street tag; "Tim Horton's"
+	// is not an address, and downstream it produced "Tim Hortons on Tim
+	// Horton's". Dropped here so the geocoder backfills a real one.
+	const address = /^tim\s*horton'?s?$/i.test(rawAddress.trim()) ? '' : rawAddress;
 
 	return {
 		id: `${el.type[0]}${el.id}`,
