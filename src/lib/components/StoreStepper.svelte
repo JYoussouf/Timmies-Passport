@@ -103,10 +103,17 @@
 	 * The check-in card and this ring share the space around the cup, and the
 	 * ring paints on top. Rather than yielding wholesale (the old behaviour,
 	 * which left the arrows permanently hidden once street view started opening
-	 * by default), each arrow is measured against the card and only the ones
-	 * that would actually sit on it step aside. Keyboard steps keep working
-	 * for a hidden arrow - the direction still exists, just not the button.
+	 * by default), each arrow is measured against the card. The up arrow -
+	 * the one the card actually reaches - slides down to sit just beneath it;
+	 * the others, and an up arrow with nowhere left to go before the cup,
+	 * step aside instead. Keyboard steps keep working for a hidden arrow -
+	 * the direction still exists, just not the button.
+	 *
+	 * Geometry comes from the ring anchor and the CSS vars, never from the
+	 * buttons' current rects: a slid arrow no longer collides, and measuring
+	 * it where it is would clear the slide and oscillate.
 	 */
+	let ringEl = $state<HTMLElement>();
 	let btnEls: Partial<Record<DirKey, HTMLButtonElement>> = $state({});
 	let covered = $state<Record<DirKey, boolean>>({
 		up: false,
@@ -114,25 +121,61 @@
 		left: false,
 		right: false
 	});
+	let upTop = $state<number | null>(null);
 
 	$effect(() => {
 		void ui.selectedId;
 		if (!here) return;
 		const measure = () => {
+			const ring = ringEl;
+			const sample = btnEls.up ?? btnEls.down;
+			if (!ring || !sample) return;
 			const card = document.querySelector('[data-checkin-card]');
 			const cr = card?.getBoundingClientRect();
-			const next = { up: false, down: false, left: false, right: false };
-			for (const d of DIRECTIONS) {
-				const el = btnEls[d.key];
-				if (!el || !cr) continue;
-				const r = el.getBoundingClientRect();
-				next[d.key] =
-					r.left < cr.right + 4 &&
-					r.right > cr.left - 4 &&
-					r.top < cr.bottom + 4 &&
-					r.bottom > cr.top - 4;
+			const cs = getComputedStyle(sample);
+			const size = parseFloat(cs.getPropertyValue('--size'));
+			const radius = parseFloat(cs.getPropertyValue('--radius'));
+			const anchor = ring.getBoundingClientRect();
+			const cx = anchor.left;
+			const cy = anchor.top;
+			const centres: Record<DirKey, [number, number]> = {
+				up: [cx, cy - radius],
+				down: [cx, cy + radius],
+				left: [cx - radius, cy],
+				right: [cx + radius, cy]
+			};
+			const collides = ([x, y]: [number, number]) =>
+				!!cr &&
+				x - size / 2 < cr.right + 4 &&
+				x + size / 2 > cr.left - 4 &&
+				y - size / 2 < cr.bottom + 4 &&
+				y + size / 2 > cr.top - 4;
+			const next = {
+				up: false,
+				down: collides(centres.down),
+				left: collides(centres.left),
+				right: collides(centres.right)
+			};
+			let nextUpTop: number | null = null;
+			if (collides(centres.up) && cr) {
+				/*
+				 * Centre the arrow in the band between the card and the cup
+				 * (whose selection brackets reach about 26px above centre).
+				 * A band tighter than the arrow splits the shortfall between
+				 * the card's bottom frame and the cup's lid, which reads far
+				 * better than sitting squarely on either; a band with no room
+				 * at all means the card is over the cup and the arrow hides.
+				 */
+				const bandTop = cr.bottom;
+				const bandBottom = cy - 26;
+				if (bandBottom - bandTop < 12) {
+					next.up = true;
+				} else {
+					nextUpTop = (bandTop + bandBottom) / 2 - cy;
+				}
 			}
 			covered = next;
+			upTop = nextUpTop;
 		};
 		// The card settles over a couple of frames (mount, then measured growth).
 		let raf = requestAnimationFrame(() => {
@@ -152,13 +195,14 @@
 
 {#if here && !ui.stamping}
 	<div class="stepper" aria-label="Jump to the nearest store in a direction">
-		<div class="ring">
+		<div class="ring" bind:this={ringEl}>
 			{#each DIRECTIONS as d (d.key)}
 				{@const target = targets[d.key]}
 				<button
 					bind:this={btnEls[d.key]}
 					class="btn {d.key}"
 					class:covered={covered[d.key]}
+					style={d.key === 'up' && upTop !== null ? `top: ${upTop}px;` : ''}
 					aria-label={d.label}
 					title={d.label}
 					disabled={!target}
