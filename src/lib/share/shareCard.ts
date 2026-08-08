@@ -150,7 +150,7 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 
 		<text
 			x="55"
-			y="880"
+			y="865"
 			font-family="Arial">
 			<tspan
 				fill="#f1b83e"
@@ -161,12 +161,23 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 				fill="#f4e7cf"
 				opacity=".6"
 				font-size="32"
-				font-weight="700">/ ${s.total.toLocaleString()} Tim Hortons</tspan>
+				font-weight="700">/ ${s.total.toLocaleString()}</tspan>
+		</text>
+
+		<text
+			x="55"
+			y="905"
+			fill="#f4e7cf"
+			opacity=".6"
+			font-family="Arial"
+			font-size="26"
+			font-weight="700">
+			Timmies in the world
 		</text>
 
 
 		<!-- SIDE BARS: countries and provinces, small cousins of the big bar -->
-		<g transform="translate(970 762)">
+		<g transform="translate(645 762)">
 			<text
 				x="0"
 				y="0"
@@ -179,7 +190,7 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 				COUNTRIES
 			</text>
 			<text
-				x="375"
+				x="700"
 				y="0"
 				text-anchor="end"
 				fill="#f1b83e"
@@ -191,7 +202,7 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 			<rect
 				x="0"
 				y="14"
-				width="375"
+				width="700"
 				height="12"
 				rx="6"
 				fill="#f4e7cf"
@@ -199,13 +210,13 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 			<rect
 				x="0"
 				y="14"
-				width="${375 * Math.max(0.015, Math.min(1, s.countries / Math.max(1, s.countryTotal)))}"
+				width="${700 * Math.max(0.015, Math.min(1, s.countries / Math.max(1, s.countryTotal)))}"
 				height="12"
 				rx="6"
 				fill="url(#bar)"/>
 		</g>
 
-		<g transform="translate(970 838)">
+		<g transform="translate(645 838)">
 			<text
 				x="0"
 				y="0"
@@ -218,7 +229,7 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 				PROVINCES
 			</text>
 			<text
-				x="375"
+				x="700"
 				y="0"
 				text-anchor="end"
 				fill="#f1b83e"
@@ -230,7 +241,7 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 			<rect
 				x="0"
 				y="14"
-				width="375"
+				width="700"
 				height="12"
 				rx="6"
 				fill="#f4e7cf"
@@ -238,7 +249,7 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 			<rect
 				x="0"
 				y="14"
-				width="${375 * Math.max(0.015, Math.min(1, s.provinces / Math.max(1, s.provinceTotal)))}"
+				width="${700 * Math.max(0.015, Math.min(1, s.provinces / Math.max(1, s.provinceTotal)))}"
 				height="12"
 				rx="6"
 				fill="url(#bar)"/>
