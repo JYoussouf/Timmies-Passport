@@ -384,6 +384,71 @@
 		shareModal.close();
 	}
 
+	function openPopup(url: string) {
+		window.open(url, '_blank', 'noopener,noreferrer,width=680,height=640');
+	}
+
+	/**
+	 * Explicit per-network share targets. Networks with a web intent get a
+	 * popup; image-first networks with no web API (Instagram) get the native
+	 * share sheet when the browser offers one, and a download plus a copied
+	 * caption when it does not - the image and the words both still arrive,
+	 * just via the visitor's hands.
+	 */
+	async function shareTo(network: 'instagram' | 'facebook' | 'snapchat' | 'x' | 'save') {
+		if (network === 'x') {
+			openPopup(`https://x.com/intent/post?text=${encodeURIComponent(shareText)}`);
+			return;
+		}
+		if (network === 'facebook') {
+			// The sharer takes a URL only; the site's OG card supplies the image.
+			openPopup(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}`);
+			return;
+		}
+		if (network === 'snapchat') {
+			openPopup(`https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(SITE_URL)}`);
+			return;
+		}
+		if (network === 'save') {
+			if (blob) {
+				downloadBlob(blob);
+				ui.toast({ emoji: '💾', title: 'Image saved', body: 'Your passport is in your downloads.' });
+			}
+			return;
+		}
+		// Instagram.
+		sharing = true;
+		try {
+			if (blob) {
+				const file = new File([blob], 'my-timmies-passport.png', { type: 'image/png' });
+				if (
+					typeof navigator.share === 'function' &&
+					typeof navigator.canShare === 'function' &&
+					navigator.canShare({ files: [file] })
+				) {
+					try {
+						await navigator.share({ files: [file], title: APP_NAME, text: shareText });
+						shareModal.close();
+					} catch (err) {
+						if ((err as Error)?.name !== 'AbortError') throw err;
+					}
+					return;
+				}
+				downloadBlob(blob);
+			}
+			await navigator.clipboard?.writeText(shareText);
+			ui.toast({
+				emoji: '📸',
+				title: 'Ready for Instagram',
+				body: 'Image saved and caption copied - post it from the app.'
+			});
+		} catch {
+			ui.toast({ emoji: '⚠️', title: 'Could not share', body: 'Try again in a moment.' });
+		} finally {
+			sharing = false;
+		}
+	}
+
 	async function shareIt() {
 		sharing = true;
 		const canShare = typeof navigator.share === 'function';
@@ -469,14 +534,36 @@
 					alt="My Timmies Passport journey map"
 				/>
 
-				<button
-					class="pbtn pbtn-gold go"
-					onclick={shareIt}
-					disabled={sharing}
-					transition:fade={{ duration: 150 }}
-				>
-					{sharing ? 'Sharing…' : 'Share this passport'}
-				</button>
+				<div class="nets" transition:fade={{ duration: 150 }}>
+					<button class="net" aria-label="Share to Instagram" title="Instagram" onclick={() => shareTo('instagram')} disabled={sharing}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+							<rect x="3" y="3" width="18" height="18" rx="5"/>
+							<circle cx="12" cy="12" r="4.2"/>
+							<circle cx="17.4" cy="6.6" r="0.4" fill="currentColor" stroke="none"/>
+						</svg>
+					</button>
+					<button class="net" aria-label="Share to Facebook" title="Facebook" onclick={() => shareTo('facebook')}>
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M13.4 21v-7.1h2.6l.5-3.1h-3.1V8.9c0-.9.3-1.6 1.7-1.6h1.5V4.5c-.3 0-1.3-.1-2.4-.1-2.4 0-4.1 1.5-4.1 4.1v2.3H7.5v3.1h2.6V21z"/>
+						</svg>
+					</button>
+					<button class="net" aria-label="Share to Snapchat" title="Snapchat" onclick={() => shareTo('snapchat')}>
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M12.2.8c1 0 4.35.28 5.93 3.82.53 1.2.4 3.22.3 4.85v.06c-.02.18-.03.34-.04.5.08.05.21.09.4.09.3-.02.66-.12 1.04-.3.16-.09.34-.1.46-.1.18 0 .36.03.51.09.45.15.73.48.73.84.02.45-.39.84-1.21 1.17-.09.03-.21.07-.34.12-.45.13-1.14.36-1.34.8-.09.23-.06.53.12.87l.02.02c.06.13 1.52 3.47 4.79 4.01.25.05.43.27.42.51 0 .08-.02.15-.05.23-.24.57-1.27.99-3.14 1.27-.06.09-.12.37-.17.57-.03.18-.07.36-.13.55-.08.27-.27.4-.55.4h-.03c-.14 0-.31-.03-.54-.07-.36-.08-.77-.14-1.27-.14-.3 0-.6.02-.91.08-.6.1-1.13.46-1.73.88-.85.6-1.82 1.29-3.29 1.29-.06 0-.12-.01-.18-.01h-.15c-1.47 0-2.43-.68-3.28-1.29-.6-.42-1.1-.78-1.7-.88-.32-.05-.63-.08-.93-.08-.54 0-.96.09-1.27.15-.21.04-.4.07-.54.07-.38 0-.53-.22-.59-.42-.06-.19-.09-.39-.13-.57-.05-.18-.11-.49-.17-.57-1.92-.22-2.95-.64-3.19-1.22-.03-.07-.05-.15-.05-.23-.02-.24.16-.46.42-.51 3.26-.54 4.73-3.88 4.79-4.02l.02-.03c.18-.34.22-.64.12-.87-.2-.43-.88-.66-1.33-.8-.12-.03-.24-.08-.35-.12-1.1-.44-1.26-.93-1.2-1.27.09-.48.68-.8 1.17-.8.15 0 .27.03.38.08.42.19.79.3 1.1.3.24 0 .39-.06.47-.11l-.05-.57c-.1-1.62-.22-3.65.31-4.83C7.4 1.08 10.74.81 11.73.81l.42-.01z"/>
+						</svg>
+					</button>
+					<button class="net" aria-label="Share to X" title="X" onclick={() => shareTo('x')}>
+						<svg viewBox="0 0 24 24" fill="currentColor">
+							<path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/>
+						</svg>
+					</button>
+					<button class="net" aria-label="Save image" title="Save image" onclick={() => shareTo('save')}>
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M12 3.5v10.5m0 0l-4.2-4.2M12 14l4.2-4.2"/>
+							<path d="M4 16.5v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
+						</svg>
+					</button>
+				</div>
 			{/if}
 		</div>
 	</div>
@@ -558,17 +645,62 @@
 	}
 
 
-	.go {
+	/* Quiet until wanted: each network chip is translucent over the artwork
+	   and only commits to full presence on hover, focus or press. */
+	.nets {
 		position: absolute;
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
 
-		padding: 0.95rem 1.5rem;
+		display: flex;
+		gap: 0.7rem;
+	}
 
-		font-size: 0.6rem;
+	.net {
+		width: 52px;
+		height: 52px;
 
-		box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+		display: grid;
+		place-items: center;
+
+		color: var(--cream);
+
+		background: rgba(16, 23, 34, 0.78);
+
+		border-radius: 50%;
+
+		opacity: 0.45;
+
+		transition:
+			opacity 0.15s ease,
+			transform 0.15s ease;
+	}
+
+	.net:hover,
+	.net:focus-visible,
+	.net:active {
+		opacity: 1;
+		transform: scale(1.08);
+	}
+
+	.net:disabled {
+		opacity: 0.25;
+	}
+
+	.net svg {
+		width: 24px;
+		height: 24px;
+	}
+
+	@media (max-width: 480px) {
+		.nets {
+			gap: 0.45rem;
+		}
+		.net {
+			width: 46px;
+			height: 46px;
+		}
 	}
 
 
