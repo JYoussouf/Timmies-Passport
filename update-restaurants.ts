@@ -250,12 +250,17 @@ async function reverseGeocode(lat: number, lng: number): Promise<Fix> {
 	};
 }
 
-async function fillMissingAddresses(locs: Loc[]) {
+async function fillMissingAddresses(locs: Loc[], upgradeRoadOnly = false) {
 	let cache: Record<string, Fix> = {};
 	try {
 		cache = JSON.parse(await readFile(GEO_CACHE, 'utf-8'));
 	} catch {
 		/* first run */
+	}
+
+	// A record whose address is the store's own name has no address at all.
+	for (const l of locs) {
+		if (/^tim\s*horton'?s?$/i.test(l.address.trim())) l.address = '';
 	}
 
 	/*
@@ -264,10 +269,20 @@ async function fillMissingAddresses(locs: Loc[]) {
 	 * used to skip this queue entirely, which left 525 of them reading like
 	 * "9 Maidstone Avenue, Ontario" - a road and a province with a whole town
 	 * missing between them.
+	 *
+	 * The upgrade pass additionally queues road-only addresses ("Stackhouse
+	 * Road") hoping for a house number. It runs after the brand locator has
+	 * donated its civic addresses, so only the stores neither source could
+	 * name properly cost a Nominatim call.
 	 */
-	const todo = locs.filter((l) => (!l.address || !l.city) && !cache[l.id]);
+	const roadOnly = (l: Loc) => !!l.address && !/\d/.test(l.address);
+	const todo = locs.filter(
+		(l) => (!l.address || !l.city || (upgradeRoadOnly && roadOnly(l))) && !cache[l.id]
+	);
 	const apply = (l: Loc, fix: Fix) => {
-		if (!l.address) l.address = [fix.house, fix.road].filter(Boolean).join(' ') || fix.road || '';
+		const civic = fix.house && fix.road ? `${fix.house} ${fix.road}` : '';
+		if (!l.address) l.address = civic || fix.road || '';
+		else if (roadOnly(l) && civic) l.address = civic;
 		if (!l.city) l.city = fix.city ?? '';
 	};
 
@@ -559,7 +574,10 @@ function dedupe(locs: Loc[]): { kept: Loc[]; dropped: Set<string> } {
 			 * same id forever, which is also what stamps are keyed on.
 			 */
 			const [keep, drop] = a.id < b.id ? [a, b] : [b, a];
-			if (!keep.address) keep.address = drop.address;
+			// A civic address from either half of the pair beats a bare road.
+			if (!keep.address || (!/\d/.test(keep.address) && /\d/.test(drop.address))) {
+				keep.address = drop.address || keep.address;
+			}
 			if (!keep.city) keep.city = drop.city;
 			if (!keep.region) keep.region = drop.region;
 			if (!keep.country) keep.country = drop.country;
@@ -876,6 +894,15 @@ function reconcileWithBrand(locs: Loc[], brand: BrandStore[]): Loc[] {
 		if (takenLoc.has(loc.id) || takenStore.has(store)) continue;
 		takenLoc.add(loc.id);
 		takenStore.add(store);
+		/*
+		 * The locator knows the store's real civic address. An OSM record that
+		 * only knows its road ("Stackhouse Road") adopts it - the match is the
+		 * same storefront, and a mailing address beats a road name.
+		 */
+		if (store.address && /\d/.test(store.address) && (!loc.address || !/\d/.test(loc.address))) {
+			loc.address = store.address;
+		}
+		if (!loc.city && store.city) loc.city = store.city;
 	}
 
 	let closed = 0;
@@ -979,6 +1006,10 @@ async function main() {
 	} catch (err) {
 		console.warn(`! brand check skipped (${(err as Error).message}) - closures left as OSM has them`);
 	}
+
+	// With the locator's donations in, chase house numbers for whatever is
+	// still a bare road name.
+	await fillMissingAddresses(locs, true);
 
 	// Last, so a hand correction survives deduping and the brand check.
 	await applyOverrides(locs);
