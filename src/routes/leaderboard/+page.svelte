@@ -7,6 +7,8 @@
 	import { locations } from '$lib/stores/locations.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
+	import { locationLabel, locationPlace } from '$lib/location';
+	import type { LocationProps } from '$lib/types';
 
 	let data = $state<LeaderboardData | null>(null);
 	let loaded = $state(false);
@@ -64,24 +66,16 @@
 		PROVINCE_CODES[region] ?? region.slice(0, 2).toUpperCase();
 
 	/**
-	 * What tells two stores on the same road apart. Half the dataset's
-	 * addresses are a street name with no house number, so "Tecumseh Road
-	 * East, Windsor" can mean either of two rows on this very board. The
-	 * locations index is already loaded for the map, so each row can be
-	 * joined back to its record by id: a venue when the store has one (an
-	 * airport terminal beats any coordinate), otherwise a compact position in
-	 * the same N/W style the compass dial already uses, plus a maps link as
-	 * the ground truth.
+	 * What tells two stores on the same road apart: a venue when the store
+	 * has one (an airport terminal beats any coordinate), and always a maps
+	 * link as the ground truth. The locations index is already loaded for
+	 * the map, so each row joins back to its record by id.
 	 */
-	function whereExactly(id: string): { hint: string; mapsUrl: string } | null {
+	function whereExactly(id: string): { venue: string | null; mapsUrl: string } | null {
 		const c = locations.coordsOf(id);
 		if (!c) return null;
-		const venue = locations.get(id)?.venue;
-		const hint =
-			venue ??
-			`${Math.abs(c[1]).toFixed(2)}${c[1] >= 0 ? 'N' : 'S'} ${Math.abs(c[0]).toFixed(2)}${c[0] >= 0 ? 'E' : 'W'}`;
 		return {
-			hint,
+			venue: locations.get(id)?.venue ?? null,
 			mapsUrl: `https://www.google.com/maps/search/?api=1&query=${c[1]},${c[0]}`
 		};
 	}
@@ -160,15 +154,21 @@
 			<ul class="rank">
 				{#each data.topLocations as l, i (l.id)}
 					{@const where = whereExactly(l.id)}
+					{@const loc = locations.get(l.id) ?? (l as unknown as LocationProps)}
 					<li class={place[i] ?? ''}>
 						<span class="pos pixel">{String(i + 1).padStart(2, '0')}</span>
 						<div class="info">
-							<strong>{l.address || l.city || l.name}</strong>
+							<!-- The same naming the map card and passport list use: a civic
+							     address when there is one, "Tim Hortons on X Road" when only
+							     the road is known - never a bare city posing as an address. -->
+							<strong>{locationLabel(loc)}</strong>
 							<small>
-								{[l.city, l.region].filter(Boolean).join(', ') || ' - '}
-								{#if where}
+								{locationPlace(loc) || [l.city, l.region].filter(Boolean).join(', ') || ' - '}
+								{#if where?.venue}
 									<span class="dot" aria-hidden="true">·</span>
-									<span class="coord">{where.hint}</span>
+									{where.venue}
+								{/if}
+								{#if where}
 									<span class="dot" aria-hidden="true">·</span>
 									<a
 										class="maplink"
@@ -265,26 +265,36 @@
 		display: flex;
 		gap: 0.6rem;
 	}
+	/*
+	 * Raised cabinet plates, not screen wells: the dark navy inset read as a
+	 * different machine from the warm wood everything else on this page is
+	 * made of. Same bevel grammar as the arcade buttons - light catches the
+	 * top edge, shadow pools under the bottom.
+	 */
 	.stat {
 		flex: 1;
-		padding: 1rem 0.6rem;
+		padding: 1rem 0.6rem 0.85rem;
 		text-align: center;
-		background: var(--screen-deep);
-		border-top: 2px solid var(--cabinet-lo);
-		border-left: 2px solid var(--cabinet-lo);
-		border-right: 2px solid var(--cabinet-hi);
-		border-bottom: 2px solid var(--cabinet-hi);
+		background: var(--cabinet);
+		border-top: 2px solid var(--cabinet-hi);
+		border-left: 2px solid var(--cabinet-hi);
+		border-right: 2px solid var(--cabinet-lo);
+		border-bottom: 2px solid var(--cabinet-lo);
+		box-shadow: 0 3px 0 var(--cabinet-lo);
 	}
 	.stat .n {
 		display: block;
-		font-size: 0.95rem;
+		font-size: 1.15rem;
 		color: var(--gold);
-		margin-bottom: 0.6rem;
+		margin-bottom: 0.55rem;
 		text-shadow: 2px 2px 0 var(--cabinet-lo);
 	}
 	.stat small {
+		font-family: var(--font-pixel);
+		font-size: 0.4rem;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
 		color: var(--cream-dim);
-		font-size: 0.72rem;
 	}
 
 	.section-title {
@@ -414,9 +424,6 @@
 	}
 	.dot {
 		color: var(--cream-faint);
-	}
-	.coord {
-		font-variant-numeric: tabular-nums;
 	}
 	.maplink {
 		color: var(--gold);

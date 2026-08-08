@@ -181,14 +181,14 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 
 
 		<!-- SIDE BARS: countries and provinces, small cousins of the big bar -->
-		<g transform="translate(970 770)">
+		<g transform="translate(970 762)">
 			<text
 				x="0"
 				y="0"
 				fill="#f4e7cf"
 				opacity=".5"
 				font-family="Arial"
-				font-size="13"
+				font-size="16"
 				font-weight="700"
 				letter-spacing="3">
 				COUNTRIES
@@ -199,35 +199,35 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 				text-anchor="end"
 				fill="#f1b83e"
 				font-family="Arial"
-				font-size="16"
+				font-size="20"
 				font-weight="900">
 				${s.countries} / ${s.countryTotal}
 			</text>
 			<rect
 				x="0"
-				y="10"
+				y="14"
 				width="375"
-				height="8"
-				rx="4"
+				height="12"
+				rx="6"
 				fill="#f4e7cf"
 				opacity=".15"/>
 			<rect
 				x="0"
-				y="10"
+				y="14"
 				width="${375 * Math.max(0.015, Math.min(1, s.countries / Math.max(1, s.countryTotal)))}"
-				height="8"
-				rx="4"
+				height="12"
+				rx="6"
 				fill="url(#bar)"/>
 		</g>
 
-		<g transform="translate(970 830)">
+		<g transform="translate(970 838)">
 			<text
 				x="0"
 				y="0"
 				fill="#f4e7cf"
 				opacity=".5"
 				font-family="Arial"
-				font-size="13"
+				font-size="16"
 				font-weight="700"
 				letter-spacing="3">
 				PROVINCES
@@ -238,24 +238,24 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 				text-anchor="end"
 				fill="#f1b83e"
 				font-family="Arial"
-				font-size="16"
+				font-size="20"
 				font-weight="900">
 				${s.provinces} / ${s.provinceTotal}
 			</text>
 			<rect
 				x="0"
-				y="10"
+				y="14"
 				width="375"
-				height="8"
-				rx="4"
+				height="12"
+				rx="6"
 				fill="#f4e7cf"
 				opacity=".15"/>
 			<rect
 				x="0"
-				y="10"
+				y="14"
 				width="${375 * Math.max(0.015, Math.min(1, s.provinces / Math.max(1, s.provinceTotal)))}"
-				height="8"
-				rx="4"
+				height="12"
+				rx="6"
 				fill="url(#bar)"/>
 		</g>
 
@@ -389,28 +389,80 @@ function downloadBlob(b: Blob) {
 }
 
 /**
- * Explicit per-network share targets. Networks with a web intent get a
- * popup; image-first networks with no web API (Instagram) get the native
- * share sheet when the browser offers one, and a download plus a copied
- * caption when it does not - the image and the words both still arrive,
- * just via the visitor's hands.
+ * Explicit per-network share targets.
+ *
+ * On devices whose browser offers the native share sheet with files (phones,
+ * mostly), every network goes through that sheet: it is the only web API
+ * that can hand the actual PNG to an installed app, and it only lists apps
+ * the device really has - which is as close to "check for the app and go
+ * there" as the web is permitted to get. X and Facebook get the caption
+ * (with the link) alongside the image; the story networks and Save get the
+ * image alone, so picking Instagram or Snapchat drafts a story of just the
+ * picture, and Save Image on an iPhone goes to Photos instead of Files.
+ *
+ * Without a file-capable sheet - desktop, effectively - web intents cannot
+ * carry an image, so the PNG is downloaded and the intent opens beside it
+ * for hand-attaching.
  *
  * Returns true when a native share sheet ran to completion, so a caller
  * hosting the chips in a modal knows the moment its job is done.
  */
 export async function shareTo(network: ShareNetwork, blob: Blob | null): Promise<boolean> {
 	const caption = shareCaption();
+	const file = blob ? new File([blob], 'my-timmies-passport.png', { type: 'image/png' }) : null;
+	/*
+	 * Touch, not just share support: desktop Chrome and Safari expose
+	 * navigator.share too, but a desktop's sheet holds Mail and AirDrop,
+	 * not Instagram - there the web intents with a downloaded image are
+	 * the better surface. Coarse pointer is the device actually holding
+	 * the apps these chips name.
+	 */
+	const sheetReady =
+		!!file &&
+		matchMedia('(pointer: coarse)').matches &&
+		typeof navigator.share === 'function' &&
+		typeof navigator.canShare === 'function' &&
+		navigator.canShare({ files: [file] });
+
+	if (sheetReady && file) {
+		const data: ShareData =
+			network === 'x' || network === 'facebook'
+				? { files: [file], text: caption }
+				: { files: [file] };
+		try {
+			await navigator.share(data);
+			return true;
+		} catch (err) {
+			// Backing out of the sheet is not a failure.
+			if ((err as Error)?.name !== 'AbortError') {
+				ui.toast({ emoji: '⚠️', title: 'Could not share', body: 'Try again in a moment.' });
+			}
+			return false;
+		}
+	}
+
 	if (network === 'x') {
+		if (blob) downloadBlob(blob);
 		openPopup(`https://x.com/intent/post?text=${encodeURIComponent(caption)}`);
+		if (blob) {
+			ui.toast({
+				emoji: '📎',
+				title: 'Image downloaded',
+				body: 'Attach it to your post - the text is prefilled.'
+			});
+		}
 		return false;
 	}
 	if (network === 'facebook') {
-		// The sharer takes a URL only; the site's OG card supplies the image.
+		if (blob) downloadBlob(blob);
 		openPopup(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}`);
-		return false;
-	}
-	if (network === 'snapchat') {
-		openPopup(`https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(SITE_URL)}`);
+		if (blob) {
+			ui.toast({
+				emoji: '📎',
+				title: 'Image downloaded',
+				body: 'Attach it to your post.'
+			});
+		}
 		return false;
 	}
 	if (network === 'save') {
@@ -420,35 +472,13 @@ export async function shareTo(network: ShareNetwork, blob: Blob | null): Promise
 		}
 		return false;
 	}
-	// Instagram.
-	try {
-		if (blob) {
-			const file = new File([blob], 'my-timmies-passport.png', { type: 'image/png' });
-			if (
-				typeof navigator.share === 'function' &&
-				typeof navigator.canShare === 'function' &&
-				navigator.canShare({ files: [file] })
-			) {
-				try {
-					await navigator.share({ files: [file], title: APP_NAME, text: caption });
-					return true;
-				} catch (err) {
-					// Backing out of the sheet is not a failure.
-					if ((err as Error)?.name !== 'AbortError') throw err;
-					return false;
-				}
-			}
-			downloadBlob(blob);
-		}
-		await navigator.clipboard?.writeText(caption);
-		ui.toast({
-			emoji: '📸',
-			title: 'Ready for Instagram',
-			body: 'Image saved and caption copied - post it from the app.'
-		});
-	} catch {
-		ui.toast({ emoji: '⚠️', title: 'Could not share', body: 'Try again in a moment.' });
-	}
+	// Instagram / Snapchat: no web composer exists, so the image goes to disk.
+	if (blob) downloadBlob(blob);
+	ui.toast({
+		emoji: network === 'instagram' ? '📸' : '👻',
+		title: 'Image saved',
+		body: 'Post it as a story from the app.'
+	});
 	return false;
 }
 
