@@ -252,13 +252,15 @@
 		top: var(--cup-y, 50%);
 		width: 0;
 		height: 0;
-		/* Dimmed while the camera moves, back the instant it stops - the map's
-		   own movestart/moveend are the clock, not a timer's guess. */
+		/* A pulse: quick dip as the flight launches, and a 300ms recovery that
+		   MapView starts 300ms before landing, so full opacity arrives in the
+		   same instant the camera settles on the cup. */
 		opacity: 1;
-		transition: opacity 0.12s ease;
+		transition: opacity 0.3s ease;
 	}
 	.ring.flight {
 		opacity: 0.35;
+		transition: opacity 0.12s ease;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.ring,

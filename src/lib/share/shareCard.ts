@@ -137,21 +137,6 @@ async function composeShareImage(source: Blob, s: PassportImageStats): Promise<B
 			clip-path="url(#mapClip)"/>
 
 
-		<!-- ROUTES -->
-		<g
-			clip-path="url(#mapClip)"
-			fill="none"
-			stroke="#c51f2c"
-			stroke-width="4"
-			stroke-dasharray="12 12"
-			opacity=".55">
-
-			<path d="M180 430 C350 300 500 560 720 400"/>
-			<path d="M720 400 C950 250 1120 500 1220 340"/>
-
-		</g>
-
-
 		<!-- STATS -->
 		<text
 			x="55"

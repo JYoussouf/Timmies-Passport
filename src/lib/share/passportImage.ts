@@ -171,8 +171,16 @@ export async function renderStampMosaic(width = 1290, height = 510): Promise<Blo
 		(c[0] < 0 ? west : east).push(c);
 	}
 
-	const gap = Math.round(width * 0.018);
-	const panelW = Math.round((width - gap) / 2);
+	/*
+	 * A passport whose stamps all live in one hemisphere gets one panel
+	 * framing them, full width - an empty second hemisphere told the
+	 * viewer nothing except how far they had not travelled. Both panels
+	 * return for the first stamp across the meridian, and for an empty
+	 * passport, where the pair of wide defaults is the whole picture.
+	 */
+	const single = west.length > 0 !== east.length > 0;
+	const gap = single ? 0 : Math.round(width * 0.018);
+	const panelW = single ? width : Math.round((width - gap) / 2);
 	const panelH = height;
 
 	// Off-screen but still laid out - a display:none container never gets a
@@ -182,20 +190,25 @@ export async function renderStampMosaic(width = 1290, height = 510): Promise<Blo
 	document.body.appendChild(stage);
 
 	try {
-		const [westUrl, eastUrl] = await Promise.all([
-			renderPanel(stage, west, DEFAULT_WEST),
-			renderPanel(stage, east, DEFAULT_EAST)
-		]);
-		const [westImg, eastImg] = await Promise.all([loadImage(westUrl), loadImage(eastUrl)]);
-
 		const canvas = document.createElement('canvas');
 		canvas.width = width;
 		canvas.height = height;
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return null;
 
-		ctx.drawImage(westImg, 0, 0, panelW, panelH);
-		ctx.drawImage(eastImg, panelW + gap, 0, width - panelW - gap, panelH);
+		if (single) {
+			const pts = west.length ? west : east;
+			const url = await renderPanel(stage, pts, west.length ? DEFAULT_WEST : DEFAULT_EAST);
+			ctx.drawImage(await loadImage(url), 0, 0, width, panelH);
+		} else {
+			const [westUrl, eastUrl] = await Promise.all([
+				renderPanel(stage, west, DEFAULT_WEST),
+				renderPanel(stage, east, DEFAULT_EAST)
+			]);
+			const [westImg, eastImg] = await Promise.all([loadImage(westUrl), loadImage(eastUrl)]);
+			ctx.drawImage(westImg, 0, 0, panelW, panelH);
+			ctx.drawImage(eastImg, panelW + gap, 0, width - panelW - gap, panelH);
+		}
 
 		return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
 	} catch {

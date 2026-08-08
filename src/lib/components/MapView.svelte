@@ -336,6 +336,20 @@
 	 */
 	const SELECT_DROP = 40;
 
+	/*
+	 * The stepper's pulse. A known-length flight can hand the arrows back
+	 * early: mapMoving flips off ~300ms before landing, which is exactly the
+	 * length of the ring's fade-in, so the arrows reach full opacity in the
+	 * same instant the camera settles on the cup. moveend still backstops
+	 * interrupted or manual moves.
+	 */
+	let settleTimer = 0;
+	function flightPulse(duration: number) {
+		ui.mapMoving = true;
+		clearTimeout(settleTimer);
+		settleTimer = window.setTimeout(() => (ui.mapMoving = false), Math.max(0, duration - 300));
+	}
+
 	function focusStore(center: [number, number], closer = false) {
 		if (!map) return;
 		const zoom = Math.max(map.getZoom(), closer ? STREET_ZOOM : APPROACH_ZOOM);
@@ -345,6 +359,7 @@
 		 * it drifts and lands off-target - the reason a first tap missed and a
 		 * second, now a short hop, worked. flyTo is built for exactly this.
 		 */
+		flightPulse(900);
 		map.flyTo({ center, zoom, offset: [0, SELECT_DROP], duration: 900, essential: true });
 	}
 
@@ -354,7 +369,9 @@
 
 	/** The second half of the approach, from neighbourhood to storefront. */
 	export function goCloser(center: [number, number]) {
-		map?.flyTo({
+		if (!map) return;
+		flightPulse(700);
+		map.flyTo({
 			center,
 			zoom: STREET_ZOOM,
 			offset: [0, SELECT_DROP],
@@ -371,6 +388,7 @@
 	 */
 	export function stepTo(center: [number, number]) {
 		if (!map) return;
+		flightPulse(700);
 		map.flyTo({
 			center,
 			zoom: Math.max(map.getZoom(), APPROACH_ZOOM),
