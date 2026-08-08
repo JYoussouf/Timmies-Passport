@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { locations } from '$lib/stores/locations.svelte';
 	import { passport } from '$lib/stores/passport.svelte';
 	import { ui } from '$lib/stores/ui.svelte';
@@ -142,6 +143,16 @@
 		overrideMax = null;
 		const el = sheetEl;
 		if (!el) return;
+		/*
+		 * check() both reads and writes overrideMax. Called bare inside this
+		 * effect, the read subscribes the effect to the very state it writes,
+		 * and Svelte kills the resulting loop with effect_update_depth_exceeded
+		 * - an uncaught error that takes the whole app's reactivity down with
+		 * it, which surfaced as a Stamp button that received every tap and did
+		 * nothing. The observer and resize callbacks are already untracked
+		 * because they run outside the effect; only the synchronous first call
+		 * needs the same treatment.
+		 */
 		const check = () => {
 			if (el.scrollHeight > el.clientHeight + 1) {
 				const top = el.getBoundingClientRect().top;
@@ -162,7 +173,7 @@
 		const inner = el.querySelector('.inner');
 		if (inner) ro.observe(inner);
 		window.addEventListener('resize', onResize);
-		check();
+		untrack(check);
 		return () => {
 			ro.disconnect();
 			window.removeEventListener('resize', onResize);

@@ -136,10 +136,18 @@
 	/*
 	 * Invisible, and deliberately cup-sized rather than larger: it stands in
 	 * for the cup underneath, so it should not claim ground the cup does not.
-	 * Above the card (41) and below the stepper's arrows (42), which ring it.
+	 *
+	 * BELOW the card (41), not above it. It used to share the card's z-index
+	 * while sitting later in the DOM, which meant that whenever a grown card
+	 * reached the map centre - exactly what happens on a phone whose browser
+	 * chrome shortens the viewport - this invisible square lay over the
+	 * Stamp button and silently ate every tap on it. Under the card it still
+	 * covers the cup whenever the cup is actually visible, which is the only
+	 * time it has a job.
+	 *
+	 * Fixed positioning for the same reason as the stepper's ring:
+	 * --map-cx/cy are viewport coordinates.
 	 */
-	/* Fixed for the same reason as the stepper's ring: --map-cx/cy are
-	   viewport coordinates. */
 	.closer {
 		position: fixed;
 		left: var(--map-cx, 50%);
@@ -147,7 +155,7 @@
 		width: 44px;
 		height: 44px;
 		margin: -22px;
-		z-index: 41;
+		z-index: 40;
 		background: none;
 		border: none;
 		cursor: zoom-in;
