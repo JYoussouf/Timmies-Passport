@@ -80,9 +80,62 @@
 	 * the Maps Embed API at no charge with unlimited requests - so there is
 	 * nothing to save by making people ask twice.
 	 */
+	let userToggledStreet = $state(false);
+	let svEl = $state<HTMLElement>();
+
 	$effect(() => {
 		void ui.selectedId;
+		userToggledStreet = false;
 		streetOpen = !!streetUrl;
+	});
+
+	/**
+	 * Show the street view only when it earns its space. The flex squeeze can
+	 * take the panel down to 56px, and at that size it is Google's attribution
+	 * bar with a sliver of sky behind it - congestion, not imagery. Measure
+	 * what layout actually gave it: under 120px the auto-open takes itself
+	 * back and the card stays compact, with the map visible behind it. A
+	 * visitor who opens it by hand instead pins it at full height (see
+	 * .street-view.pinned) - never the squeeze, which at hand-open sizes was
+	 * an attribution bar posing as imagery.
+	 */
+	const SV_USEFUL_PX = 120;
+	$effect(() => {
+		void ui.selectedId;
+		const el = svEl;
+		const fit = () => {
+			if (userToggledStreet || !el || !el.isConnected) return;
+			if (el.getBoundingClientRect().height < SV_USEFUL_PX) {
+				untrack(() => (streetOpen = false));
+			}
+		};
+		// Two frames: the card's own grow-by-shortfall measurement runs first,
+		// and this must judge the height that layout finally settled on.
+		let raf = 0;
+		if (el) {
+			raf = requestAnimationFrame(() => {
+				raf = requestAnimationFrame(fit);
+			});
+		}
+		/*
+		 * Registered whether or not the panel is currently mounted - an
+		 * auto-closed panel has no element, and the earlier version bailed
+		 * before attaching this, so a window grown back to a useful size
+		 * never got its street view back. Reopening mounts the element,
+		 * which re-runs this effect, which re-measures honestly.
+		 */
+		const onResize = () => {
+			if (!userToggledStreet && streetUrl && !untrack(() => streetOpen)) {
+				untrack(() => (streetOpen = true));
+			} else {
+				requestAnimationFrame(fit);
+			}
+		};
+		window.addEventListener('resize', onResize);
+		return () => {
+			cancelAnimationFrame(raf);
+			window.removeEventListener('resize', onResize);
+		};
 	});
 
 	$effect(() => {
@@ -265,7 +318,10 @@
 					<button
 						class="link"
 						aria-expanded={streetOpen}
-						onclick={() => (streetOpen = !streetOpen)}
+						onclick={() => {
+							userToggledStreet = true;
+							streetOpen = !streetOpen;
+						}}
 					>
 						{streetOpen ? 'Hide street view' : 'Street view'}
 					</button>
@@ -277,7 +333,7 @@
 			</div>
 
 			{#if streetOpen && streetUrl}
-				<div class="street-view">
+				<div class="street-view" class:pinned={userToggledStreet} bind:this={svEl}>
 					<iframe
 						title="Street view of {locationLabel(loc)}"
 						src={streetUrl}
@@ -367,7 +423,7 @@
 		touch-action: none;
 	}
 	.inner {
-		padding: 0 0.9rem 0.95rem;
+		padding: 0 0.9rem 0.75rem;
 		display: flex;
 		flex-direction: column;
 		flex: 1 1 auto;
@@ -378,7 +434,7 @@
 		flex: none;
 		display: flex;
 		justify-content: center;
-		padding: 0.5rem 0 0.4rem;
+		padding: 0.35rem 0 0.3rem;
 		cursor: grab;
 	}
 	.grabber {
@@ -394,7 +450,7 @@
 		justify-content: space-between;
 		align-items: flex-start;
 		gap: 0.6rem;
-		margin-bottom: 0.7rem;
+		margin-bottom: 0.5rem;
 	}
 	.titles {
 		min-width: 0;
@@ -423,7 +479,7 @@
 		flex: none;
 		display: flex;
 		gap: 0.9rem;
-		margin: 0 0 0.7rem;
+		margin: 0 0 0.5rem;
 	}
 	.link {
 		padding: 0.25rem 0;
@@ -465,7 +521,7 @@
 	/* Recessed like a screen set into the cartridge. */
 	.street-view {
 		position: relative;
-		margin-bottom: 0.75rem;
+		margin-bottom: 0.55rem;
 		/*
 		 * 150px when the card has room, squeezed as far as 64px when it does
 		 * not - still recognisably the storefront, and the button stays put.
@@ -487,6 +543,17 @@
 		border-right: 2px solid var(--cabinet-hi);
 		border-bottom: 2px solid var(--cabinet-hi);
 	}
+	/*
+	 * An explicitly opened panel never gets the squeeze - a hand-opened
+	 * street view at 60px is an attribution bar, not a product. Pinned to
+	 * full height, and the card's grow-by-shortfall measurement makes the
+	 * room, over the cup if it has to; that is the right trade for a visitor
+	 * who just asked to see the storefront.
+	 */
+	.street-view.pinned {
+		flex: none;
+		height: 150px;
+	}
 	.street-view iframe {
 		position: absolute;
 		inset: 0;
@@ -499,8 +566,8 @@
 		flex: none;
 		width: 100%;
 		font-size: 0.62rem;
-		padding: 0.85rem;
-		min-height: 46px;
+		padding: 0.7rem;
+		min-height: 44px;
 	}
 	/*
 	 * An idle pulse invites the press. It animates the glow rather than the
