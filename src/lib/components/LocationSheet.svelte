@@ -287,7 +287,16 @@
 		 * half the viewport for the instant before the map has measured.
 		 */
 		max-height: calc(var(--map-cy, 50dvh) - var(--safe-top) - 66px - 52px);
-		overflow-y: auto;
+		/*
+		 * Never a scrollbox. A card that scrolls hides its own Stamp button
+		 * below the fold, and on a phone that is the one control the card
+		 * exists for. Flex column instead: everything keeps its natural size
+		 * except the street view, which is the one element that can give up
+		 * height without costing a control.
+		 */
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
 		transition: max-height 0.2s linear;
 		/* Translucent so the street underneath stays readable. */
 		background: rgba(43, 26, 20, 0.86);
@@ -302,8 +311,14 @@
 	}
 	.inner {
 		padding: 0 0.9rem 0.95rem;
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
+		/* Without this a flex child refuses to shrink below its content. */
+		min-height: 0;
 	}
 	.grab {
+		flex: none;
 		display: flex;
 		justify-content: center;
 		padding: 0.5rem 0 0.4rem;
@@ -317,6 +332,7 @@
 	}
 
 	.head {
+		flex: none;
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
@@ -330,6 +346,13 @@
 		font-size: 0.58rem;
 		line-height: 1.65;
 		color: var(--gold);
+		/* A long address wraps twice and stops - the space belongs to the
+		   imagery and the button, not to a third line of street name. */
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
 	}
 	.addr {
 		margin: 0.4rem 0 0;
@@ -340,6 +363,7 @@
 
 	/* Secondary actions: text links, not buttons competing with Stamp it. */
 	.links {
+		flex: none;
 		display: flex;
 		gap: 0.9rem;
 		margin: 0 0 0.7rem;
@@ -384,7 +408,11 @@
 	/* Recessed like a screen set into the cartridge. */
 	.street-view {
 		margin-bottom: 0.75rem;
+		/* 150px when the card has room, squeezed as far as 64px when it does
+		   not - still recognisably the storefront, and the button stays put. */
 		height: 150px;
+		flex: 0 1 auto;
+		min-height: 64px;
 		background: var(--screen-deep);
 		border-top: 2px solid var(--cabinet-lo);
 		border-left: 2px solid var(--cabinet-lo);
@@ -399,6 +427,7 @@
 	}
 
 	.checkin {
+		flex: none;
 		width: 100%;
 		font-size: 0.62rem;
 		padding: 0.85rem;
