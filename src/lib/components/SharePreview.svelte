@@ -2,6 +2,7 @@
 	import { fade, scale } from 'svelte/transition';
 	import { shareModal } from '$lib/stores/shareModal.svelte';
 	import { renderStampMosaic, passportStats } from '$lib/share/passportImage';
+	import { cupRuns, CUP_PALETTE, CUP_H } from '$lib/art/cup';
 	import { APP_NAME, SITE_URL } from '$lib/brand';
 	import { ui } from '$lib/stores/ui.svelte';
 
@@ -27,21 +28,19 @@
 		});
 	}
 
-	/** The official 8-bit cup, fetched once and reused across renders. */
-	let cupDataUrl: string | null = null;
-	async function loadCup(): Promise<string> {
-		if (!cupDataUrl) {
-			const res = await fetch('/art/coffee-cup-8bit.png');
-			cupDataUrl = await blobToDataUrl(await res.blob());
-		}
-		return cupDataUrl;
-	}
+	/** The squat marker cup, one rect per pixel run - same art as the map pins. */
+	const cupArt = cupRuns()
+		.map(
+			(r) =>
+				`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="1.02" fill="${CUP_PALETTE[r.ch]}"/>`
+		)
+		.join('');
 
 	async function composeShareImage(
 		source: Blob,
 		s: ReturnType<typeof passportStats>
 	): Promise<Blob> {
-		const [mapDataUrl, cup] = await Promise.all([blobToDataUrl(source), loadCup()]);
+		const mapDataUrl = await blobToDataUrl(source);
 
 		const width = 1400;
 		const height = 1050;
@@ -103,16 +102,13 @@
 			<!-- HEADER -->
 			<g transform="translate(55 45)">
 
-				<!-- the official 8-bit cup -->
-				<image
-					href="${cup}"
-					x="0"
-					y="0"
-					width="62"
-					height="89"/>
+				<!-- the official 8-bit cup, drawn from the marker pixel grid -->
+				<g
+					transform="scale(${(84 / CUP_H).toFixed(4)})"
+					shape-rendering="crispEdges">${cupArt}</g>
 
 				<text
-					x="90"
+					x="98"
 					y="60"
 					fill="#f1b83e"
 					font-family="Arial"
