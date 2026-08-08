@@ -142,11 +142,6 @@
 		ui.stamping = stamping;
 	});
 
-	/* The arrows ring the cup, and an open street view reaches that band. */
-	$effect(() => {
-		ui.cardExpanded = streetOpen;
-	});
-
 	function close() {
 		ui.select(null);
 	}
@@ -278,6 +273,7 @@
 	<section
 		bind:this={sheetEl}
 		class="sheet"
+		data-checkin-card
 		style="transform: translate(-50%, {dragY}px);{overrideMax ? ` max-height:${overrideMax}px;` : ''}"
 		role="dialog"
 		aria-modal="true"

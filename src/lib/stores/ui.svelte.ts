@@ -23,17 +23,8 @@ class UI {
 	   screen for its second and a bit. */
 	stamping = $state(false);
 
-	/*
-	 * True while the card is showing street view, which makes it tall enough
-	 * to reach the band the stepper's arrows occupy. On a phone the two
-	 * cannot both have that space, so the arrows yield - the imagery is what
-	 * was asked for, and closing it brings them straight back.
-	 */
-	cardExpanded = $state(false);
-
 	select(id: string | null) {
 		this.selectedId = id;
-		this.cardExpanded = false;
 	}
 
 	openAuth(mode: 'signup' | 'login' = 'login') {

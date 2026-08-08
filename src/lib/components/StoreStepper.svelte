@@ -98,15 +98,67 @@
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
 	});
+
+	/*
+	 * The check-in card and this ring share the space around the cup, and the
+	 * ring paints on top. Rather than yielding wholesale (the old behaviour,
+	 * which left the arrows permanently hidden once street view started opening
+	 * by default), each arrow is measured against the card and only the ones
+	 * that would actually sit on it step aside. Keyboard steps keep working
+	 * for a hidden arrow - the direction still exists, just not the button.
+	 */
+	let btnEls: Partial<Record<DirKey, HTMLButtonElement>> = $state({});
+	let covered = $state<Record<DirKey, boolean>>({
+		up: false,
+		down: false,
+		left: false,
+		right: false
+	});
+
+	$effect(() => {
+		void ui.selectedId;
+		if (!here) return;
+		const measure = () => {
+			const card = document.querySelector('[data-checkin-card]');
+			const cr = card?.getBoundingClientRect();
+			const next = { up: false, down: false, left: false, right: false };
+			for (const d of DIRECTIONS) {
+				const el = btnEls[d.key];
+				if (!el || !cr) continue;
+				const r = el.getBoundingClientRect();
+				next[d.key] =
+					r.left < cr.right + 4 &&
+					r.right > cr.left - 4 &&
+					r.top < cr.bottom + 4 &&
+					r.bottom > cr.top - 4;
+			}
+			covered = next;
+		};
+		// The card settles over a couple of frames (mount, then measured growth).
+		let raf = requestAnimationFrame(() => {
+			raf = requestAnimationFrame(measure);
+		});
+		const card = document.querySelector('[data-checkin-card]');
+		const ro = new ResizeObserver(measure);
+		if (card) ro.observe(card);
+		window.addEventListener('resize', measure);
+		return () => {
+			cancelAnimationFrame(raf);
+			ro.disconnect();
+			window.removeEventListener('resize', measure);
+		};
+	});
 </script>
 
-{#if here && !ui.stamping && !ui.cardExpanded}
+{#if here && !ui.stamping}
 	<div class="stepper" aria-label="Jump to the nearest store in a direction">
 		<div class="ring">
 			{#each DIRECTIONS as d (d.key)}
 				{@const target = targets[d.key]}
 				<button
+					bind:this={btnEls[d.key]}
 					class="btn {d.key}"
+					class:covered={covered[d.key]}
 					aria-label={d.label}
 					title={d.label}
 					disabled={!target}
@@ -159,8 +211,8 @@
 	}
 
 	.btn {
-		--size: 36px;
-		--radius: 66px;
+		--size: 30px;
+		--radius: 54px;
 		position: absolute;
 		display: grid;
 		place-items: center;
@@ -214,10 +266,18 @@
 		top: 0;
 	}
 
+	/* Measured onto the card: the arrow steps aside, the direction remains
+	   (keyboard still takes it), and visibility keeps the layout honest so
+	   the measurement cannot feed back into itself. */
+	.btn.covered {
+		visibility: hidden;
+		pointer-events: none;
+	}
+
 	@media (min-width: 900px) {
 		.btn {
-			--size: 40px;
-			--radius: 76px;
+			--size: 34px;
+			--radius: 62px;
 		}
 	}
 </style>
