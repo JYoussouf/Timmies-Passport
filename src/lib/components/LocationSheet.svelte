@@ -124,6 +124,51 @@
 	}
 
 
+	/*
+	 * The escape hatch for when the ceiling is simply too low. The card's
+	 * height is capped to stay clear of the cup, and the street view squeezes
+	 * to make everything fit under that cap - but a cramped viewport or a
+	 * card with every optional line (venue, stamped-by, two-line address) can
+	 * need more than the cap allows even fully squeezed. Every control being
+	 * visible outranks keeping clear of the cup, so measure the shortfall and
+	 * grow by exactly that much - not a fixed floor, which covered the cup on
+	 * phones that never needed the help.
+	 */
+	let sheetEl = $state<HTMLElement>();
+	let overrideMax = $state<number | null>(null);
+
+	$effect(() => {
+		void ui.selectedId; // re-arm per selection
+		overrideMax = null;
+		const el = sheetEl;
+		if (!el) return;
+		const check = () => {
+			if (el.scrollHeight > el.clientHeight + 1) {
+				const top = el.getBoundingClientRect().top;
+				// +8: borders sit outside scrollHeight under border-box sizing.
+				// Growth is monotonic within one selection - only ever upward -
+				// so measure and layout cannot chase each other in a loop.
+				const need = Math.min(el.scrollHeight + 8, window.innerHeight - top - 12);
+				if (overrideMax === null || need > overrideMax) overrideMax = need;
+			}
+		};
+		/* A resize changes the ceiling itself, so the override starts over. */
+		const onResize = () => {
+			overrideMax = null;
+			requestAnimationFrame(check);
+		};
+		const ro = new ResizeObserver(check);
+		ro.observe(el);
+		const inner = el.querySelector('.inner');
+		if (inner) ro.observe(inner);
+		window.addEventListener('resize', onResize);
+		check();
+		return () => {
+			ro.disconnect();
+			window.removeEventListener('resize', onResize);
+		};
+	});
+
 	// Drag-to-dismiss
 	let dragY = $state(0);
 	let dragging = false;
@@ -167,8 +212,9 @@
 	-->
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
 	<section
+		bind:this={sheetEl}
 		class="sheet"
-		style="transform: translate(-50%, {dragY}px)"
+		style="transform: translate(-50%, {dragY}px);{overrideMax ? ` max-height:${overrideMax}px;` : ''}"
 		role="dialog"
 		aria-modal="true"
 		aria-label={loc.name}
@@ -407,12 +453,23 @@
 
 	/* Recessed like a screen set into the cartridge. */
 	.street-view {
+		position: relative;
 		margin-bottom: 0.75rem;
-		/* 150px when the card has room, squeezed as far as 64px when it does
-		   not - still recognisably the storefront, and the button stays put. */
-		height: 150px;
-		flex: 0 1 auto;
-		min-height: 64px;
+		/*
+		 * 150px when the card has room, squeezed as far as 64px when it does
+		 * not - still recognisably the storefront, and the button stays put.
+		 *
+		 * The iframe inside is absolutely positioned so it contributes no
+		 * intrinsic size to this flex item. That is not decoration: iframes
+		 * carry an intrinsic 150px height, and WebKit treats it as a floor
+		 * this item may not shrink past even with min-height set lower -
+		 * Chrome honoured the override, Safari clipped the Stamp button off
+		 * the bottom of the card instead. With the iframe out of layout, the
+		 * min-height below is the only floor there is, in every engine.
+		 */
+		flex: 0 1 150px;
+		min-height: 56px;
+		overflow: hidden;
 		background: var(--screen-deep);
 		border-top: 2px solid var(--cabinet-lo);
 		border-left: 2px solid var(--cabinet-lo);
@@ -420,7 +477,8 @@
 		border-bottom: 2px solid var(--cabinet-hi);
 	}
 	.street-view iframe {
-		display: block;
+		position: absolute;
+		inset: 0;
 		width: 100%;
 		height: 100%;
 		border: 0;
