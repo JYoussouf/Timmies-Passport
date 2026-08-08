@@ -7,11 +7,32 @@
 	import { passport } from '$lib/stores/passport.svelte';
 	import { locations } from '$lib/stores/locations.svelte';
 	import { shareModal } from '$lib/stores/shareModal.svelte';
+	import { renderShareCard, type ShareCard } from '$lib/share/shareCard';
+	import ShareChips from '$lib/components/ShareChips.svelte';
 	import { locationLabel, locationPlace } from '$lib/location';
 
 	onMount(() => {
 		passport.hydrate();
 		locations.load();
+	});
+
+	/*
+	 * The share card sits right on the page rather than behind a button.
+	 * Re-rendered (from cache when the numbers are unchanged) whenever the
+	 * stamp count moves; tapping it opens the full-size view.
+	 */
+	let card = $state<ShareCard | null>(null);
+	$effect(() => {
+		void passport.count;
+		void locations.total;
+		if (!locations.total) return;
+		let live = true;
+		renderShareCard().then((result) => {
+			if (live) card = result;
+		});
+		return () => {
+			live = false;
+		};
 	});
 
 	const pct = $derived(
@@ -99,9 +120,18 @@
 				{/if}
 			</div>
 
-			<button class="pbtn pbtn-gold share" onclick={() => shareModal.start()}>
-				Share my passport
-			</button>
+			{#if card}
+				<div class="share-inline">
+					<button
+						class="share-img"
+						aria-label="View your share image full size"
+						onclick={() => shareModal.start()}
+					>
+						<img src={card.url} alt="My Timmies Passport share card" />
+					</button>
+					<ShareChips blob={card.blob} />
+				</div>
+			{/if}
 		</section>
 
 		<section>
@@ -246,8 +276,28 @@
 		background: var(--gold);
 		box-shadow: inset 0 2px 0 #ffd479;
 	}
-	.share {
-		align-self: flex-start;
+	.share-inline {
+		display: flex;
+		flex-direction: column;
+		gap: 0.8rem;
+	}
+	.share-img {
+		display: block;
+		padding: 0;
+		border-radius: 6px;
+		overflow: hidden;
+		cursor: zoom-in;
+		box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
+		transition: transform 0.15s ease;
+	}
+	.share-img:hover,
+	.share-img:focus-visible {
+		transform: scale(1.01);
+	}
+	.share-img img {
+		display: block;
+		width: 100%;
+		height: auto;
 	}
 
 	.section-title {

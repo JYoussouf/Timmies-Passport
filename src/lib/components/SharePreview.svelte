@@ -1,506 +1,36 @@
 <script lang="ts">
+	/**
+	 * The expanded share view: the finished card full-size on a near-opaque
+	 * scrim, with the share chips beneath it. Rendering and sharing both live
+	 * in $lib/share/shareCard - this component only presents them.
+	 */
 	import { fade, scale } from 'svelte/transition';
 	import { shareModal } from '$lib/stores/shareModal.svelte';
-	import { renderStampMosaic, passportStats } from '$lib/share/passportImage';
-	import { cupRuns, CUP_PALETTE, CUP_H } from '$lib/art/cup';
-	import { APP_NAME, SITE_URL } from '$lib/brand';
-	import { ui } from '$lib/stores/ui.svelte';
+	import { renderShareCard, shareTextOnly, type ShareCard } from '$lib/share/shareCard';
+	import ShareChips from './ShareChips.svelte';
 
 	type Status = 'rendering' | 'ready' | 'error';
 
 	let status = $state<Status>('rendering');
-	let imageUrl = $state('');
-	let blob: Blob | null = null;
-	let sharing = $state(false);
-
-	const stats = $derived(passportStats());
-
-	const shareText = $derived(
-		`I've been to ${stats.count.toLocaleString()} out of ${stats.total.toLocaleString()} Timmies around the world. What about you? ${SITE_URL}`
-	);
-
-	function blobToDataUrl(source: Blob): Promise<string> {
-		return new Promise<string>((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = () => resolve(reader.result as string);
-			reader.onerror = () => reject(reader.error);
-			reader.readAsDataURL(source);
-		});
-	}
-
-	/** The squat marker cup, one rect per pixel run - same art as the map pins. */
-	const cupArt = cupRuns()
-		.map(
-			(r) =>
-				`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="1.02" fill="${CUP_PALETTE[r.ch]}"/>`
-		)
-		.join('');
-
-	async function composeShareImage(
-		source: Blob,
-		s: ReturnType<typeof passportStats>
-	): Promise<Blob> {
-		const mapDataUrl = await blobToDataUrl(source);
-
-		const width = 1400;
-		const height = 1050;
-
-		const pct = Math.min(1, s.count / Math.max(1, s.total));
-		// The bar keeps a visible sliver even at one stamp; the text stays honest.
-		const progress = Math.max(0.02, pct);
-
-		const svg = `
-		<svg xmlns="http://www.w3.org/2000/svg"
-			width="${width}"
-			height="${height}"
-			viewBox="0 0 ${width} ${height}">
-
-			<defs>
-				<linearGradient id="bg" x2="1" y2="1">
-					<stop stop-color="#2b1b17"/>
-					<stop offset="0.55" stop-color="#172333"/>
-					<stop offset="1" stop-color="#101722"/>
-				</linearGradient>
-
-				<linearGradient id="bar">
-					<stop stop-color="#c51f2c"/>
-					<stop offset="1" stop-color="#f1b83e"/>
-				</linearGradient>
-
-				<filter id="shadow">
-					<feDropShadow
-						dx="0"
-						dy="18"
-						stdDeviation="20"
-						flood-opacity=".35"/>
-				</filter>
-
-				<clipPath id="mapClip">
-					<rect x="55" y="180" width="1290" height="510" rx="10"/>
-				</clipPath>
-			</defs>
-
-
-			<!-- BACKGROUND -->
-			<rect width="100%" height="100%" fill="url(#bg)"/>
-
-			<circle
-				cx="1200"
-				cy="120"
-				r="260"
-				fill="#f1b83e"
-				opacity=".08"/>
-
-			<circle
-				cx="100"
-				cy="900"
-				r="260"
-				fill="#c51f2c"
-				opacity=".08"/>
-
-
-			<!-- HEADER -->
-			<g transform="translate(55 45)">
-
-				<!-- the official 8-bit cup, drawn from the marker pixel grid -->
-				<g
-					transform="scale(${(84 / CUP_H).toFixed(4)})"
-					shape-rendering="crispEdges">${cupArt}</g>
-
-				<text
-					x="98"
-					y="60"
-					fill="#f1b83e"
-					font-family="Arial"
-					font-size="42"
-					font-weight="900">
-					MY TIMMIES PASSPORT
-				</text>
-
-			</g>
-
-
-			<!-- MAP -->
-			<rect
-				x="45"
-				y="170"
-				width="1310"
-				height="530"
-				rx="12"
-				fill="#e9ddc6"
-				filter="url(#shadow)"/>
-
-			<image
-				href="${mapDataUrl}"
-				x="55"
-				y="180"
-				width="1290"
-				height="510"
-				preserveAspectRatio="none"
-				clip-path="url(#mapClip)"/>
-
-
-			<!-- ROUTES -->
-			<g
-				clip-path="url(#mapClip)"
-				fill="none"
-				stroke="#c51f2c"
-				stroke-width="4"
-				stroke-dasharray="12 12"
-				opacity=".55">
-
-				<path d="M180 430 C350 300 500 560 720 400"/>
-				<path d="M720 400 C950 250 1120 500 1220 340"/>
-
-			</g>
-
-
-			<!-- STATS -->
-			<text
-				x="55"
-				y="800"
-				fill="#f4e7cf"
-				font-family="Arial"
-				font-size="26"
-				font-weight="700">
-				I've been to
-			</text>
-
-			<text
-				x="55"
-				y="880"
-				font-family="Arial">
-				<tspan
-					fill="#f1b83e"
-					font-size="82"
-					font-weight="900">${s.count.toLocaleString()}</tspan>
-				<tspan
-					dx="14"
-					fill="#f4e7cf"
-					opacity=".6"
-					font-size="32"
-					font-weight="700">/ ${s.total.toLocaleString()} Tim Hortons</tspan>
-			</text>
-
-
-			<!-- SIDE BARS: countries and provinces, small cousins of the big bar -->
-			<g transform="translate(970 770)">
-				<text
-					x="0"
-					y="0"
-					fill="#f4e7cf"
-					opacity=".5"
-					font-family="Arial"
-					font-size="13"
-					font-weight="700"
-					letter-spacing="3">
-					COUNTRIES
-				</text>
-				<text
-					x="375"
-					y="0"
-					text-anchor="end"
-					fill="#f1b83e"
-					font-family="Arial"
-					font-size="16"
-					font-weight="900">
-					${s.countries} / ${s.countryTotal}
-				</text>
-				<rect
-					x="0"
-					y="10"
-					width="375"
-					height="8"
-					rx="4"
-					fill="#f4e7cf"
-					opacity=".15"/>
-				<rect
-					x="0"
-					y="10"
-					width="${375 * Math.max(0.015, Math.min(1, s.countries / Math.max(1, s.countryTotal)))}"
-					height="8"
-					rx="4"
-					fill="url(#bar)"/>
-			</g>
-
-			<g transform="translate(970 830)">
-				<text
-					x="0"
-					y="0"
-					fill="#f4e7cf"
-					opacity=".5"
-					font-family="Arial"
-					font-size="13"
-					font-weight="700"
-					letter-spacing="3">
-					PROVINCES
-				</text>
-				<text
-					x="375"
-					y="0"
-					text-anchor="end"
-					fill="#f1b83e"
-					font-family="Arial"
-					font-size="16"
-					font-weight="900">
-					${s.provinces} / ${s.provinceTotal}
-				</text>
-				<rect
-					x="0"
-					y="10"
-					width="375"
-					height="8"
-					rx="4"
-					fill="#f4e7cf"
-					opacity=".15"/>
-				<rect
-					x="0"
-					y="10"
-					width="${375 * Math.max(0.015, Math.min(1, s.provinces / Math.max(1, s.provinceTotal)))}"
-					height="8"
-					rx="4"
-					fill="url(#bar)"/>
-			</g>
-
-
-			<!-- PROGRESS -->
-			<rect
-				x="55"
-				y="925"
-				width="1290"
-				height="10"
-				rx="5"
-				fill="#f4e7cf"
-				opacity=".15"/>
-
-			<rect
-				x="55"
-				y="925"
-				width="${1290 * progress}"
-				height="10"
-				rx="5"
-				fill="url(#bar)"/>
-
-
-			<text
-				x="1345"
-				y="978"
-				text-anchor="end"
-				fill="#f1b83e"
-				font-family="Arial"
-				font-size="30"
-				font-weight="900">
-				${(pct * 100).toFixed(1)}%
-			</text>
-
-
-			<!-- FOOTER -->
-			<text
-				x="55"
-				y="1022"
-				fill="#f4e7cf"
-				opacity=".55"
-				font-family="Arial"
-				font-size="18"
-				font-weight="700">
-				mytimmiespassport.com
-			</text>
-
-			<text
-				x="1345"
-				y="1022"
-				text-anchor="end"
-				fill="#f4e7cf"
-				opacity=".4"
-				font-family="Arial"
-				font-size="14">
-				NOT AFFILIATED WITH TIM HORTONS OR RESTAURANT BRANDS INTERNATIONAL
-			</text>
-
-		</svg>`;
-
-		const svgBlob = new Blob([svg], {
-			type: 'image/svg+xml;charset=utf-8'
-		});
-
-		const url = URL.createObjectURL(svgBlob);
-
-		try {
-			const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-				const image = new Image();
-				image.onload = () => resolve(image);
-				image.onerror = reject;
-				image.src = url;
-			});
-
-			const canvas = document.createElement('canvas');
-			canvas.width = width;
-			canvas.height = height;
-
-			const ctx = canvas.getContext('2d');
-			if (!ctx) throw new Error();
-
-			ctx.drawImage(img, 0, 0);
-
-			return await new Promise((resolve, reject) => {
-				canvas.toBlob((b) => {
-					if (b) resolve(b);
-					else reject(new Error());
-				}, 'image/png');
-			});
-		} finally {
-			URL.revokeObjectURL(url);
-		}
-	}
+	let card = $state<ShareCard | null>(null);
 
 	$effect(() => {
 		if (!shareModal.open) return;
 		status = 'rendering';
-		imageUrl = '';
-		blob = null;
-		const s = stats;
-		renderStampMosaic()
-			.then((mosaic) => {
-				if (!shareModal.open) return null;
-				if (!mosaic) throw new Error('no mosaic');
-				return composeShareImage(mosaic, s);
-			})
-			.then((result) => {
-				if (!shareModal.open || !result) return;
-				blob = result;
-				imageUrl = URL.createObjectURL(result);
-				status = 'ready';
-			})
-			.catch(() => {
-				if (shareModal.open) status = 'error';
-			});
-		return () => {
-			if (imageUrl) URL.revokeObjectURL(imageUrl);
-		};
+		card = null;
+		renderShareCard().then((result) => {
+			if (!shareModal.open) return;
+			card = result;
+			status = result ? 'ready' : 'error';
+		});
 	});
 
 	function close() {
-		if (sharing) return;
 		shareModal.close();
 	}
 
-	function openPopup(url: string) {
-		window.open(url, '_blank', 'noopener,noreferrer,width=680,height=640');
-	}
-
-	/**
-	 * Explicit per-network share targets. Networks with a web intent get a
-	 * popup; image-first networks with no web API (Instagram) get the native
-	 * share sheet when the browser offers one, and a download plus a copied
-	 * caption when it does not - the image and the words both still arrive,
-	 * just via the visitor's hands.
-	 */
-	async function shareTo(network: 'instagram' | 'facebook' | 'snapchat' | 'x' | 'save') {
-		if (network === 'x') {
-			openPopup(`https://x.com/intent/post?text=${encodeURIComponent(shareText)}`);
-			return;
-		}
-		if (network === 'facebook') {
-			// The sharer takes a URL only; the site's OG card supplies the image.
-			openPopup(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SITE_URL)}`);
-			return;
-		}
-		if (network === 'snapchat') {
-			openPopup(`https://www.snapchat.com/scan?attachmentUrl=${encodeURIComponent(SITE_URL)}`);
-			return;
-		}
-		if (network === 'save') {
-			if (blob) {
-				downloadBlob(blob);
-				ui.toast({ emoji: '💾', title: 'Image saved', body: 'Your passport is in your downloads.' });
-			}
-			return;
-		}
-		// Instagram.
-		sharing = true;
-		try {
-			if (blob) {
-				const file = new File([blob], 'my-timmies-passport.png', { type: 'image/png' });
-				if (
-					typeof navigator.share === 'function' &&
-					typeof navigator.canShare === 'function' &&
-					navigator.canShare({ files: [file] })
-				) {
-					try {
-						await navigator.share({ files: [file], title: APP_NAME, text: shareText });
-						shareModal.close();
-					} catch (err) {
-						if ((err as Error)?.name !== 'AbortError') throw err;
-					}
-					return;
-				}
-				downloadBlob(blob);
-			}
-			await navigator.clipboard?.writeText(shareText);
-			ui.toast({
-				emoji: '📸',
-				title: 'Ready for Instagram',
-				body: 'Image saved and caption copied - post it from the app.'
-			});
-		} catch {
-			ui.toast({ emoji: '⚠️', title: 'Could not share', body: 'Try again in a moment.' });
-		} finally {
-			sharing = false;
-		}
-	}
-
-	async function shareIt() {
-		sharing = true;
-		const canShare = typeof navigator.share === 'function';
-		try {
-			if (blob && canShare) {
-				const file = new File([blob], 'my-timmies-passport.png', { type: 'image/png' });
-				// canShare is only ever consulted alongside share itself - a browser
-				// exposing one without the other is not a real combination, but the
-				// check should not assume that pairing holds rather than confirm it.
-				const canShareFile =
-					typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
-				if (canShareFile) {
-					await navigator.share({ files: [file], title: APP_NAME, text: shareText });
-					shareModal.close();
-					return;
-				}
-			}
-			if (canShare) {
-				await navigator.share({ title: APP_NAME, text: shareText, url: SITE_URL });
-				shareModal.close();
-				return;
-			}
-			// No Web Share API at all - almost always desktop. The image and the
-			// caption both still need to get out, just by hand instead.
-			if (blob) downloadBlob(blob);
-			await navigator.clipboard?.writeText(shareText);
-			ui.toast({
-				emoji: '📋',
-				title: blob ? 'Image downloaded' : 'Copied!',
-				body: blob
-					? 'Caption copied - attach the image you just downloaded.'
-					: 'Share text is on your clipboard.'
-			});
-			shareModal.close();
-		} catch (err) {
-			// AbortError: the visitor opened the share sheet and backed out of it -
-			// not a failure, and not something to explain to them.
-			if ((err as Error)?.name !== 'AbortError') {
-				ui.toast({ emoji: '⚠️', title: 'Could not share', body: 'Try again in a moment.' });
-			}
-		} finally {
-			sharing = false;
-		}
-	}
-
-	function downloadBlob(b: Blob) {
-		const url = URL.createObjectURL(b);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = 'my-timmies-passport.png';
-		a.click();
-		setTimeout(() => URL.revokeObjectURL(url), 4000);
+	async function textFallback() {
+		if (await shareTextOnly()) shareModal.close();
 	}
 </script>
 
@@ -519,56 +49,21 @@
 					<span class="spinner"></span>
 					<p>Rendering your passport…</p>
 				</div>
-
 			{:else if status === 'error'}
 				<div class="state">
 					<p>Could not render your passport.</p>
-					<button class="pbtn" onclick={shareIt}>
-						Share text instead
-					</button>
+					<button class="pbtn" onclick={textFallback}> Share text instead </button>
 				</div>
+			{:else if card}
+				<img src={card.url} alt="My Timmies Passport journey map" />
 
-			{:else}
-				<img
-					src={imageUrl}
-					alt="My Timmies Passport journey map"
-				/>
-
-				<div class="nets" transition:fade={{ duration: 150 }}>
-					<button class="net instagram" aria-label="Share to Instagram" title="Instagram" onclick={() => shareTo('instagram')} disabled={sharing}>
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-							<rect x="3" y="3" width="18" height="18" rx="5"/>
-							<circle cx="12" cy="12" r="4.2"/>
-							<circle cx="17.4" cy="6.6" r="0.4" fill="currentColor" stroke="none"/>
-						</svg>
-					</button>
-					<button class="net facebook" aria-label="Share to Facebook" title="Facebook" onclick={() => shareTo('facebook')}>
-						<svg viewBox="0 0 24 24" fill="currentColor">
-							<path d="M13.4 21v-7.1h2.6l.5-3.1h-3.1V8.9c0-.9.3-1.6 1.7-1.6h1.5V4.5c-.3 0-1.3-.1-2.4-.1-2.4 0-4.1 1.5-4.1 4.1v2.3H7.5v3.1h2.6V21z"/>
-						</svg>
-					</button>
-					<button class="net snapchat" aria-label="Share to Snapchat" title="Snapchat" onclick={() => shareTo('snapchat')}>
-						<svg viewBox="0 0 24 24" fill="currentColor">
-							<path d="M12.2.8c1 0 4.35.28 5.93 3.82.53 1.2.4 3.22.3 4.85v.06c-.02.18-.03.34-.04.5.08.05.21.09.4.09.3-.02.66-.12 1.04-.3.16-.09.34-.1.46-.1.18 0 .36.03.51.09.45.15.73.48.73.84.02.45-.39.84-1.21 1.17-.09.03-.21.07-.34.12-.45.13-1.14.36-1.34.8-.09.23-.06.53.12.87l.02.02c.06.13 1.52 3.47 4.79 4.01.25.05.43.27.42.51 0 .08-.02.15-.05.23-.24.57-1.27.99-3.14 1.27-.06.09-.12.37-.17.57-.03.18-.07.36-.13.55-.08.27-.27.4-.55.4h-.03c-.14 0-.31-.03-.54-.07-.36-.08-.77-.14-1.27-.14-.3 0-.6.02-.91.08-.6.1-1.13.46-1.73.88-.85.6-1.82 1.29-3.29 1.29-.06 0-.12-.01-.18-.01h-.15c-1.47 0-2.43-.68-3.28-1.29-.6-.42-1.1-.78-1.7-.88-.32-.05-.63-.08-.93-.08-.54 0-.96.09-1.27.15-.21.04-.4.07-.54.07-.38 0-.53-.22-.59-.42-.06-.19-.09-.39-.13-.57-.05-.18-.11-.49-.17-.57-1.92-.22-2.95-.64-3.19-1.22-.03-.07-.05-.15-.05-.23-.02-.24.16-.46.42-.51 3.26-.54 4.73-3.88 4.79-4.02l.02-.03c.18-.34.22-.64.12-.87-.2-.43-.88-.66-1.33-.8-.12-.03-.24-.08-.35-.12-1.1-.44-1.26-.93-1.2-1.27.09-.48.68-.8 1.17-.8.15 0 .27.03.38.08.42.19.79.3 1.1.3.24 0 .39-.06.47-.11l-.05-.57c-.1-1.62-.22-3.65.31-4.83C7.4 1.08 10.74.81 11.73.81l.42-.01z"/>
-						</svg>
-					</button>
-					<button class="net x" aria-label="Share to X" title="X" onclick={() => shareTo('x')}>
-						<svg viewBox="0 0 24 24" fill="currentColor">
-							<path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/>
-						</svg>
-					</button>
-					<button class="net save" aria-label="Save image" title="Save image" onclick={() => shareTo('save')}>
-						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M12 3.5v10.5m0 0l-4.2-4.2M12 14l4.2-4.2"/>
-							<path d="M4 16.5v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>
-						</svg>
-					</button>
+				<div class="chips" transition:fade={{ duration: 150 }}>
+					<ShareChips blob={card.blob} onshared={() => shareModal.close()} />
 				</div>
 			{/if}
 		</div>
 	</div>
 {/if}
-
 
 <style>
 	.overlay {
@@ -587,9 +82,8 @@
 		border: none;
 	}
 
-
 	/* No window around the artwork: a floating title row, the image itself,
-	   and the share button sitting right on top of it. */
+	   and the chips beneath it. */
 	.top {
 		position: absolute;
 		top: calc(var(--safe-top, 0px) + 0.8rem);
@@ -606,7 +100,6 @@
 		color: var(--gold);
 	}
 
-
 	.x {
 		width: 40px;
 		height: 40px;
@@ -621,8 +114,6 @@
 		color: var(--cream);
 	}
 
-
-
 	.stage {
 		position: relative;
 
@@ -631,12 +122,11 @@
 		align-items: center;
 	}
 
-
 	.stage img {
 		display: block;
 
 		max-width: min(92vw, 720px);
-		max-height: calc(100dvh - 8rem);
+		max-height: calc(100dvh - 11rem);
 
 		width: auto;
 		height: auto;
@@ -646,89 +136,9 @@
 		box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
 	}
 
-
-	/* Each network wears its own colours, in a row beneath the artwork. */
-	.nets {
-		display: flex;
-		gap: 0.65rem;
-
+	.chips {
 		margin-top: 0.9rem;
 	}
-
-	.net {
-		width: 46px;
-		height: 46px;
-
-		display: grid;
-		place-items: center;
-
-		color: #fff;
-
-		border-radius: 50%;
-
-		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-
-		transition: transform 0.15s ease;
-	}
-
-	.net:hover,
-	.net:focus-visible,
-	.net:active {
-		transform: scale(1.1);
-	}
-
-	.net:disabled {
-		opacity: 0.4;
-	}
-
-	.net.instagram {
-		background: radial-gradient(
-			circle at 30% 110%,
-			#fdf497 0%,
-			#fd5949 45%,
-			#d6249f 60%,
-			#285aeb 90%
-		);
-	}
-
-	.net.facebook {
-		background: #1877f2;
-	}
-
-	.net.snapchat {
-		background: #fffc00;
-		color: #16161d;
-	}
-
-	.net.x {
-		background: #000;
-		/* Pure black against the dark scrim needs an edge of its own. */
-		box-shadow:
-			0 6px 18px rgba(0, 0, 0, 0.4),
-			0 0 0 1.5px rgba(247, 239, 227, 0.35);
-	}
-
-	.net.save {
-		background: var(--gold);
-		color: #16161d;
-	}
-
-	.net svg {
-		width: 22px;
-		height: 22px;
-	}
-
-	@media (max-width: 480px) {
-		.nets {
-			gap: 0.45rem;
-		}
-		.net {
-			width: 44px;
-			height: 44px;
-		}
-	}
-
-
 
 	.state {
 		margin: auto;
@@ -739,30 +149,27 @@
 		flex-direction: column;
 		align-items: center;
 
-		gap: .9rem;
+		gap: 0.9rem;
 
 		text-align: center;
 
 		color: var(--cream-dim);
 
-		font-size: .9rem;
+		font-size: 0.9rem;
 	}
-
-
 
 	.spinner {
 		width: 26px;
 		height: 26px;
 
-		border: 3px solid rgba(247,239,227,.2);
+		border: 3px solid rgba(247, 239, 227, 0.2);
 
 		border-top-color: var(--gold);
 
 		border-radius: 50%;
 
-		animation: spin .8s linear infinite;
+		animation: spin 0.8s linear infinite;
 	}
-
 
 	@keyframes spin {
 		to {
@@ -770,10 +177,7 @@
 		}
 	}
 
-
-
 	@media (prefers-reduced-motion: reduce) {
-
 		.spinner {
 			animation: none;
 		}
