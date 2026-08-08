@@ -151,7 +151,7 @@
 	.closer {
 		position: fixed;
 		left: var(--map-cx, 50%);
-		top: var(--map-cy, 50%);
+		top: var(--cup-y, 50%);
 		width: 44px;
 		height: 44px;
 		margin: -22px;

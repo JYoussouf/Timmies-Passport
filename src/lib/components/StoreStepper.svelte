@@ -249,14 +249,14 @@
 	.ring {
 		position: fixed;
 		left: var(--map-cx, 50%);
-		top: var(--map-cy, 50%);
+		top: var(--cup-y, 50%);
 		width: 0;
 		height: 0;
 	}
 
 	.btn {
 		--size: 30px;
-		--radius: 54px;
+		--radius: 46px;
 		position: absolute;
 		display: grid;
 		place-items: center;
@@ -321,7 +321,7 @@
 	@media (min-width: 900px) {
 		.btn {
 			--size: 34px;
-			--radius: 62px;
+			--radius: 52px;
 		}
 	}
 </style>

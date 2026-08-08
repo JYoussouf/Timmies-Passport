@@ -391,9 +391,10 @@
 		width: min(360px, calc(100vw - 28px));
 		/*
 		 * Stops short of the cup rather than at some fraction of the window.
-		 * --map-cy is the map's real centre, which is where a selected store
-		 * sits; the 52px keeps clear of the cup and its reticle. Falls back to
-		 * half the viewport for the instant before the map has measured.
+		 * A selected store sits at --cup-y (the map's centre plus the select
+		 * drop); stopping 52px above the *centre* leaves that 52px plus the
+		 * drop for the stepper's up arrow and the cup's reticle. Falls back
+		 * to half the viewport for the instant before the map has measured.
 		 */
 		max-height: calc(var(--map-cy, 50dvh) - var(--safe-top) - 66px - 52px);
 		/*

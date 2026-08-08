@@ -322,14 +322,16 @@
 	const APPROACH_ZOOM = STREET_ZOOM - 3;
 
 	/**
-	 * Selecting a store puts it dead centre.
-	 *
-	 * An earlier version offset it to sit between the card and the bottom dock,
-	 * on the reasoning that the middle of the window is not the middle of the
-	 * visible map. That was over-thought: the card is docked under the top bar,
-	 * so the true centre is already clear of it, and anywhere else just reads as
-	 * off-centre.
+	 * A selected store lands this many pixels below the map's centre rather
+	 * than on it. The check-in card hangs from the top of the screen, so dead
+	 * centre put the cup - and the stepper ring around it - hard against the
+	 * card's bottom edge while leaving empty map below. The drop gives the
+	 * ring even air on all four sides. Published to CSS as --cup-y so
+	 * everything anchored to the cup (the ring, the zoom-in hotspot) moves
+	 * with it.
 	 */
+	const SELECT_DROP = 40;
+
 	function focusStore(center: [number, number], closer = false) {
 		if (!map) return;
 		const zoom = Math.max(map.getZoom(), closer ? STREET_ZOOM : APPROACH_ZOOM);
@@ -339,7 +341,7 @@
 		 * it drifts and lands off-target - the reason a first tap missed and a
 		 * second, now a short hop, worked. flyTo is built for exactly this.
 		 */
-		map.flyTo({ center, zoom, duration: 900, essential: true });
+		map.flyTo({ center, zoom, offset: [0, SELECT_DROP], duration: 900, essential: true });
 	}
 
 	export function flyTo(center: [number, number], zoom = STREET_ZOOM) {
@@ -348,7 +350,13 @@
 
 	/** The second half of the approach, from neighbourhood to storefront. */
 	export function goCloser(center: [number, number]) {
-		map?.flyTo({ center, zoom: STREET_ZOOM, duration: 700, essential: true });
+		map?.flyTo({
+			center,
+			zoom: STREET_ZOOM,
+			offset: [0, SELECT_DROP],
+			duration: 700,
+			essential: true
+		});
 	}
 
 	/**
@@ -362,6 +370,7 @@
 		map.flyTo({
 			center,
 			zoom: Math.max(map.getZoom(), APPROACH_ZOOM),
+			offset: [0, SELECT_DROP],
 			duration: 700,
 			essential: true
 		});
@@ -596,6 +605,7 @@
 			const r = canvas.getBoundingClientRect();
 			root.style.setProperty('--map-cx', `${Math.round(r.left + r.width / 2)}px`);
 			root.style.setProperty('--map-cy', `${Math.round(r.top + r.height / 2)}px`);
+			root.style.setProperty('--cup-y', `${Math.round(r.top + r.height / 2) + SELECT_DROP}px`);
 		};
 		sync();
 		const ro = new ResizeObserver(sync);
@@ -606,6 +616,7 @@
 			window.removeEventListener('resize', sync);
 			root.style.removeProperty('--map-cx');
 			root.style.removeProperty('--map-cy');
+			root.style.removeProperty('--cup-y');
 		};
 	}
 
