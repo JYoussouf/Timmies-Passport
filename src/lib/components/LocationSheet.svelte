@@ -63,8 +63,16 @@
 		});
 	}
 
+	/*
+	 * Countries where Google has no Street View coverage at all. The Embed
+	 * API does not error there - it serves a black void with an attribution
+	 * bar - so these get a plain sentence instead of a dead screen.
+	 */
+	const NO_STREET_VIEW = new Set(['China', 'Pakistan', 'Egypt']);
+	const svUnavailable = $derived(!!loc && NO_STREET_VIEW.has(loc.country ?? ''));
+
 	const streetUrl = $derived(
-		coords && mapsKey
+		coords && mapsKey && !svUnavailable
 			? `https://www.google.com/maps/embed/v1/streetview?key=${mapsKey}&location=${coords[1]},${coords[0]}&heading=0&pitch=0&fov=90`
 			: ''
 	);
@@ -338,6 +346,8 @@
 						allowfullscreen
 					></iframe>
 				</div>
+			{:else if svUnavailable}
+				<p class="sv-none">Street View isn't available in {loc.country}.</p>
 			{/if}
 
 				<button
@@ -547,6 +557,13 @@
 	 * room, over the cup if it has to; that is the right trade for a visitor
 	 * who just asked to see the storefront.
 	 */
+	/* Stands where the imagery would: a fact, not an error. */
+	.sv-none {
+		margin: 0 0 0.55rem;
+		font-size: 0.78rem;
+		color: var(--cream-faint);
+	}
+
 	.street-view.pinned {
 		flex: none;
 		height: 150px;

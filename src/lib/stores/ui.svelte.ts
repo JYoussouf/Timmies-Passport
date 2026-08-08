@@ -23,6 +23,9 @@ class UI {
 	   screen for its second and a bit. */
 	stamping = $state(false);
 
+	/* True while the map camera is in motion - flights and manual pans alike. */
+	mapMoving = $state(false);
+
 	select(id: string | null) {
 		this.selectedId = id;
 	}

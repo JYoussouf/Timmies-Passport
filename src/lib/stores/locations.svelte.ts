@@ -206,9 +206,16 @@ class LocationStore {
 			let off = bearing - heading;
 			while (off > 180) off -= 360;
 			while (off < -180) off += 360;
-			if (Math.abs(off) > 45) continue;
+			/*
+			 * A generous cone, not a strict quadrant. At +/-45 a store sitting
+			 * plainly "up and a bit east" belonged to neither arrow and both
+			 * showed disabled - baffling with the cup right there on screen.
+			 * The cones overlap now, and the off-axis penalty below keeps each
+			 * arrow preferring the store most truly in its direction.
+			 */
+			if (Math.abs(off) > 60) continue;
 
-			const dist = dx * dx + dy * dy;
+			const dist = (dx * dx + dy * dy) / Math.cos((off * Math.PI) / 180);
 			if (dist >= bestDist) continue;
 			const props = this.index.get(id);
 			if (!props || !allow(props)) continue;

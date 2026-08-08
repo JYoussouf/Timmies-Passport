@@ -285,6 +285,10 @@
 		map.on('mouseenter', 'clusters', () => (map!.getCanvas().style.cursor = 'pointer'));
 		map.on('mouseleave', 'clusters', () => (map!.getCanvas().style.cursor = ''));
 
+		/* The stepper dims itself while the camera is travelling. */
+		map.on('movestart', () => (ui.mapMoving = true));
+		map.on('moveend', () => (ui.mapMoving = false));
+
 		ready = true;
 	}
 

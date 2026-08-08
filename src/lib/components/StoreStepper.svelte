@@ -113,24 +113,6 @@
 	 * buttons' current rects: a slid arrow no longer collides, and measuring
 	 * it where it is would clear the slide and oscillate.
 	 */
-	/*
-	 * The ring dips out while the map is in flight to the next store and
-	 * fades back in on arrival, so it reads as travelling with you rather
-	 * than as a fixed HUD the map slides beneath. Timed rather than wired to
-	 * the map's moveend: the flights this component causes are 700-900ms,
-	 * and a timer keeps the ring ignorant of the map object.
-	 */
-	let inFlight = $state(false);
-	let flightTimer = 0;
-	$effect(() => {
-		void ui.selectedId;
-		if (!here) return;
-		inFlight = true;
-		clearTimeout(flightTimer);
-		flightTimer = window.setTimeout(() => (inFlight = false), 720);
-		return () => clearTimeout(flightTimer);
-	});
-
 	let ringEl = $state<HTMLElement>();
 	let btnEls: Partial<Record<DirKey, HTMLButtonElement>> = $state({});
 	let covered = $state<Record<DirKey, boolean>>({
@@ -213,7 +195,7 @@
 
 {#if here && !ui.stamping}
 	<div class="stepper" aria-label="Jump to the nearest store in a direction">
-		<div class="ring" class:flight={inFlight} bind:this={ringEl}>
+		<div class="ring" class:flight={ui.mapMoving} bind:this={ringEl}>
 			{#each DIRECTIONS as d (d.key)}
 				{@const target = targets[d.key]}
 				<button
@@ -270,14 +252,13 @@
 		top: var(--cup-y, 50%);
 		width: 0;
 		height: 0;
-		/* Landing is slower than leaving: the departure should feel like the
-		   ring letting go, the arrival like it settling back around the cup. */
+		/* Dimmed while the camera moves, back the instant it stops - the map's
+		   own movestart/moveend are the clock, not a timer's guess. */
 		opacity: 1;
-		transition: opacity 0.3s ease 0.05s;
+		transition: opacity 0.12s ease;
 	}
 	.ring.flight {
-		opacity: 0;
-		transition: opacity 0.15s ease;
+		opacity: 0.35;
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.ring,
