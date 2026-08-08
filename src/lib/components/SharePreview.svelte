@@ -18,24 +18,37 @@
 		`I've been to ${stats.count.toLocaleString()} out of ${stats.total.toLocaleString()} Timmies around the world. What about you? ${SITE_URL}`
 	);
 
-	async function composeShareImage(
-		source: Blob,
-		s: ReturnType<typeof passportStats>
-	): Promise<Blob> {
-		const mapDataUrl = await new Promise<string>((resolve, reject) => {
+	function blobToDataUrl(source: Blob): Promise<string> {
+		return new Promise<string>((resolve, reject) => {
 			const reader = new FileReader();
 			reader.onload = () => resolve(reader.result as string);
 			reader.onerror = () => reject(reader.error);
 			reader.readAsDataURL(source);
 		});
+	}
+
+	/** The official 8-bit cup, fetched once and reused across renders. */
+	let cupDataUrl: string | null = null;
+	async function loadCup(): Promise<string> {
+		if (!cupDataUrl) {
+			const res = await fetch('/art/coffee-cup-8bit.png');
+			cupDataUrl = await blobToDataUrl(await res.blob());
+		}
+		return cupDataUrl;
+	}
+
+	async function composeShareImage(
+		source: Blob,
+		s: ReturnType<typeof passportStats>
+	): Promise<Blob> {
+		const [mapDataUrl, cup] = await Promise.all([blobToDataUrl(source), loadCup()]);
 
 		const width = 1400;
 		const height = 1050;
 
-		const progress = Math.max(
-			0.02,
-			Math.min(1, s.count / Math.max(1, s.total))
-		);
+		const pct = Math.min(1, s.count / Math.max(1, s.total));
+		// The bar keeps a visible sliver even at one stamp; the text stays honest.
+		const progress = Math.max(0.02, pct);
 
 		const svg = `
 		<svg xmlns="http://www.w3.org/2000/svg"
@@ -88,46 +101,24 @@
 
 
 			<!-- HEADER -->
-			<g transform="translate(55 55)">
+			<g transform="translate(55 45)">
 
-				<!-- cup -->
-				<path
-					d="M0 15h55v45c0 16-12 28-28 28S0 76 0 60z"
-					fill="#c51f2c"/>
-
-				<path
-					d="M55 25h15c20 0 25 30 0 38H55"
-					fill="none"
-					stroke="#f4e7cf"
-					stroke-width="7"/>
-
-				<rect
-					width="55"
-					height="10"
-					rx="3"
-					fill="#f4e7cf"/>
-
+				<!-- the official 8-bit cup -->
+				<image
+					href="${cup}"
+					x="0"
+					y="0"
+					width="62"
+					height="89"/>
 
 				<text
-					x="85"
-					y="38"
+					x="90"
+					y="60"
 					fill="#f1b83e"
 					font-family="Arial"
 					font-size="42"
 					font-weight="900">
 					MY TIMMIES PASSPORT
-				</text>
-
-				<text
-					x="88"
-					y="70"
-					fill="#f4e7cf"
-					opacity=".55"
-					font-family="Arial"
-					font-size="14"
-					font-weight="700"
-					letter-spacing="4">
-					YOUR COFFEE JOURNEY
 				</text>
 
 			</g>
@@ -171,91 +162,109 @@
 			<!-- STATS -->
 			<text
 				x="55"
-				y="785"
+				y="800"
 				fill="#f4e7cf"
 				font-family="Arial"
-				font-size="14"
-				font-weight="800"
-				letter-spacing="4">
-				THE JOURNEY SO FAR
+				font-size="26"
+				font-weight="700">
+				I've been to
 			</text>
-
 
 			<text
 				x="55"
-				y="860"
-				fill="#f1b83e"
-				font-family="Arial"
-				font-size="82"
-				font-weight="900">
-				${s.count.toLocaleString()}
-			</text>
-
-			<text
-				x="310"
-				y="860"
-				fill="#f4e7cf"
-				opacity=".6"
-				font-family="Arial"
-				font-size="32"
-				font-weight="700">
-				/ ${s.total.toLocaleString()}
+				y="880"
+				font-family="Arial">
+				<tspan
+					fill="#f1b83e"
+					font-size="82"
+					font-weight="900">${s.count.toLocaleString()}</tspan>
+				<tspan
+					dx="14"
+					fill="#f4e7cf"
+					opacity=".6"
+					font-size="32"
+					font-weight="700">/ ${s.total.toLocaleString()} Tim Hortons</tspan>
 			</text>
 
 
-			<!-- SIDE STATS -->
-			<rect
-				x="970"
-				y="755"
-				width="375"
-				height="110"
-				rx="10"
-				fill="#101722"
-				opacity=".8"/>
+			<!-- SIDE BARS: countries and provinces, small cousins of the big bar -->
+			<g transform="translate(970 770)">
+				<text
+					x="0"
+					y="0"
+					fill="#f4e7cf"
+					opacity=".5"
+					font-family="Arial"
+					font-size="13"
+					font-weight="700"
+					letter-spacing="3">
+					COUNTRIES
+				</text>
+				<text
+					x="375"
+					y="0"
+					text-anchor="end"
+					fill="#f1b83e"
+					font-family="Arial"
+					font-size="16"
+					font-weight="900">
+					${s.countries} / ${s.countryTotal}
+				</text>
+				<rect
+					x="0"
+					y="10"
+					width="375"
+					height="8"
+					rx="4"
+					fill="#f4e7cf"
+					opacity=".15"/>
+				<rect
+					x="0"
+					y="10"
+					width="${375 * Math.max(0.015, Math.min(1, s.countries / Math.max(1, s.countryTotal)))}"
+					height="8"
+					rx="4"
+					fill="url(#bar)"/>
+			</g>
 
-
-			<text
-				x="1005"
-				y="805"
-				fill="#f1b83e"
-				font-family="Arial"
-				font-size="34"
-				font-weight="900">
-				${s.countries}
-			</text>
-
-			<text
-				x="1005"
-				y="835"
-				fill="#f4e7cf"
-				opacity=".5"
-				font-family="Arial"
-				font-size="12"
-				letter-spacing="3">
-				COUNTRIES
-			</text>
-
-
-			<text
-				x="1170"
-				y="805"
-				fill="#f1b83e"
-				font-family="Arial"
-				font-size="34"
-				font-weight="900">
-				${s.provinces}
-			</text>
-
-			<text
-				x="1170"
-				y="835"
-				fill="#f4e7cf"
-				opacity=".5"
-				font-family="Arial"
-				font-size="12"
-				letter-spacing="3">
-				PROVINCES
-			</text>
+			<g transform="translate(970 830)">
+				<text
+					x="0"
+					y="0"
+					fill="#f4e7cf"
+					opacity=".5"
+					font-family="Arial"
+					font-size="13"
+					font-weight="700"
+					letter-spacing="3">
+					PROVINCES
+				</text>
+				<text
+					x="375"
+					y="0"
+					text-anchor="end"
+					fill="#f1b83e"
+					font-family="Arial"
+					font-size="16"
+					font-weight="900">
+					${s.provinces} / ${s.provinceTotal}
+				</text>
+				<rect
+					x="0"
+					y="10"
+					width="375"
+					height="8"
+					rx="4"
+					fill="#f4e7cf"
+					opacity=".15"/>
+				<rect
+					x="0"
+					y="10"
+					width="${375 * Math.max(0.015, Math.min(1, s.provinces / Math.max(1, s.provinceTotal)))}"
+					height="8"
+					rx="4"
+					fill="url(#bar)"/>
+			</g>
 
 
 			<!-- PROGRESS -->
@@ -278,49 +287,37 @@
 
 
 			<text
-				x="55"
-				y="970"
-				fill="#f4e7cf"
-				opacity=".35"
-				font-family="Arial"
-				font-size="11"
-				font-weight="800"
-				letter-spacing="3">
-				COLLECTING THE WORLD
-			</text>
-
-
-			<text
 				x="1345"
-				y="970"
+				y="978"
 				text-anchor="end"
 				fill="#f1b83e"
 				font-family="Arial"
-				font-size="12"
+				font-size="30"
 				font-weight="900">
-				${(progress * 100).toFixed(1)}%
+				${(pct * 100).toFixed(1)}%
 			</text>
 
 
 			<!-- FOOTER -->
 			<text
 				x="55"
-				y="1020"
+				y="1022"
 				fill="#f4e7cf"
-				opacity=".35"
+				opacity=".55"
 				font-family="Arial"
-				font-size="10">
+				font-size="18"
+				font-weight="700">
 				mytimmiespassport.com
 			</text>
 
 			<text
 				x="1345"
-				y="1020"
+				y="1022"
 				text-anchor="end"
 				fill="#f4e7cf"
-				opacity=".25"
+				opacity=".4"
 				font-family="Arial"
-				font-size="9">
+				font-size="14">
 				NOT AFFILIATED WITH TIM HORTONS OR RESTAURANT BRANDS INTERNATIONAL
 			</text>
 
@@ -450,39 +447,32 @@
 	<div class="overlay" transition:fade={{ duration: 160 }}>
 		<button class="scrim" aria-label="Close" onclick={close}></button>
 
-		<div class="modal" transition:scale={{ start: 0.96, duration: 200 }}>
-			<div class="cap pixel">
-				Share
-				<button class="x" aria-label="Close" onclick={close}>×</button>
-			</div>
+		<div class="top pixel">
+			<span>Share</span>
+			<button class="x" aria-label="Close" onclick={close}>×</button>
+		</div>
 
-			<div class="preview">
-				{#if status === 'rendering'}
-					<div class="state">
-						<span class="spinner"></span>
-						<p>Rendering your passport…</p>
-					</div>
+		<div class="stage" transition:scale={{ start: 0.96, duration: 200 }}>
+			{#if status === 'rendering'}
+				<div class="state">
+					<span class="spinner"></span>
+					<p>Rendering your passport…</p>
+				</div>
 
-				{:else if status === 'error'}
-					<div class="state">
-						<p>Could not render your passport.</p>
-						<button class="pbtn" onclick={shareIt}>
-							Share text instead
-						</button>
-					</div>
+			{:else if status === 'error'}
+				<div class="state">
+					<p>Could not render your passport.</p>
+					<button class="pbtn" onclick={shareIt}>
+						Share text instead
+					</button>
+				</div>
 
-				{:else}
-					<div class="share-art">
-						<img
-							src={imageUrl}
-							alt="My Timmies Passport journey map"
-						/>
-					</div>
-				{/if}
-			</div>
+			{:else}
+				<img
+					src={imageUrl}
+					alt="My Timmies Passport journey map"
+				/>
 
-
-			{#if status !== 'rendering'}
 				<button
 					class="pbtn pbtn-gold go"
 					onclick={shareIt}
@@ -510,52 +500,35 @@
 	.scrim {
 		position: absolute;
 		inset: 0;
-		background: rgba(11, 21, 36, 0.82);
+		background: rgba(11, 21, 36, 0.97);
 		border: none;
 	}
 
 
-	.modal {
-		position: relative;
-		width: min(620px, 100%);
-		max-height: calc(100dvh - 2rem);
-		display: flex;
-		flex-direction: column;
-
-		background: var(--cabinet);
-
-		border-top: 3px solid var(--cabinet-hi);
-		border-left: 3px solid var(--cabinet-hi);
-		border-right: 3px solid var(--cabinet-lo);
-		border-bottom: 3px solid var(--cabinet-lo);
-
-		box-shadow: var(--bevel-lg);
-	}
-
-
-	.cap {
-		flex: none;
+	/* No window around the artwork: a floating title row, the image itself,
+	   and the share button sitting right on top of it. */
+	.top {
+		position: absolute;
+		top: calc(var(--safe-top, 0px) + 0.8rem);
+		left: 0;
+		right: 0;
 
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 
-		padding: 0.65rem 0.65rem 0.65rem 0.9rem;
+		padding: 0 1rem 0 1.2rem;
 
-		font-size: 0.45rem;
+		font-size: 0.85rem;
 		color: var(--gold);
-
-		background: var(--screen-deep);
-
-		border-bottom: 2px solid var(--cabinet-lo);
 	}
 
 
 	.x {
-		width: 28px;
-		height: 28px;
+		width: 40px;
+		height: 40px;
 
-		font-size: 1.1rem;
+		font-size: 1.6rem;
 		line-height: 1;
 
 		color: var(--cream-dim);
@@ -567,48 +540,39 @@
 
 
 
-	.preview {
+	.stage {
 		position: relative;
 
-		flex: 1;
-
-		min-height: 240px;
-
 		display: flex;
-
-		overflow: auto;
-
-		background:
-			radial-gradient(
-				circle at top,
-				rgba(241,184,62,.12),
-				transparent 40%
-			),
-			#111720;
 	}
 
 
-	.share-art {
-		width: 100%;
-		padding: 1rem;
-
-		display: flex;
-		justify-content: center;
-	}
-
-
-	.share-art img {
-		width: min(100%, 560px);
-
-		height: auto;
-
+	.stage img {
 		display: block;
 
-		border-radius: 4px;
+		max-width: min(92vw, 720px);
+		max-height: calc(100dvh - 8rem);
 
-		box-shadow:
-			0 30px 70px rgba(0,0,0,.45),
-			0 0 0 1px rgba(255,255,255,.08);
+		width: auto;
+		height: auto;
+
+		border-radius: 6px;
+
+		box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+	}
+
+
+	.go {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+
+		padding: 0.95rem 1.5rem;
+
+		font-size: 0.6rem;
+
+		box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
 	}
 
 
@@ -650,31 +614,6 @@
 	@keyframes spin {
 		to {
 			transform: rotate(360deg);
-		}
-	}
-
-
-
-	.go {
-		align-self: flex-end;
-
-		margin: .8rem;
-
-		padding: .85rem 1.3rem;
-
-		font-size: .6rem;
-	}
-
-
-
-	@media (max-width: 520px) {
-
-		.share-art {
-			padding: .5rem;
-		}
-
-		.go {
-			width: calc(100% - 1.6rem);
 		}
 	}
 
